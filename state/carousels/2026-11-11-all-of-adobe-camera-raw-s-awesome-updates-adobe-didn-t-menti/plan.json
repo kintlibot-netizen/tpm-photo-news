@@ -1,0 +1,136 @@
+{
+  "product": {
+    "text": "Camera Raw",
+    "quote": "Removing window reflections in Adobe Camera Raw"
+  },
+  "cover": {
+    "label": "NEW IN CAMERA RAW",
+    "headline": {
+      "text": "REFLECTION REMOVAL",
+      "quote": "In this blog we describe Reflection Removal, a new technology that can eliminate reflections from photographs taken through windows with a single click."
+    },
+    "subline": {
+      "text": "Remove window reflections with a single click.",
+      "quote": "a new technology that can eliminate reflections from photographs taken through windows with a single click"
+    }
+  },
+  "slides": [
+    {
+      "template": "left_body",
+      "label": "NEW TOOL",
+      "headline": {
+        "text": "REFLECTION REMOVAL",
+        "quote": "In this blog we describe Reflection Removal, a new technology that can eliminate reflections from photographs taken through windows with a single click."
+      },
+      "accent": null,
+      "body": {
+        "text": "Eliminate reflections from photos taken through windows with a single click.",
+        "quote": "a new technology that can eliminate reflections from photographs taken through windows with a single click"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "HOW IT WORKS",
+      "headline": {
+        "text": "NOT GENERATIVE AI",
+        "quote": "Our technology is powered by AI, but it's not generative AI."
+      },
+      "accent": null,
+      "body": {
+        "text": "The model never creates objects that were not in the original photograph.",
+        "quote": "because our model is not generative AI, it will never create objects that weren’t present in the original photograph"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "HOW TO USE IT",
+      "headline": {
+        "text": "SLIDE FROM 100 TO -100",
+        "quote": "Keep moving it to the left, to -100, and you'll see the model’s prediction of the scene that was reflected in the window."
+      },
+      "accent": null,
+      "body": {
+        "text": "Pull the slider to -100 and see the scene that was reflected in the window.",
+        "quote": "Keep moving it to the left, to -100, and you'll see the model’s prediction of the scene that was reflected in the window."
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "GOOD TO KNOW",
+      "headline": {
+        "text": "WORKS ON RAW PHOTOS",
+        "quote": "For now, our technology works only on raw photos (DNGs, CR2s, ARWs, ProRAWs, etc.)"
+      },
+      "accent": null,
+      "body": {
+        "text": "For now it works on raw files such as DNGs, CR2s, ARWs and ProRAWs.",
+        "quote": "For now, our technology works only on raw photos (DNGs, CR2s, ARWs, ProRAWs, etc.)"
+      },
+      "specs": []
+    }
+  ],
+  "comparison": null,
+  "price": {
+    "label": "PRICE + AVAILABILITY",
+    "prices": [],
+    "availability": {
+      "text": "Available now as a Technology Preview, coming soon to Lightroom.",
+      "quote": "Reflection Removal is available now in Camera Raw as a Technology Preview, to get feedback from the community, and will be coming soon to Lightroom."
+    },
+    "quick_take": {
+      "sentence": {
+        "text": "Reflection Removal is available now as a Technology Preview.",
+        "quote": "Reflection Removal is available now in Camera Raw as a Technology Preview"
+      },
+      "question": {
+        "text": "Would you try it?",
+        "quote": ""
+      }
+    }
+  },
+  "captions": {
+    "david": {
+      "hook": {
+        "text": "You can remove reflections from a window photo with a single click.",
+        "quote": "a new technology that can eliminate reflections from photographs taken through windows with a single click"
+      },
+      "facts": [
+        {
+          "text": "The AI is not generative, so it never adds objects that were not in your photo.",
+          "quote": "because our model is not generative AI, it will never create objects that weren’t present in the original photograph"
+        },
+        {
+          "text": "A slider that goes to -100 even reveals the scene that was reflected in the window.",
+          "quote": "Keep moving it to the left, to -100, and you'll see the model’s prediction of the scene that was reflected in the window."
+        }
+      ],
+      "closing": {
+        "text": "Would you shoot through windows more often now?",
+        "quote": ""
+      }
+    },
+    "tpm": {
+      "hook": {
+        "text": "You can remove reflections from a window photo with a single click.",
+        "quote": "a new technology that can eliminate reflections from photographs taken through windows with a single click"
+      },
+      "facts": [
+        {
+          "text": "Raw files like DNGs, CR2s, ARWs and ProRAWs are supported for now.",
+          "quote": "For now, our technology works only on raw photos (DNGs, CR2s, ARWs, ProRAWs, etc.)"
+        },
+        {
+          "text": "The AI is not generative, so it never adds objects that were not in your photo.",
+          "quote": "because our model is not generative AI, it will never create objects that weren’t present in the original photograph"
+        }
+      ],
+      "closing": {
+        "text": "Which window shot would you try this on first?",
+        "quote": ""
+      }
+    }
+  }
+}

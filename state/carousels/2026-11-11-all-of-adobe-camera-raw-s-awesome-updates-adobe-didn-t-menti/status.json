@@ -1,0 +1,42 @@
+{
+  "status": "rejected",
+  "history": [
+    {
+      "event": "built",
+      "at": "2026-11-10T21:17:37+00:00"
+    },
+    {
+      "event": "rejected",
+      "at": "2026-11-13T14:30:00+00:00",
+      "reason": "Rebuild check: the only official page found is a December 2024 Adobe post about Reflection Removal, not the Camera Raw 19.0 updates this story reports, and 4 of 5 slides have no official image. Rebuild with --story 12 --official-url once Adobe publishes a page for Camera Raw 19.0.",
+      "rejected_at": "2026-11-13T14:30:00+00:00"
+    }
+  ],
+  "build": {
+    "slides": 5,
+    "confirmed": 22,
+    "removed_count": 0,
+    "removed": [],
+    "missing": [
+      "02.jpg",
+      "03.jpg",
+      "04.jpg",
+      "05.jpg"
+    ],
+    "placed": [
+      "01.jpg"
+    ],
+    "design_summary": "Design check: 0 fail, 3 warn.",
+    "design_fail": 0,
+    "design_warn": 3,
+    "captions_words": {
+      "david": 58,
+      "tpm": 55
+    },
+    "official_url": "https://blog.adobe.com/en/publish/2024/12/12/removing-window-reflections-adobe-camera-raw",
+    "title": "All of Adobe Camera RAW’s Awesome Updates Adobe Didn’t Mention"
+  },
+  "built_at": "2026-11-10T21:17:37+00:00",
+  "reason": "Rebuild check: the only official page found is a December 2024 Adobe post about Reflection Removal, not the Camera Raw 19.0 updates this story reports, and 4 of 5 slides have no official image. Rebuild with --story 12 --official-url once Adobe publishes a page for Camera Raw 19.0.",
+  "rejected_at": "2026-11-13T14:30:00+00:00"
+}

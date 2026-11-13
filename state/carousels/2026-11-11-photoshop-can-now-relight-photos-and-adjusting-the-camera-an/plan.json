@@ -1,0 +1,152 @@
+{
+  "product": {
+    "text": "Photoshop",
+    "quote": "Photoshop enables greater precision, creative exploration and flexibility"
+  },
+  "cover": {
+    "label": "ADOBE MAX 2026",
+    "headline": {
+      "text": "Photoshop",
+      "quote": "Photoshop enables greater precision, creative exploration and flexibility"
+    },
+    "subline": {
+      "text": "NEW LIGHT SOURCES THAT BLEND INTO THE SCENE",
+      "quote": "Relight creatively adds new light sources that dynamically and naturally blend into the scene"
+    },
+    "subline_alt": {
+      "text": "RELIGHT CREATIVELY ADDS NEW LIGHT SOURCES",
+      "quote": "Relight creatively adds new light sources that dynamically and naturally blend into the scene"
+    }
+  },
+  "slides": [
+    {
+      "template": "left_body",
+      "label": "NEW TOOL",
+      "headline": {
+        "text": "RELIGHT",
+        "quote": "Relight creatively adds new light sources"
+      },
+      "accent": {
+        "text": "ADD NEW LIGHT SOURCES",
+        "quote": "Relight creatively adds new light sources"
+      },
+      "body": {
+        "text": "Adjust the position, color and brightness of each new light source.",
+        "quote": "allowing you to adjust their position, color and brightness to bring your vision to life"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "NEW TOOL",
+      "headline": {
+        "text": "GENERATIVE RESTYLE",
+        "quote": "With Generative Restyle, you can explore and fine-tune creative variations"
+      },
+      "accent": {
+        "text": "REFINE INTENSITY WITH A SLIDER",
+        "quote": "using the generated custom slider to precisely refine the intensity"
+      },
+      "body": {
+        "text": "Type a description in Prompt to edit, then refine it without prompting again.",
+        "quote": "typing a description in Prompt to edit, converting the result to a layer, and using the generated custom slider to precisely refine the intensity without needing to re-prompt"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "EVERYDAY EDITING",
+      "headline": {
+        "text": "REMOVE TOOL",
+        "quote": "The Remove Tool (related elements) now intelligently detects associated surrounding elements"
+      },
+      "accent": {
+        "text": "DETECTS SHADOWS AND REFLECTIONS",
+        "quote": "detects associated surrounding elements, such as footprints, reflections, shadows and waves"
+      },
+      "body": {
+        "text": "It detects footprints, reflections, shadows and waves around a removed object.",
+        "quote": "detects associated surrounding elements, such as footprints, reflections, shadows and waves, to more seamlessly reconstruct an environment when removing an object"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "EVERYDAY EDITING",
+      "headline": {
+        "text": "QUICK COMPARE",
+        "quote": "Quick Compare makes it easier to review your edits"
+      },
+      "accent": {
+        "text": "SPLIT SCREEN BEFORE AND AFTER",
+        "quote": "instantly comparing before-and-after versions with an on-canvas split screen slider"
+      },
+      "body": {
+        "text": "Compare before and after without hiding layers one by one.",
+        "quote": "without having to manually hide individual layers"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "NEW IN PHOTOSHOP BETA",
+      "headline": {
+        "text": "CAMERA ANGLES",
+        "quote": "Camera Angles (beta) to explore new viewpoints of an entire image through direct, on-canvas interactions"
+      },
+      "accent": {
+        "text": "EXPLORE NEW VIEWPOINTS",
+        "quote": "to explore new viewpoints of an entire image"
+      },
+      "body": {
+        "text": "Interact directly on the canvas with the entire image.",
+        "quote": "of an entire image through direct, on-canvas interactions"
+      },
+      "specs": []
+    }
+  ],
+  "comparison": null,
+  "price": null,
+  "captions": {
+    "david": {
+      "hook": {
+        "text": "My favorite Photoshop update is all about light.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "Relight lets me add new light sources and adjust position, color and brightness.",
+          "quote": "Relight creatively adds new light sources that dynamically and naturally blend into the scene using non-destructive control, allowing you to adjust their position, color and brightness"
+        },
+        {
+          "text": "Quick Compare gives me an on canvas split screen slider.",
+          "quote": "instantly comparing before-and-after versions with an on-canvas split screen slider"
+        }
+      ],
+      "closing": {
+        "text": "Which of these would you try first?",
+        "quote": ""
+      }
+    },
+    "tpm": {
+      "hook": {
+        "text": "We think Relight is the one to try first.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "You can add new light sources and adjust position, color and brightness.",
+          "quote": "adds new light sources that dynamically and naturally blend into the scene using non-destructive control, allowing you to adjust their position, color and brightness"
+        },
+        {
+          "text": "Remove Tool now detects shadows and reflections around what you remove.",
+          "quote": "The Remove Tool (related elements) now intelligently detects associated surrounding elements, such as footprints, reflections, shadows and waves"
+        }
+      ],
+      "closing": {
+        "text": "Would you use Relight on your photos?",
+        "quote": ""
+      }
+    }
+  }
+}
