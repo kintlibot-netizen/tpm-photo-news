@@ -1,0 +1,36 @@
+# This repository is PUBLIC. Nothing secret or personal may be committed.
+# Before every commit: python scripts/check_public_safe.py
+
+# Secrets. Never commit these.
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local data made by the watcher (the shared memory is in state/, see src/cloud_state.py)
+data/
+output/
+dashboard/
+*.log
+*.sqlite-journal
+state/*.tmp
+state/.*
+
+# Old backups, round reports, consoles and runner files: they hold paths from Kint's PC
+backups/
+docs/history/
+claude-*.md
+*-console*.md
+*-pytest*.txt
+*-dryrun*.txt
+*-export*.txt
+*-build*.txt
+*-done*.txt
+*-msg*.txt
+run-*.ps1
+scripts/run-*.ps1

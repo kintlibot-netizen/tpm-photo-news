@@ -1,0 +1,307 @@
+﻿# Free keyword rules that decide which stories are worth a closer look.
+# Words match whole words in the headline, upper or lower case.
+# If alerts are too noisy, add words to skip_words.
+
+# Only stories published in the last few days are considered.
+max_age_hours: 72
+
+# Articles within this many days can count as the same story, so a launch
+# is not alerted again when later coverage appears.
+same_story_window_days: 180
+title_similarity: 0.6
+
+# The Claude model used for the second look. Haiku uses the least plan usage.
+claude_model: haiku
+
+# Kint's rule: a rumor is alerted only once this many different sites report it.
+rumor_min_sources: 2
+
+brands:
+  Canon: [canon]
+  Nikon: [nikon]
+  Sony: [sony]
+  Fujifilm: [fujifilm, fuji]
+  Panasonic: [panasonic, lumix]
+  OM System: [om system, olympus]
+  Leica: [leica]
+  Hasselblad: [hasselblad]
+  DJI: [dji]
+  Sigma: [sigma]
+  Tamron: [tamron]
+  Tokina: [tokina]
+  Viltrox: [viltrox]
+  Samyang: [samyang]
+  Ricoh: [ricoh, pentax]
+  Adobe: [adobe, photoshop, lightroom, camera raw]
+  # Camera and lens makers.
+  Zeiss: [zeiss]
+  Voigtlander: [voigtlander, voigtländer]
+  Laowa: [laowa, venus optics]
+  TTArtisan: [ttartisan, tt artisan]
+  7Artisans: [7artisans, 7 artisans]
+  Meike: [meike]
+  Sirui: [sirui]
+  Phase One: [phase one]
+  Kodak: [kodak]  # needs a camera, film or photo word (see name_guards)
+  Ilford: [ilford]
+  Blackmagic Design: [blackmagic]
+  RED: [red digital cinema, red komodo, red v-raptor, red raptor, red monstro, red helium, red gemini, red dragon]
+  Insta360: [insta360]
+  GoPro: [gopro]
+  # Lighting makers.
+  Godox: [godox]
+  Profoto: [profoto]
+  Nanlite: [nanlite]
+  Aputure: [aputure]
+  # Storage makers.
+  SanDisk: [sandisk]
+  Lexar: [lexar]
+  ProGrade: [prograde]
+
+# A name that is also an ordinary word only counts when one of these words is in the same text
+# (or a model number follows it, as in "Sigma 85mm"). Keys are brand or software names, lower case.
+name_guards:
+  sigma: [lens, lenses, camera, cameras, mirrorless, dslr, art, contemporary, sport, fp, dg, dn, teleconverter, firmware]
+  kodak: [camera, cameras, film, films, photo, photos, photography]
+  luminar: [neo, photo, photos, editor, editing, skylum, update, release, ai]
+  gimp: [photo, photos, editor, editing, software, image, version, update, release]
+  on1: [photo, photos, raw, editor, software, update, release]
+
+# Checked in order. The first match sets the category.
+categories:
+  - {id: photoshop, words: [photoshop]}
+  - {id: lightroom, words: [lightroom]}
+  - {id: camera-raw, words: [camera raw]}
+  - {id: firmware, words: [firmware]}
+  - {id: lens, words: [lens, lenses, prime, zoom, teleconverter]}
+  - {id: lighting, words: [godox, profoto, nanlite, aputure, strobe, strobes, softbox]}
+  - {id: storage, words: [sandisk, lexar, prograde, cfexpress]}
+  - {id: capture-one, words: [capture one]}
+  - {id: luminar, words: [luminar]}
+  - {id: dxo, words: [dxo, photolab, pureraw, nik collection]}
+  - {id: affinity, words: [affinity photo, affinity by canva]}
+  - {id: topaz, words: [topaz]}
+  - {id: other-software, words: [on1, photomator, pixelmator, darktable, gimp, adobe bridge, adobe firefly]}
+  - {id: gear, words: [drone, gimbal, flash, tripod, memory card]}
+  - {id: camera, words: [camera, cameras, mirrorless, dslr, compact, rangefinder]}
+
+# Editing software that is not a camera brand. Each name is matched in full (for example "Affinity Photo", not "Affinity").
+software_words:
+  - capture one
+  - luminar
+  - dxo
+  - photolab
+  - pureraw
+  - nik collection
+  - affinity photo
+  - affinity by canva
+  - on1
+  - topaz labs
+  - topaz photo ai
+  - topaz gigapixel
+  - photomator
+  - pixelmator
+  - darktable
+  - gimp
+
+launch_words:
+  - announce
+  - announces
+  - announced
+  - announcing
+  - launch
+  - launches
+  - launched
+  - unveil
+  - unveils
+  - unveiled
+  - introduce
+  - introduces
+  - introduced
+  - introducing
+  - release
+  - releases
+  - released
+  - debut
+  - debuts
+  - reveals
+  - revealed
+  - arrives
+  - now available
+  - available
+  - firmware
+  - new version
+  - update
+  - updates
+  - updated
+
+# Speculation or unconfirmed words. One of these in the headline or the excerpt
+# makes the item a RUMOR. When unsure, the label is RUMOR.
+rumor_words:
+  - rumor
+  - rumors
+  - rumored
+  - rumour
+  - rumours
+  - rumoured
+  - leak
+  - leaks
+  - leaked
+  - reportedly
+  - allegedly
+  - unconfirmed
+  - speculation
+  - speculated
+  - suspect
+  - suspects
+  - suspected
+  - sources say
+  - tipped
+  - patent
+  - patents
+  - spotted
+  - registered
+  - said to
+  - delayed
+  - delay
+  - delays
+  - postponed
+  - scrapped
+  - cancelled
+  - canceled
+  - slipped
+  - pushed back
+  - off the table
+
+# Hedge words. In the headline they always make the item a RUMOR. In the excerpt they
+# do not, when the headline is a clear release (see classify.rumor_signal).
+hedge_words:
+  - might
+  - could
+  - possibly
+  - "may be"
+
+# Count as a RUMOR only when the headline has no launch or update word.
+# "A new tool is coming to Lightroom ... the 4 biggest updates" stays OFFICIAL.
+soft_rumor_words:
+  - is coming
+  - are coming
+  - coming next
+  - coming soon
+  - coming to
+  - expected to
+
+# Adobe items are alerted only when the headline is about one of these.
+adobe_scope_words:
+  - photoshop
+  - lightroom
+  - camera raw
+  - adobe bridge
+
+# Adobe Firefly counts only with one of these photo-editing words (a generative image model alone does not).
+firefly_photo_words:
+  - photo
+  - photos
+  - photography
+  - photo editing
+  - editing
+  - edit
+
+# A rumor-site headline is official when it has one of these release words and none of the block words.
+rumor_site_release_words:
+  - firmware update
+  - firmware updates
+  - available
+  - announced
+  - released
+  - launches
+
+rumor_site_block_words:
+  - rumor
+  - rumors
+  - rumored
+  - rumour
+  - rumours
+  - rumoured
+  - leak
+  - leaks
+  - leaked
+  - could
+  - may
+  - expected
+  - reportedly
+
+skip_words:
+  - deal
+  - deals
+  - discount
+  - sale
+  - save
+  - "off"  # quoted, or YAML reads it as false
+  # Hands-on and personal-trial pieces are opinion, not news (added after a round 3 dry run).
+  - hands-on
+  - hands on
+  - i took
+  - i tried
+  - i tested
+  - i used
+  - we took
+  - we tried
+  - field test
+  - my experience
+  - black friday
+  - cyber monday
+  - prime day
+  - gift guide
+  - gifts
+  - bargain
+  - cheapest
+  - best
+  - review
+  - reviewed
+  - tested
+  - tutorial
+  - how to
+  - tips
+  - podcast
+  - giveaway
+  - contest
+  - competition
+  - awards
+  - winners
+  - sponsored
+  - opinion
+  - versus
+  - vs
+  - recap
+  - roundup
+  - round up
+  # Opinion pieces that ask whether something is worth buying (added in the functional round).
+  - is it worth it
+  - worth it
+  # Trivia, how-tos and accessories (added after a dry run).
+  - hack
+  - hacks
+  - diy
+  - accessory
+  - accessories
+  - strap
+  - straps
+  - backpack
+  - camera bag
+  - made in
+  - manufactured
+  - behind the scenes
+  - wallpaper
+  - so cool
+  - as a monitor
+  # Live blogs and watch-live coverage pages, not announcements (added after a dry run).
+  - follow live
+  - follow along
+  - live blog
+  - live updates
+  - live coverage
+  - how to watch
+  - watch live
+  - where to watch
+  - ways to watch

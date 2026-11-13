@@ -1,0 +1,60 @@
+# Carousel settings. Used by src/carousel.py.
+
+# true: Claude Code picks each slide's product photo from the official candidates. A second Claude
+# check reads each candidate image and must confirm it matches the product and the slide (images.py).
+# false: only images Kint copies into the item's images/ folder are used.
+# No image is ever generated, edited or background-removed.
+use_official_press_images: true
+
+# Claude models for the draft, the fact-check and the image check (the free Claude CLI route).
+draft_model: sonnet
+factcheck_model: sonnet
+image_check_model: sonnet
+
+# Official post indexes, searched for a story when its article has no link to the official page.
+# Adobe: blog.adobe.com's JSON index. Article URL = base + path. A post matches when its title
+# contains every key word of the story. Posts within window_days of the story come first.
+official_indexes:
+  Adobe:
+    url: https://blog.adobe.com/en/query-index.json
+    base: https://blog.adobe.com
+    window_days: 14
+
+# Official pages checked for a brand. helpx.adobe.com "what's new" pages are official. A 403 means
+# "not found" (the site refuses bots); the build does not retry.
+official_pages:
+  Adobe:
+    - https://helpx.adobe.com/photoshop/using/whats-new.html
+    - https://helpx.adobe.com/lightroom-classic/help/whats-new.html
+
+# Official help pages read for images and demo videos, the same way as the announcement post (img alt, og:image, video
+# posters). They are used for a story that names the product line (the key under the brand, in lower case). A help
+# page about one feature (its heading names the feature) tags its images with that feature. The Remove Tool help
+# page is not listed: it is found from a real link on the post or the beta page, never guessed. A page that cannot
+# be read is skipped and named in sources.md. Nothing here is used as a source of facts.
+image_pages:
+  Adobe:
+    photoshop:
+      - https://helpx.adobe.com/photoshop/desktop/crop-resize-transform/transform-manipulate-reshape/change-camera-angles.html
+      - https://helpx.adobe.com/photoshop/desktop/whats-new/whats-new-in-photoshop-beta-on-desktop.html
+
+# Only pages on these domains count as official for a brand. Check and extend this list
+# before the first real build; a wrong or missing domain means "no official page found".
+official_domains:
+  # Matching includes subdomains (usa.canon.com is covered by canon.com).
+  Canon: [canon.com, global.canon]
+  Nikon: [nikon.com, nikonusa.com]
+  Sony: [sony.com, sony.net, alphauniverse.com]
+  Fujifilm: [fujifilm.com, fujifilm-x.com]
+  Panasonic: [panasonic.com, lumix.com]
+  OM System: [omsystem.com, om-digital.com]
+  Leica: [leica-camera.com]
+  Hasselblad: [hasselblad.com]
+  DJI: [dji.com]
+  Sigma: [sigma-global.com]
+  Tamron: [tamron.com]
+  Tokina: [tokina.co.jp]
+  Viltrox: [viltrox.com]
+  Samyang: [samyang.com]
+  Ricoh: [ricoh-imaging.co.jp, ricoh-imaging.com, pentax.jp]
+  Adobe: [adobe.com, blog.adobe.com, news.adobe.com, helpx.adobe.com, helpx-prod.scene7.com]

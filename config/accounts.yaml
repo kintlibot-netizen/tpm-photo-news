@@ -1,0 +1,12 @@
+# The only accounts a carousel can be logged for (src/review.py). Posting is done by hand.
+# David's personal Instagram is not listed and cannot be added: review.py refuses it by name.
+accounts:
+  tpm-facebook:
+    label: TPM Facebook
+    voice: we
+  tpm-instagram:
+    label: TPM Instagram
+    voice: we
+  david-facebook:
+    label: David Molnar Facebook
+    voice: I

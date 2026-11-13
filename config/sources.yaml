@@ -1,0 +1,38 @@
+# The sites the watcher checks. Approved by Kint on Nov 11, 2026.
+# To add a site, copy a block and change the name, url and type.
+#
+# type:
+#   news  = photo news site. A launch reported here is labeled OFFICIAL
+#           (reported), and still has to be checked against the brand in Phase 2.
+#   rumor = rumor site. Labeled RUMOR if the headline or excerpt has rumor words
+#           (leak, rumored, RUMOR, might, delayed...). Otherwise it is treated like a news item.
+#
+# Official brand feeds are not listed: the brands' own feeds did not work when tested
+# (Canon, Nikon, Sony, Fujifilm, DJI, Adobe), and the software blogs failed in the dry run.
+
+sources:
+  - {name: "DPReview", type: news, url: "https://www.dpreview.com/feeds/news.xml"}
+  - {name: "PetaPixel", type: news, url: "https://petapixel.com/feed/"}
+  - {name: "Fstoppers", type: news, url: "https://fstoppers.com/feed"}
+  - {name: "Digital Camera World", type: news, url: "https://www.digitalcameraworld.com/feeds.xml"}
+  - {name: "Amateur Photographer", type: news, url: "https://amateurphotographer.com/feed/"}
+  - {name: "Camera Jabber", type: news, url: "https://camerajabber.com/feed"}
+  - {name: "Canon Rumors", type: rumor, url: "https://www.canonrumors.com/feed/"}
+  - {name: "Nikon Rumors", type: rumor, url: "https://nikonrumors.com/feed/"}
+  - {name: "Sony Alpha Rumors", type: rumor, url: "https://www.sonyalpharumors.com/feed/"}
+  - {name: "Fuji Rumors", type: rumor, url: "https://www.fujirumors.com/feed/"}
+  - {name: "L-Rumors", type: rumor, url: "https://www.l-rumors.com/feed/"}
+  - {name: "43 Rumors", type: rumor, url: "https://www.43rumors.com/feed/"}
+  # Added in the functional round, both loaded in the dry run of Nov 13, 2026.
+  # A feed that fails is listed as failed on the dashboard and skipped, and nothing else stops.
+  - {name: "Photo Rumors", type: rumor, url: "https://photorumors.com/feed/"}
+  - {name: "Imaging Resource", type: news, url: "https://www.imaging-resource.com/feed/"}
+  # Removed after that dry run: PhotographyBlog, Capture One Blog, Skylum Blog, DxO Blog and Topaz Labs Blog
+  # (404, 403 or not a well-formed feed). Their software news still matches by brand keyword from the sites above.
+
+fetch:
+  timeout_seconds: 25
+  retries: 1
+  retry_pause_seconds: 5
+  max_feed_megabytes: 10
+  user_agent: "Mozilla/5.0 (compatible; rss-feed-check/1.0)"
