@@ -61,3 +61,6 @@ time,type,outcome,details,who
 2026-11-16T02:48:07+08:00,carousel,needs Kint,"Story 47, It’s Now Official: Panasonic Teases a New Camera Launch!: Waiting for Kint to build it on her laptop, where the fact check and the official image check run. The cloud never makes a carousel without them.",
 2026-11-16T02:48:07+08:00,check,ok,"Live check: 276 articles read, 129 in the time window, 18 passed the free rules, 1 alerts sent, 20 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-16T03:46:33+08:00,check,ok,"Live check: 276 articles read, 126 in the time window, 17 passed the free rules, 0 alerts sent, 20 rumors waiting for a 2nd source, 0 feeds failed",
+2026-11-16T04:42:21+08:00,alert,sent,OFFICIAL: Voigtländer Mod. Vienna binoculars announced as Cosina returns the brand to its optical roots,
+2026-11-16T04:42:21+08:00,carousel,needs Kint,"Story 48, Voigtländer Mod. Vienna binoculars announced as Cosina returns the brand to its optical roots: Waiting for Kint to build it on her laptop, where the fact check and the official image check run. The cloud never makes a carousel without them.",
+2026-11-16T04:42:21+08:00,check,ok,"Live check: 276 articles read, 126 in the time window, 18 passed the free rules, 1 alerts sent, 20 rumors waiting for a 2nd source, 0 feeds failed",
