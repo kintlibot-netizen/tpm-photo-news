@@ -207,8 +207,10 @@ def test_check_alert_build_zip_approve_download_activity_and_share_pack(project,
     assert (latest / "index.html").read_text(encoding="utf-8") == page
     assert f"carousels/{fake_build.name}/view/01.jpg" in page and (latest / "carousels" / fake_build.name / "01.png").exists()
     assert share_pack.scan_pack(latest, root) == []
-    for gone in ('class="adv"', "Feed health", "Run history"):  # David's copy is simple: no Advanced area
-        assert gone not in page, gone
+    # David's copy is the read only twin of Kint's page: the same sections, no command and no PowerShell wording
+    for kept in ("Feed health", "Run history", "Needs your attention", "How it works"):
+        assert kept in page, kept
+    assert "powershell" not in page.lower() and 'data-kind="command"' not in page and "data-base=" not in page
 
     # 6. every step is in the activity log, and nothing secret is
     events = activity.read_events()

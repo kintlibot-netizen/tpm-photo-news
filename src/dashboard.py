@@ -4,17 +4,18 @@ The page is one static file with inline CSS, JS, icons and fonts (dashboard_asse
 and it never contains the Slack webhook or any other secret. run.py rebuilds it at the end of every run.
 To rebuild it alone:  python src\\dashboard.py
 
-It is laid out like an app, kept simple on purpose (less is more): a sidebar with a few short sections, a top bar
-that says when the news was last checked and when the next check is due, and one page per section, in the same order
-as the README: Start here, To review, Carousels, News. Kint's page also has one small "Advanced" area with Activity,
-Numbers and Sources. David's copy has only Start here, Carousels and News.
+It is laid out like an app: a sidebar with the sections, a top bar that says when the last check ran, when the next one
+is due and whether the watcher is healthy, and one page per section, in the same order as the README:
+Start here, Overview, Needs your attention, Stories, Carousels, Activity, Sources, How it works.
 
 Two modes:
   local  Kint's page. Opened through the review server (Open Review Dashboard.bat) the review buttons and downloads
          work directly. Opened as a file, the buttons copy the PowerShell command and the downloads link to the files.
-  share  The read only copy for David (share_pack.py), a static website: relative paths only, no review buttons, no
-         commands, no paths from this PC, no Advanced area, and a note at the top:
-         "Read only copy. To approve a carousel, tell Kint."
+  share  The read only copy for David (share_pack.py, build_page(read_only=True)): the same page, the same look and
+         the same sections, rendered from this same template. Only what a public read only copy must not have is
+         left out: no approve, reject, review, export or command copy buttons (each card shows its status badge
+         instead), no commands, no paths from this PC, relative paths to the copied images and downloads, and the note
+         at the top: "Read only copy. To approve a carousel, tell Kint."
 """
 from __future__ import annotations
 
@@ -66,13 +67,11 @@ ALL_STATUSES = [
 ]
 REVIEW_ACCOUNTS = [("tpm-facebook", "TPM Facebook"), ("tpm-instagram", "TPM Instagram"),
                    ("david-facebook", "David Facebook")]
-# The sidebar, in the README's order. "start" is the home page in both modes.
-PAGES = [("start", "Start here", "start"), ("attention", "To review", "attention"),
-         ("carousels", "Carousels", "carousels"), ("stories", "News", "stories")]
-# Kint only, behind one small "Advanced" area. Never in David's copy.
-ADVANCED_PAGES = [("activity", "Activity", "activity"), ("overview", "Numbers", "overview"),
-                  ("sources", "Sources", "sources")]
-SHARE_PAGES = ("start", "carousels", "stories")
+# The sidebar, in the README's order. "start" is the one page explainer, the home page of David's copy.
+PAGES = [("start", "Start here", "start"), ("overview", "Overview", "overview"),
+         ("attention", "Needs your attention", "attention"), ("stories", "Stories", "stories"),
+         ("carousels", "Carousels", "carousels"), ("activity", "Activity", "activity"),
+         ("sources", "Sources", "sources"), ("how", "How it works", "how")]
 # Where each story is in the flow, from news found to posted by hand. Every story is in one stage at a time.
 STAGES = [
     ("found", "News found", "Seen on a site, waiting for a 2nd source or to be sent"),
@@ -87,7 +86,6 @@ STAGE_NAMES = dict((key, name) for key, name, _ in STAGES) | {"out": "Not taken 
 STAGE_CLASS = {"found": "st-held", "verified": "st-alert", "drafted": "st-held", "checked": "st-held",
                "waiting": "st-accent", "approved": "st-ok", "posted": "st-ok", "out": "st-rej"}
 SHARE_NOTE = "Read only copy. To approve a carousel, tell Kint."
-SHARE_STATUSES = (runlog.ALERTED,)  # David's News page: the stories that were checked and sent, nothing else
 HEALTHY_HOURS = 2
 
 
@@ -451,13 +449,12 @@ def story_stage(story: dict) -> str:
     return carousel_stage(card) if card else "verified"
 
 
-def coverage_reason(story: dict, now: datetime, mode: str = "local") -> tuple[str, str]:
-    """Why a sent official story has no finished carousel (or what it has), as (words, chip class).
-    David's copy leaves out the folder name."""
+def coverage_reason(story: dict, now: datetime) -> tuple[str, str]:
+    """Why a sent official story has no finished carousel (or what it has), as (words, chip class)."""
     card = story.get("carousel")
     if card:
         state, cls = _carousel_state(card)
-        return (f"{state} ({card['name']})" if mode == "local" else state), cls
+        return f"{state} ({card['name']})", cls
     row = story.get("build_row")
     if row and row["status"] == "failed":
         return f"Not made: {row.get('message') or 'no reason recorded'}", "st-fail"
@@ -513,17 +510,15 @@ def source_links(story: dict) -> str:
 def story_drawer(story: dict, number: int, mode: str) -> str:
     """The detail drawer of one story: summary, why, sources, its carousel and fact check."""
     status = story["status"]
-    status_tag = (f'<span class="tag {STATUS_CLASS.get(status, "st-dry")}">{esc(status)}</span>'
-                  if mode == "local" else "")
     parts = [f'<template id="d-{number}">',
              f'<h2>{esc(display_text(story["title"]))}</h2>',
              '<div class="chips">'
              f'<span class="pill {PILL_CLASS.get(story["pill"], "pill-rumor")}">{esc(story["pill"])}</span>'
-             f'{status_tag}'
+             f'<span class="tag {STATUS_CLASS.get(status, "st-dry")}">{esc(status)}</span>'
              f'<span class="tag stage {STAGE_CLASS[story["stage"]]}">{esc(STAGE_NAMES[story["stage"]])}</span></div>']
     if story["summary"]:
         parts.append(f'<div><h3>Summary</h3><p class="summary">{esc(display_text(story["summary"]))}</p></div>')
-    if story["reason"] and mode == "local":
+    if story["reason"]:
         prefix = "" if status == runlog.SKIPPED else "Label check: "
         parts.append(f'<div><h3>Why</h3><p class="why">{esc(prefix + story["reason"])}</p></div>')
     rows = [
@@ -540,16 +535,16 @@ def story_drawer(story: dict, number: int, mode: str) -> str:
     if card_:
         build = card_["build"]
         state, cls = _carousel_state(card_)
-        design = f' {esc(build.get("design_summary", ""))}' if mode == "local" else ""
         parts.append(
             '<div><h3>Carousel and fact check</h3>'
             f'<p><span class="tag {cls}">{esc(state)}</span></p>'
             f'<p class="summary">Facts: {esc(build.get("confirmed", "n/a"))} confirmed against the official page, '
-            f'{esc(build.get("removed_count", "n/a"))} removed as not confirmed.{design}</p>'
+            f'{esc(build.get("removed_count", "n/a"))} removed as not confirmed. '
+            f'{esc(build.get("design_summary", ""))}</p>'
             f'<p><button type="button" class="btn small" data-go="carousels" data-target="car-{esc(card_["name"])}">'
             'Open the carousel</button></p></div>')
     elif story.get("official_sent"):
-        reason, cls = coverage_reason(story, story["now"], mode)
+        reason, cls = coverage_reason(story, story["now"])
         parts.append(f'<div><h3>Carousel</h3><p><span class="tag {cls}">{esc(reason)}</span></p></div>')
     if mode == "local" and status == runlog.ALERTED and story["label"] == classify.OFFICIAL and story.get("story_id"):
         command = f"python src\\carousel.py --story {int(story['story_id'])}"
@@ -559,7 +554,7 @@ def story_drawer(story: dict, number: int, mode: str) -> str:
     return "".join(parts)
 
 
-def story_row(story: dict, number: int, mode: str = "local") -> str:
+def story_row(story: dict, number: int) -> str:
     status = story["status"]
     pill = story["pill"]
     brand = story["brand"] or "Unbranded"
@@ -569,7 +564,7 @@ def story_row(story: dict, number: int, mode: str = "local") -> str:
     ])).lower()
     stamp = int(story["first_seen"].timestamp() * 1000) if story["first_seen"] else 0
     stage_index = [key for key, _, _ in STAGES].index(story["stage"]) if story["stage"] != "out" else -1
-    tags = [f'<span class="tag {STATUS_CLASS.get(status, "st-dry")}">{esc(status)}</span>'] if mode == "local" else []
+    tags = [f'<span class="tag {STATUS_CLASS.get(status, "st-dry")}">{esc(status)}</span>']
     if story["category"]:
         tags.append(f'<span class="tag tag-plain">{esc(category_name(story["category"]))}</span>')
     links = " ".join(source_links(story)[:3]) or '<span class="muted">none recorded</span>'
@@ -579,35 +574,27 @@ def story_row(story: dict, number: int, mode: str = "local") -> str:
         f'data-title="{esc(title_key(display_text(story["title"])))}" data-text="{esc(search)}">'
         f'<td><button type="button" class="row-title" data-drawer="d-{number}">{esc(display_text(story["title"]))}'
         f'</button><div class="row-tags">{"".join(tags)}</div></td>'
-        f'<td class="hide-sm">{esc(brand)}</td>'
+        f'<td>{esc(brand)}</td>'
         f'<td><span class="pill {PILL_CLASS.get(pill, "pill-rumor")}">{esc(pill)}</span></td>'
         f'<td><span class="tag stage {STAGE_CLASS[story["stage"]]}">{esc(STAGE_NAMES[story["stage"]])}</span></td>'
-        f'<td class="when hide-sm">{esc(show_time(story["first_seen"]))}</td>'
-        f'<td class="hide-sm">{links}</td></tr>'
+        f'<td class="when">{esc(show_time(story["first_seen"]))}</td>'
+        f"<td>{links}</td></tr>"
     )
 
 
 def stories_panel(stories: list[dict], mode: str = "local") -> str:
-    """Kint sees every story with all the filters. David's copy shows only the news that was checked and sent, with a
-    search box, a type and a brand filter."""
-    if mode == "share":
-        stories = [s for s in stories if s["status"] in SHARE_STATUSES]
     brands = sorted({s["brand"] or "Unbranded" for s in stories})
-    labels = [classify.OFFICIAL, classify.RUMOR, "REJECTED", "SKIPPED"] if mode == "local" else [
-        classify.OFFICIAL, classify.RUMOR]
+    labels = [classify.OFFICIAL, classify.RUMOR, "REJECTED", "SKIPPED"]
     stage_options = '<option value="">All stages</option>' + "".join(
         f'<option value="{esc(key)}">{esc(name)}</option>' for key, name, _ in STAGES
     ) + '<option value="out">Not taken forward</option>'
-    kint_filters = (
-        f'<select id="f-stage" aria-label="Stage">{stage_options}</select>'
-        f'<select id="f-status" aria-label="Status">{options(ALL_STATUSES, "All statuses")}</select>'
-    ) if mode == "local" else ""
     toolbar = (
         '<div class="toolbar">'
-        '<input id="search" type="search" placeholder="Search the news" aria-label="Search the news">'
-        f'<select id="f-label" aria-label="Type">{options(labels, "Official and rumor")}</select>'
+        '<input id="search" type="search" placeholder="Search headlines, brands, sources" aria-label="Search stories">'
+        f'<select id="f-label" aria-label="Label">{options(labels, "All labels")}</select>'
         f'<select id="f-brand" aria-label="Brand">{options(brands, "All brands")}</select>'
-        f'{kint_filters}'
+        f'<select id="f-stage" aria-label="Stage">{stage_options}</select>'
+        f'<select id="f-status" aria-label="Status">{options(ALL_STATUSES, "All statuses")}</select>'
         '<select id="f-range" aria-label="Date range">'
         '<option value="all">All time</option><option value="7d">Last 7 days</option>'
         '<option value="24h">Last 24 hours</option></select>'
@@ -615,15 +602,14 @@ def stories_panel(stories: list[dict], mode: str = "local") -> str:
         "</div>"
     )
 
-    def sortable(label: str, key: str, col: str, cls: str = "") -> str:
-        extra = f' class="{cls}"' if cls else ""
-        return (f'<th data-col="{col}" aria-sort="none"{extra}><button type="button" class="sort" data-sort="{key}">'
+    def sortable(label: str, key: str, col: str) -> str:
+        return (f'<th data-col="{col}" aria-sort="none"><button type="button" class="sort" data-sort="{key}">'
                 f'{esc(label)}<span class="arr"></span></button></th>')
 
-    head = ("<thead><tr>" + sortable("Story", "title", "title") + sortable("Brand", "brand", "brand", "hide-sm")
+    head = ("<thead><tr>" + sortable("Story", "title", "title") + sortable("Brand", "brand", "brand")
             + sortable("Type", "label", "label") + sortable("Stage", "stagei", "stagei")
-            + sortable("First seen", "ts", "ts", "hide-sm") + '<th class="hide-sm">Sources</th></tr></thead>')
-    rows = "".join(story_row(s, n, mode) for n, s in enumerate(stories, 1))
+            + sortable("First seen", "ts", "ts") + "<th>Sources</th></tr></thead>")
+    rows = "".join(story_row(s, n) for n, s in enumerate(stories, 1))
     drawers = "".join(story_drawer(s, n, mode) for n, s in enumerate(stories, 1))
     if not rows:
         empty = '<div class="empty">No stories recorded yet. The next run will fill this in.</div>'
@@ -746,16 +732,9 @@ def caption_boxes(card_: dict) -> str:
     return "".join(boxes)
 
 
-def confirmed_words(build: dict) -> str:
-    count = build.get("confirmed")
-    if isinstance(count, int):
-        return f"{count} fact{'' if count == 1 else 's'} confirmed"
-    return "Facts checked"
-
-
 def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
     """One carousel. `where` keeps the element id and the slide viewer group apart when the same carousel is also
-    shown on the Needs your attention page."""
+    shown on the Needs your attention page. In David's read only copy the review area shows the status badge only."""
     name = card["name"]
     group = f"lb-{name}{where}"
     base = card.get("base") or f"../output/carousels/{name}"
@@ -764,7 +743,7 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
     state, state_class = _carousel_state(card)
     is_sample = card.get("kind") == "sample"
     slide_names = card.get("slide_names", {})
-    views = card.get("views") or {}  # David's copy: small JPEG previews for viewing, full PNGs for downloading
+    views = card.get("views") or {}  # David's copy may show the same slide as a smaller JPEG; downloads stay full PNG
     thumbs = []
     for number, slide in enumerate(card["slides"], 1):
         src = f"{base}/{slide}"
@@ -776,7 +755,7 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
             '<div>'
             f'<button type="button" class="slide" data-lb="{esc(group)}" data-src="{esc(view)}" '
             f'data-title="{esc(title)}" data-alt="Slide {number}: {esc(file_name)}" aria-label="Enlarge slide {number}">'
-            f'<span class="thumb"><img src="{esc(view)}" alt="Slide {number}" loading="lazy" decoding="async" data-fb>'
+            f'<span class="thumb"><img src="{esc(view)}" alt="Slide {number}" loading="lazy" data-fb>'
             '<span class="fb">Image not found</span></span></button>'
             f'<span class="slide-n">{number:02d} {single}</span></div>')
     strip = (f'<div class="thumbs">{"".join(thumbs)}</div>' if thumbs
@@ -784,25 +763,19 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
     removed = build.get("removed") or []
     missing = build.get("missing") or []
     facts = f"{build.get('confirmed', 'n/a')} confirmed, {build.get('removed_count', 'n/a')} removed as not confirmed"
-    if mode == "share":
-        fact_box = ('<div class="box"><h3>Fact check</h3>'
-                    f'<p class="small">{esc(confirmed_words(build))} on the brand\'s own page. '
-                    'Anything the page does not say was left out.</p></div>')
-    else:
-        fact_box = (
-            '<div class="box"><h3>Fact check</h3><dl class="facts">'
-            f"<dt>Facts</dt><dd>{esc(facts)}</dd>"
-            f"<dt>Removed</dt><dd>{esc('; '.join(removed) or 'none')}</dd>"
-            f"<dt>Missing images</dt><dd>{esc(', '.join(missing) or 'none')}</dd>"
-            f"<dt>Design check</dt><dd>{esc(build.get('design_summary', 'not run'))}</dd>"
-            "</dl></div>")
+    fact_box = (
+        '<div class="box"><h3>Fact check</h3><dl class="facts">'
+        f"<dt>Facts</dt><dd>{esc(facts)}</dd>"
+        f"<dt>Removed</dt><dd>{esc('; '.join(removed) or 'none')}</dd>"
+        f"<dt>Missing images</dt><dd>{esc(', '.join(missing) or 'none')}</dd>"
+        f"<dt>Design check</dt><dd>{esc(build.get('design_summary', 'not run'))}</dd>"
+        "</dl></div>")
     links = "".join(
         f'<li>{esc(what)}: <a href="{esc(url)}" target="_blank" rel="noopener noreferrer">{esc(url)}</a></li>'
         for what, url in card.get("links", []) if safe_url(url)) or "<li>No official link recorded.</li>"
     placed = ", ".join(build.get("placed") or []) or "none"
-    placed_note = f" ({esc(placed)})" if mode == "local" else ""
-    source_box = (f'<div class="box"><h3>Sources</h3><ul>{links}</ul>'
-                  f'<p class="muted small">Images on the slides{placed_note} are official product images and demo '
+    source_box = (f'<div class="box"><h3>Sources and image credits</h3><ul>{links}</ul>'
+                  f'<p class="muted small">Images on the slides ({esc(placed)}) are official product images and demo '
                   'video frames from the brand\'s own pages. Nothing is AI generated.</p></div>')
     zip_label = "Download all slides (ZIP)"
     zip_href = f"{base}/{card['zip']}" if card.get("zip") else None
@@ -811,14 +784,15 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
     downloads_box = (
         '<div class="box"><h3>Downloads</h3><div class="dl-row">'
         + download_link(zip_label, zip_href, f"/api/download/carousel/{name}", mode, zip_note, primary=True)
-        + '</div><p class="muted small">All slides in full size (1080 x 1440), in order, with the captions for each '
-        'account and the official links. One slide: the PNG link under it.</p></div>')
+        + '</div><p class="muted small">Slides named in order (01-cover.png ...), one caption file per account and '
+        'sources.txt. Single slides: the PNG link under each slide.</p></div>')
     if is_sample:
         actions = ('<div class="sample-banner">Samples are for checking the layout. They can\'t be approved or posted.'
                    '</div>')
     elif mode == "share":
-        ask = "To approve or change it, tell Kint." if card["status"] == "waiting_for_david" else ""
-        actions = f'<div class="sample-banner">{esc(ask)}</div>' if ask else ""
+        # Read only: where the approve, reject and posted controls are on Kint's page, only the status badge.
+        actions = (f'<div class="review-area"><div class="review"><span class="tag {state_class}">{esc(state)}</span>'
+                   '</div></div>')
     else:
         folder_arg = f"output\\carousels\\{name}"
         copy_commands = [
@@ -828,28 +802,28 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
              + ' --account tpm-facebook --url "PASTE LINK"'),
         ]
         copies = "".join(
-            f'<button type="button" class="btn small copy" data-copy="{esc(cmd)}">{esc(label)}</button>'
+            f'<button type="button" class="btn small copy" data-kind="command" data-copy="{esc(cmd)}">{esc(label)}'
+            '</button>'
             for label, cmd in copy_commands
         )
         actions = ('<div class="review-area">' + review_controls(name, card["status"])
                    + f'<details class="copy-row"><summary>PowerShell commands</summary>{copies}</details></div>')
     kind_label = "Sample" if is_sample else "Draft"
     sample_tag = '<span class="tag tag-sample">SAMPLE</span>' if is_sample else ""
-    meta = f'<p class="meta">{esc(kind_label)}: {esc(name)}</p>' if mode == "local" else ""
     cover = views.get(card["slides"][0], f"{base}/{card['slides'][0]}") if card["slides"] else ""
     return (
         f'<article class="carousel-card" id="car-{esc(name)}{esc(where)}" '
         f'data-kind="{esc("sample" if is_sample else "draft")}" data-status="{esc(card["status"])}">'
         f'<div class="card-head"><h2 class="story-title">{esc(title)}</h2>'
         f'<div class="chips">{sample_tag}<span class="tag {state_class}">{esc(state)}</span></div></div>'
-        f'{meta}'
+        f'<p class="meta">{esc(kind_label)}: {esc(name)}</p>'
         f'<div class="car-body"><div><div class="strip-label">Cover</div>'
         + (f'<button type="button" class="slide" data-lb="{esc(group)}-c" data-src="{esc(cover)}" '
            f'data-title="{esc(title)}" aria-label="Enlarge the cover"><span class="thumb">'
-           f'<img src="{esc(cover)}" alt="Cover" decoding="async" data-fb>'
+           f'<img src="{esc(cover)}" alt="Cover" loading="lazy" data-fb>'
            '<span class="fb">Image not found</span></span></button>' if card["slides"]
            else '<p class="no-slides">No cover yet.</p>')
-        + f'</div><div class="car-right"><div class="strip-label">All slides, tap to enlarge</div>{strip}'
+        + f'</div><div class="car-right"><div class="strip-label">All slides, click to enlarge</div>{strip}'
         f'{downloads_box}</div></div>'
         f'<div class="car-cols">{caption_boxes(card)}{fact_box}{source_box}</div>'
         f"{actions}"
@@ -861,34 +835,32 @@ def carousels_panel(cards: list[dict], mode: str = "local", approved_href: str |
     if not cards:
         return (
             '<div class="panel empty carousel"><h2>Carousels</h2>'
-            "<p>No carousels yet. Finished carousels will appear here.</p></div>"
+            "<p>Coming in Phase 2: ready-to-post slides and captions will appear here.</p></div>"
         )
     approved = sum(1 for c in cards if c.get("kind") != "sample" and c["status"] in ("approved", "posted"))
     note = ("Every approved carousel in one zip. Through Open Review Dashboard it is made on the spot."
-            if mode == "local" else "No approved carousels in this copy yet.")
+            if mode == "local" else "Not included in this copy.")
     all_button = download_link(f"Download all approved carousels ({approved})", approved_href,
                                "/api/download/approved", mode, note, primary=False)
-    if mode == "share":
-        kinds = f'<div class="panel"><div class="toolbar"><span>{all_button}</span></div></div>'
-    else:
-        kinds = (
-            '<div class="panel"><div class="toolbar"><label class="muted" for="carousel-kind">Show</label>'
-            '<select id="carousel-kind" aria-label="Show drafts or samples">'
-            '<option value="all">All carousels</option><option value="draft">Real drafts</option>'
-            '<option value="sample">Samples</option></select>'
-            f'<span class="count-note">{all_button}</span></div></div>'
-        )
+    sample_option = '<option value="sample">Samples</option>' if mode == "local" else ""
+    kinds = (
+        '<div class="panel"><div class="toolbar"><label class="muted" for="carousel-kind">Show</label>'
+        '<select id="carousel-kind" aria-label="Show drafts or samples">'
+        '<option value="all">All carousels</option><option value="draft">Real drafts</option>'
+        f'{sample_option}</select>'
+        f'<span class="count-note">{all_button}</span></div></div>'
+    )
     return kinds + '<div id="carousel-list" class="car-list">' + "".join(
         carousel_card(c, mode) for c in cards) + "</div>"
 
 
-def coverage_panel(stories: list[dict], now: datetime, mode: str = "local") -> str:
+def coverage_panel(stories: list[dict], now: datetime) -> str:
     """Every sent official story and its carousel, or the reason it has none."""
     rows = []
     for story in stories:
         if not story.get("official_sent"):
             continue
-        reason, cls = coverage_reason(story, now, mode)
+        reason, cls = coverage_reason(story, now)
         rows.append(
             f'<tr class="cov"><td class="name">{esc(display_text(story["title"]))}</td>'
             f'<td class="when">{esc(show_time(story["sent_at"] or story["first_seen"]))}</td>'
@@ -960,6 +932,7 @@ def attention_items(cards: list[dict], stories: list[dict], latest_feeds: list[d
                 and s.get("build_row") and s["build_row"]["status"] == "needs_kint"]
     if for_kint:
         items.append(("amber", f"{len(for_kint)} carousels need Kint's laptop",
+                      "The cloud found them. Kint builds and reviews them on her laptop." if mode == "share" else
                       "The cloud found them. Double-click Sync with cloud.bat to build and review them.",
                       "carousels", ""))
     for feed in latest_feeds:
@@ -1076,52 +1049,87 @@ def sources_panel(feeds_cfg: list[tuple[str, str]], latest_feeds: list[dict], ru
     )
 
 
-START_STEPS = [
-    "Every hour it reads the photo news and rumor sites.",
-    "Real launches go to Slack. A rumor waits until a second site reports it.",
-    "Each official launch becomes a carousel. Every fact is checked on the brand's own page.",
-    "David says yes, then Kint posts it by hand.",
+HOW_IT_WORKS = [
+    "Once an hour, the watcher reads the photo news feeds listed under Sources.",
+    "It keeps only stories published in the last 72 hours that name a known brand or editing software.",
+    "Rumors are sent to Slack only after a second site reports them. Official launches are sent at once.",
+    "After an official alert, it can build a carousel draft, within 1 a day and 3 a week.",
+    "Every draft is fact-checked against the brand's own page. Claims that are not confirmed are removed.",
+    "A draft that passes the checks waits for David. Nothing is posted by the watcher.",
+    "Posting is done by hand in Meta Business Suite, then logged here with the account and link.",
+    "If no feed works for two runs in a row, or none has worked for 6 hours, one health message is sent to Slack a day.",
+]
+FLOW_NODES = [
+    ("clock", "Hourly check", "Reads the photo news and rumor sites every hour while the PC is on.", False),
+    ("send", "Slack alert", "Official launches at once. A rumor only after a second site reports it.", False),
+    ("image", "Carousel draft", "Built from the brand's own page, with real official product images only.", False),
+    ("check", "Fact check", "Every claim is checked against the official text. Anything unconfirmed is removed.",
+     False),
+    ("user", "David approves", "Nothing moves without David's yes. Kint approves on his word.", True),
+    ("share", "Posted by hand", "Kint posts in Meta Business Suite, then logs the link here.", True),
+    ("activity", "Tracked", "Every step is written to the Activity page with its time.", False),
+    ("lock", "Never automatic", "Nothing is ever posted by the system. David's personal Instagram is never used.",
+     False),
 ]
 RULES = [
-    "Nothing is posted automatically. Kint posts by hand after David approves.",
-    "David's personal Instagram is never used. Only TPM Facebook, TPM Instagram and David's Facebook.",
-    "Every fact comes from the brand's own page. Anything it does not say is left out.",
-    "Every image is a real official product image. Nothing is AI generated.",
+    "Nothing is auto-posted to social media. Posting is always by hand, after David approves.",
+    "David's personal Instagram is blocked in the code and can never be logged.",
+    "Facts come only from the brand's own page. A claim the page does not support is left out.",
+    "Slides use real official product images or demo video frames. Nothing is AI generated.",
+    "Only TPM Facebook, TPM Instagram and David Molnar's Facebook are used.",
+    "No secret (the Slack address) is ever written into the page, the downloads or the copy for David.",
 ]
 
 
-def start_panel(mode: str, counts: dict, todo: int, last_text: str, next_text: str) -> str:
-    """The one Start here page, the home page in both modes: what the system does in plain words, what needs doing now,
-    and when the news was last checked."""
-    waiting = counts.get("waiting_david", 0)
-    approved = counts.get("approved", 0)
-    head = "Start here: what this system does, in one minute"
-    lead = ("This system watches the photo news for The Photo Mentorship. Every hour it reads the news sites, sends "
-            "real launches to Slack, and turns each official launch into a carousel that is ready to post once David "
-            "says yes. Photo news in, ready to post carousels out. Nothing is posted automatically.")
-    if mode == "share":
-        lead = f"{SHARE_NOTE} {lead}"
-        ask = (f"{waiting} carousel{'s are' if waiting != 1 else ' is'} waiting for your yes or no. "
-               "Look at the slides and captions, then tell Kint.") if waiting else "No carousel is waiting for you."
-        buttons = ('<button type="button" class="btn primary" data-go="carousels">See the carousels</button> '
-                   '<button type="button" class="btn" data-go="stories">See the news</button>')
-    else:
-        ask = (f"{todo} thing{'s need' if todo != 1 else ' needs'} you on the To review page."
-               if todo else "Nothing needs you right now.")
-        buttons = ('<button type="button" class="btn primary" data-go="attention">Open To review</button> '
-                   '<button type="button" class="btn" data-go="carousels">See the carousels</button>')
-    tiles = "".join([
-        card("Waiting for David", waiting, "Carousels ready for a yes or no"),
-        card("Approved", approved, "Ready to post by hand"),
-        card("Last checked", last_text.split(" (")[0], f"Next check: {next_text}"),
-    ])
-    steps = "".join(f"<li><b>{n}</b><span>{esc(text)}</span></li>" for n, text in enumerate(START_STEPS, 1))
+def how_panel() -> str:
+    nodes = "".join(
+        f'<div class="node{" human" if human else ""}"><span class="nic">{icon(name)}</span>'
+        f'<h3>{esc(title)}</h3><p>{esc(text)}</p></div>' for name, title, text, human in FLOW_NODES)
+    steps = "".join(f"<li><p>{esc(line)}</p></li>" for line in HOW_IT_WORKS)
     rules = "".join(f'<li>{icon("check")}<span>{esc(rule)}</span></li>' for rule in RULES)
-    return (f'<div class="start-hero"><h1>{esc(head)}</h1><p>{esc(lead)}</p>'
-            f'<p><strong>{esc(ask)}</strong></p><p>{buttons}</p></div>'
-            f'<section class="cards">{tiles}</section>'
-            f'<h2 class="section-title">How it works</h2><ol class="start-steps">{steps}</ol>'
-            f'<h2 class="section-title">Rules that never change</h2><ul class="rules">{rules}</ul>')
+    return (f'<div class="nodes">{nodes}</div>'
+            + panel("The steps in plain words", f'<ol class="steps">{steps}</ol>')
+            + f'<h2 class="section-title">The rules that never change</h2><ul class="rules">{rules}</ul>')
+
+
+def start_panel(mode: str, counts: dict) -> str:
+    who = "David" if mode == "share" else "you"
+    lines = [
+        ("What it is", "A watcher that reads the photo news every hour, sends the real launches to Slack, and turns "
+                       "each official launch into a ready to post carousel for TPM."),
+        ("What is checked", "Every fact on a carousel comes from the brand's own page and is checked before anyone sees "
+                            "it. Images are real official product images. Nothing is AI generated."),
+        ("What needs " + who, "Carousels marked Waiting for David. "
+         + ("Look at the slides and captions on the Carousels page, then tell Kint yes or no."
+            if mode == "share" else "Open the Carousels page to approve or reject them.")),
+        ("What never happens", "Nothing is posted automatically. Kint posts by hand in Meta Business Suite after "
+                               "David approves. David's personal Instagram is never used."),
+    ]
+    blocks = "".join(f'<div class="node"><h3>{esc(t)}</h3><p>{esc(p)}</p></div>' for t, p in lines)
+    waiting = counts.get("waiting_david", 0)
+    head = ("Start here: the TPM photo news system in one minute" if mode == "share"
+            else "Start here: what this system does")
+    note = (f"{SHARE_NOTE} " if mode == "share" else "") + (
+        f"Right now {waiting} carousel{'s are' if waiting != 1 else ' is'} waiting for David.")
+    return (f'<div class="start-hero"><h1>{esc(head)}</h1><p>{esc(note)}</p>'
+            '<p><button type="button" class="btn primary" data-go="carousels">See the carousels</button> '
+            '<button type="button" class="btn" data-go="overview">See the overview</button></p></div>'
+            f'<div class="nodes">{blocks}</div>' + how_panel())
+
+
+def intro_panel(items: list[tuple], mode: str) -> str:
+    todo = len(items)
+    return (
+        '<div class="intro"><div><h2>Photo news in, ready to post carousels out</h2>'
+        '<p>Every hour this system reads the photo news, sends official launches to Slack, builds a fact checked '
+        'carousel from the brand\'s own page, and waits for David. Nothing is posted automatically.</p><ol>'
+        '<li><b>1</b><span>Hourly check of the news and rumor sites</span></li>'
+        '<li><b>2</b><span>Slack alert for official launches (rumors need 2 sites)</span></li>'
+        '<li><b>3</b><span>Carousel draft, fact checked against the official page</span></li>'
+        '<li><b>4</b><span>David approves, then Kint posts by hand</span></li></ol></div>'
+        f'<div class="todo"><h3>Needs attention now</h3><div class="big">{todo}</div>'
+        f'<p class="muted">{"item" if todo == 1 else "items"} on the Needs your attention page.</p>'
+        '<p><button type="button" class="btn primary" data-go="attention">Open the list</button></p></div></div>')
 
 
 def render_page(data: dict, stories: list[dict], numbers: dict,
@@ -1153,7 +1161,6 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
         "drafted": len(real),
         "waiting_david": sum(1 for c in real if c["status"] == "waiting_for_david"),
         "posted": sum(1 for c in real if c["status"] == "posted"),
-        "approved": sum(1 for c in real if c["status"] == "approved"),
     }
     items = attention_items(all_cards, stories, data["feeds"], mode)
 
@@ -1178,69 +1185,50 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
     state_text, state_class = watcher_state(latest, now)
     next_text = next_check_text(latest, next_run, now)
 
-    shown_last = last_text if mode == "local" else last_text.split(", live run")[0].split(", dry run")[0]
-    if mode == "share":
-        # David's copy: three plain pages. The Advanced pages (Activity, Numbers, Sources) are not built at all.
-        pages = {
-            "start": start_panel(mode, counts, len(items), shown_last, next_text),
-            "carousels": (page_head("Carousels", "Each carousel with its slides, the caption for each account, the "
-                                    "official sources and downloads.")
-                          + carousels_panel(all_cards, mode, approved_href) + coverage_panel(stories, now, mode)),
-            "stories": (page_head("News", "The latest photo news the system checked and sent. Tap a headline for "
-                                  "the summary and the sources.") + stories_panel(stories, mode)),
-        }
-        main_pages = [p for p in PAGES if p[0] in SHARE_PAGES]
-        advanced = []
-    else:
-        pages = {
-            "start": start_panel(mode, counts, len(items), shown_last, next_text),
-            "attention": (page_head("To review", "Carousels to approve or post, and anything else that needs you.")
-                          + attention_panel(all_cards, data["feeds"], stories, mode)),
-            "carousels": (page_head("Carousels", "Each carousel with its slides, the caption for each account, fact "
-                                    "check, sources and downloads.")
-                          + carousels_panel(all_cards, mode, approved_href) + coverage_panel(stories, now)),
-            "stories": (page_head("News", "Every story the watcher kept. Click a story for its summary, sources and "
-                                  "fact check.") + stories_panel(stories, mode)),
-            "activity": (page_head("Activity", "Every check, alert, carousel build, fact check, review, download and "
-                                   "export, with its time in Manila.") + activity_panel(events, now)),
-            "overview": (
-                page_head("Numbers", "What the watcher found and sent, where every story is now, and the last checks.")
-                + '<h2 class="section-title">News</h2>' + f'<section class="cards">{news_cards}</section>'
-                + '<h2 class="section-title">Carousels</h2>' + f'<section class="cards">{carousel_cards}</section>'
-                + pipeline_panel(stories)
-                + panel("Run history", history_panel(runs), f"last {HISTORY_ROWS} checks")
-            ),
-            "sources": (page_head("Sources", "The feeds the watcher reads, how each did in the last check, and the "
-                                  "brands and software it knows.") + sources_panel(feeds_cfg, data["feeds"], rules)),
-        }
-        main_pages = PAGES
-        advanced = ADVANCED_PAGES
-    home = "start"
+    pages = {
+        "start": start_panel(mode, counts),
+        "overview": (
+            page_head("Overview", "What the watcher found, what it sent, and where every story is now.")
+            + intro_panel(items, mode)
+            + '<h2 class="section-title">News</h2>' + f'<section class="cards">{news_cards}</section>'
+            + '<h2 class="section-title">Carousels</h2>' + f'<section class="cards">{carousel_cards}</section>'
+            + '<h2 class="section-title">This week</h2>'
+            + f'<section class="cards">{activity_counts(events, now)}</section>'
+            + pipeline_panel(stories)
+            + panel("Run history", history_panel(runs), f"last {HISTORY_ROWS} checks")
+        ),
+        "attention": (page_head("Needs your attention", "Carousels to review or post, rumors waiting for a second "
+                                "site, and feeds that failed.")
+                      + attention_panel(all_cards, data["feeds"], stories, mode)),
+        "stories": (page_head("Stories", "Every story the watcher kept. Click a story for its summary, sources and "
+                              "fact check.") + stories_panel(stories, mode)),
+        "carousels": (page_head("Carousels", "Each carousel with its slides, captions for every account, fact check, "
+                                "sources and downloads.")
+                      + coverage_panel(stories, now) + carousels_panel(all_cards, mode, approved_href)),
+        "activity": (page_head("Activity", "Every check, alert, carousel build, fact check, review, download and "
+                               "export, with its time in Manila.") + activity_panel(events, now)),
+        "sources": (page_head("Sources", "The feeds the watcher reads, how each did in the last check, and the "
+                              "brands and software it knows.") + sources_panel(feeds_cfg, data["feeds"], rules)),
+        "how": (page_head("How it works", "The whole system on one page.") + how_panel()),
+    }
+    home = "start" if mode == "share" else "overview"
     badges = {"attention": len(items), "carousels": counts["waiting_david"]}
-
-    def nav_button(key: str, label: str, ico: str) -> str:
-        current = ' aria-current="page"' if key == home else ""
-        badge = (f'<span class="badge{" alert" if badges[key] else ""}">{badges[key]}</span>'
-                 if key in badges and (mode == "local" or key == "carousels") else "")
-        return (f'<button type="button" data-nav="{key}" data-label="{esc(label)}"{current}>{icon(ico)}'
-                f'<span>{esc(label)}</span>{badge}</button>')
-
-    nav = "".join(nav_button(*p) for p in main_pages)
-    if advanced:
-        nav += ('<details class="adv"><summary>Advanced</summary><div class="nav-sub">'
-                + "".join(nav_button(*p) for p in advanced) + "</div></details>")
+    nav = "".join(
+        f'<button type="button" data-nav="{key}" data-label="{esc(label)}"'
+        f'{" aria-current=" + chr(34) + "page" + chr(34) if key == home else ""}>{icon(ico)}<span>{esc(label)}</span>'
+        + (f'<span class="badge{" alert" if badges[key] else ""}">{badges[key]}</span>' if key in badges else "")
+        + "</button>"
+        for key, label, ico in PAGES)
     sections = "".join(
         f'<section class="page" data-page="{key}"{"" if key == home else " hidden"}>{pages[key]}</section>'
-        for key, _, _ in list(main_pages) + list(advanced))
+        for key, _, _ in PAGES)
 
     if mode == "share":
         controls = ""
         banner = f'<div class="banner" role="note">{icon("lock")}<span>{esc(SHARE_NOTE)}</span></div>'
-        generated = f"Copy made {show_time(now)} (Asia/Manila)."
+        generated = f"Copy made {show_time(now)} (Asia/Manila). Read only: nothing here changes anything."
         side_note = "Read only copy for David. To approve a carousel, tell Kint."
         connect = "'none'"
-        status_chip = ""
-        hourly = "Checks run every hour while Kint's PC is on"
     else:
         export_cmd = f'cd "{ROOT}"; .venv\\Scripts\\python.exe scripts\\export_share_pack.py'
         controls = (
@@ -1249,18 +1237,16 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
             f'<button type="button" class="btn primary" id="export-david" data-copy="{esc(export_cmd)}">'
             f'{icon("share")}<span>Export for David</span></button>')
         banner = ""
-        generated = f"Updated {show_time(now)} (Asia/Manila)."
+        generated = f"Generated {show_time(now)} (Asia/Manila). Rebuilt at the end of every run."
         side_note = "Nothing is posted automatically. Posting is by hand in Meta Business Suite after David approves."
         connect = "'self'"
-        status_chip = (f'<div class="stat"><span class="lbl">Watcher</span><span class="val"><span class="tag dot '
-                       f'{state_class}">{esc(state_text)}</span></span></div>')
-        hourly = "Next check: hourly while this PC is on"
     topbar = (
         f'<header class="topbar"><div class="crumb" id="crumb">{esc(dict((k, l) for k, l, _ in PAGES)[home])}</div>'
-        f'<div class="stat"><span class="lbl">Last checked</span><span class="val">{esc(shown_last)}</span></div>'
-        f'<div class="stat"><span class="lbl">Next check</span><span class="val">{esc(next_text)}</span>'
-        f'<span class="sub">{esc(hourly)}</span></div>'
-        f'{status_chip}{controls}</header>'
+        f'<div class="stat"><span class="lbl">Last check</span><span class="val">{esc(last_text)}</span></div>'
+        f'<div class="stat"><span class="lbl">Next check at</span><span class="val">{esc(next_text)}</span>'
+        '<span class="sub">Next check: hourly while this PC is on</span></div>'
+        f'<div class="stat"><span class="lbl">Watcher</span><span class="val"><span class="tag dot {state_class}">'
+        f'{esc(state_text)}</span></span></div>{controls}</header>'
     )
     sidebar = (
         '<aside class="sidebar"><div class="brand">' + dashboard_assets.BRAND_MARK
@@ -1284,7 +1270,8 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
         '<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>'
     )
     font_css = dashboard_assets.font_face_css(fonts_dir) if fonts_dir else ""
-    # David's copy may be put on a web host: keep it out of search engines.
+    # David's copy: kept out of search engines on the web host, and its script has no review, export or
+    # command copy code at all (dashboard_assets.script_for).
     robots = "<meta name=\"robots\" content=\"noindex,nofollow\">" if mode == "share" else ""
     return (
         "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">"
@@ -1296,7 +1283,7 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
         f'<body data-mode="{mode}" data-home="{home}"><div class="app">' + sidebar
         + '<div class="main">' + topbar + banner
         + f'<div class="content"><p class="generated">{esc(generated)}</p>{sections}</div></div></div>'
-        + overlays + "<script>" + dashboard_assets.JS + "</script></body></html>\n"
+        + overlays + "<script>" + dashboard_assets.script_for(mode) + "</script></body></html>\n"
     )
 
 
@@ -1304,9 +1291,12 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
 
 def build_page(db_path=None, sources_path=None, rules_path=None, now=None, carousels_dir=None, samples_dir=None,
                activity_path=None, mode: str = "local", card_filter=None, base_for=None,
-               approved_href: str | None = "auto") -> tuple[str, list[dict]]:
+               approved_href: str | None = "auto", read_only: bool = False) -> tuple[str, list[dict]]:
     """(page HTML, the carousel cards on it). card_filter(card) keeps a card; base_for(card) gives its image folder.
-    approved_href is the link of the "Download all approved carousels" button ("auto": the prebuilt zip, if any)."""
+    approved_href is the link of the "Download all approved carousels" button ("auto": the prebuilt zip, if any).
+    read_only=True is David's copy: the same template as Kint's page, without any control or command."""
+    if read_only:
+        mode = "share"
     db_path = Path(db_path) if db_path is not None else ROOT / "data" / "seen.sqlite"
     sources_path = Path(sources_path) if sources_path is not None else ROOT / "config" / "sources.yaml"
     rules_path = Path(rules_path) if rules_path is not None else ROOT / "config" / "rules.yaml"

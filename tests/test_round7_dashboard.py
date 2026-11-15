@@ -38,8 +38,8 @@ def text_of(page: str) -> str:
 def test_the_sidebar_lists_every_section_in_the_readme_order(tmp_path):
     page = build(tmp_path, sample_db(tmp_path / "seen.sqlite"))
     nav = re.findall(r'data-nav="([a-z]+)" data-label="([^"]+)"', page)
-    assert [label for _, label in nav] == ["Start here", "To review", "Carousels", "News",
-                                           "Activity", "Numbers", "Sources"]
+    assert [label for _, label in nav] == ["Start here", "Overview", "Needs your attention", "Stories", "Carousels",
+                                           "Activity", "Sources", "How it works"]
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     section = readme.split("## Dashboard sections", 1)[1].split("\n## ", 1)[0]
     missing = [label for _, label in nav if f"**{label}**" not in section]
@@ -50,21 +50,19 @@ def test_the_sidebar_lists_every_section_in_the_readme_order(tmp_path):
         assert f'data-page="{key}"' in page
 
 
-def test_less_is_more_the_advanced_pages_sit_in_one_small_area(tmp_path):
+def test_kints_page_is_the_restored_pre_g_layout(tmp_path):
+    """Restore round: no Advanced area, no "To review" or "News" labels; Kint's page opens on the Overview."""
     page = build(tmp_path, sample_db(tmp_path / "seen.sqlite"))
-    advanced = page.split('<details class="adv"><summary>Advanced</summary>', 1)[1].split("</details>", 1)[0]
-    assert re.findall(r'data-nav="([a-z]+)"', advanced) == ["activity", "overview", "sources"]
-    assert 'data-home="start"' in page  # Kint's page opens on Start here too
-    assert page.count('class="adv"') == 1
-    for gone in ("How it works</span>", "Needs your attention", "Overview", "Coming in Phase"):
-        assert gone not in page, gone
+    assert 'data-home="overview"' in page and 'class="adv"' not in page and "start-steps" not in page
+    assert "Photo news in, ready to post carousels out" in page and "Needs attention now" in page
+    assert "The steps in plain words" in page and "The rules that never change" in page
 
 
 def test_the_top_bar_says_when_the_last_and_next_check_are_and_if_the_watcher_is_well(tmp_path, monkeypatch):
     db = sample_db(tmp_path / "seen.sqlite")
     page = build(tmp_path, db)
-    assert "Last checked" in page and "Nov 11, 2026, 07:10 PM (Asia/Manila), live run" in page
-    assert "Next check" in page and "(estimated)" in page and "Next check: hourly while this PC is on" in page
+    assert "Last check" in page and "Nov 11, 2026, 07:10 PM (Asia/Manila), live run" in page
+    assert "Next check at" in page and "(estimated)" in page and "Next check: hourly while this PC is on" in page
     assert "Running, some feeds failed" in page  # the sample run has one failed feed
     monkeypatch.setattr(dashboard, "read_next_run", lambda: datetime(2026, 11, 11, 13, 0, tzinfo=timezone.utc))
     page = build(tmp_path, db)
@@ -99,10 +97,8 @@ def test_the_page_has_no_em_or_en_dash_and_no_secret(tmp_path, monkeypatch):
 def test_someone_new_sees_what_the_system_does_and_what_needs_doing(tmp_path):
     page = text_of(build(tmp_path, sample_db(tmp_path / "seen.sqlite")))
     assert "Photo news in, ready to post carousels out" in page
-    assert "Start here: what this system does, in one minute" in page
-    assert "on the To review page" in page and "Nothing is posted automatically" in page
+    assert "Needs attention now" in page and "Nothing is posted automatically" in page
     assert "David's personal Instagram is never used" in page
-    assert "Last checked" in page and "Waiting for David" in page
 
 
 # ---- pipeline and carousel coverage ----
@@ -169,7 +165,7 @@ def test_a_carousel_card_has_the_slides_captions_fact_check_sources_and_download
     assert f'data-live-href="/api/download/slide/{name}/02.png"' in page
     for label in ("TPM Facebook", "TPM Instagram", "David Molnar Facebook"):
         assert f"<h3>{label}</h3>" in page
-    assert 'data-kind="caption"' in page and "Fact check" in page and "<h3>Sources</h3>" in page
+    assert 'data-kind="caption"' in page and "Fact check" in page and "Sources and image credits" in page
     assert "https://blog.adobe.com/max-2026" in page and "Download all slides (ZIP)" in page
 
 
@@ -205,7 +201,7 @@ def test_the_share_page_is_read_only_with_relative_paths_and_no_commands(tmp_pat
     page = build(tmp_path, sample_db(tmp_path / "seen.sqlite"), base, mode="share",
                  base_for=lambda c: f"carousels/{c['name']}")
     assert "Read only copy. To approve a carousel, tell Kint." in page
-    assert 'data-home="start"' in page and "Start here: what this system does, in one minute" in page
+    assert 'data-home="start"' in page and "Start here: the TPM photo news system in one minute" in page
     assert f'src="carousels/{folder.name}/01.png"' in page and "../output" not in page
     for forbidden in ("review.py", "data-action=", "--approve", "carousel.py --story", 'id="reviewer"',
                       "export_share_pack", 'data-live-href="', str(dashboard.ROOT), str(tmp_path), "file:///"):
@@ -213,22 +209,44 @@ def test_the_share_page_is_read_only_with_relative_paths_and_no_commands(tmp_pat
     assert "connect-src 'none'" in page and 'name="robots" content="noindex,nofollow"' in page
 
 
-def test_davids_copy_has_three_plain_pages_and_no_advanced_area(tmp_path):
+def test_davids_copy_is_a_read_only_twin_of_kints_page(tmp_path):
+    """Restore round: the same template with read_only=True. Same sidebar, pages, sections, cards and look; only the
+    controls and commands are gone, and each carousel shows its status badge where Kint has the review controls."""
     base = tmp_path / "carousels"
     folder = carousel(base)
-    page = build(tmp_path, sample_db(tmp_path / "seen.sqlite"), base, mode="share",
-                 base_for=lambda c: f"carousels/{c['name']}")
-    nav = re.findall(r'data-nav="([a-z]+)" data-label="([^"]+)"', page)
-    assert [label for _, label in nav] == ["Start here", "Carousels", "News"]
-    for gone in ('class="adv"', 'data-page="activity"', 'data-page="sources"', 'data-page="overview"',
-                 'data-page="attention"', "Feed health", "Run history", "Design check", 'id="f-stage"',
-                 'id="f-status"', "Label check", "Watcher", folder.name + "</p>", ", live run"):
-        assert gone not in page, gone
-    text = text_of(page)
-    assert "Canon Announces R6 Mark III" in text  # sent to Slack: shown
-    assert "Canon Dry Story" not in text  # a practice run: Kint only
-    assert "Checks run every hour while Kint's PC is on" in text and "Last checked" in text
-    assert "1 carousel is waiting for your yes or no" in text
+    db = sample_db(tmp_path / "seen.sqlite")
+    local = build(tmp_path, db, base)
+    share = build(tmp_path, db, base, read_only=True, base_for=lambda c: f"carousels/{c['name']}")
+    nav = r'data-nav="([a-z]+)" data-label="([^"]+)"'
+    assert re.findall(nav, share) == re.findall(nav, local)  # the same sidebar
+    assert re.findall(r'data-page="([a-z]+)"', share) == re.findall(r'data-page="([a-z]+)"', local)
+    for section in ("Run history", "Feed health", "Pipeline: where every story is now", "The steps in plain words",
+                    "Every official story and its carousel", "Carousel drafts to review", "Canon Dry Story",
+                    "Sources and image credits", "Design check", "Running, some feeds failed",
+                    folder.name, 'id="carousel-list"', 'id="activity-list"' if 'id="activity-list"' in local else ""):
+        assert section in share, section  # the same content as Kint's page
+    assert local.count('class="carousel-card"') == share.count('class="carousel-card"')
+    assert "Read only copy. To approve a carousel, tell Kint." in share and 'data-mode="share"' in share
+    # the status badge where the controls were
+    assert '<div class="review-area"><div class="review"><span class="tag st-accent">Waiting for David</span>' in share
+    # nothing that copies or runs a command
+    for gone in ("powershell", 'data-kind="command"', "data-base=", "data-action=", 'id="reviewer"',
+                 'id="export-david"', "python", ".bat", "Command copied", '<details class="copy-row"', "file:///",
+                 str(dashboard.ROOT)):
+        assert gone not in share.lower() if gone == "powershell" else gone not in share, gone
+    assert "PowerShell" in local and 'data-kind="command"' in local  # Kint keeps hers
+    for button in re.findall(r"<button[^>]*data-copy=[^>]*>", share):
+        assert 'data-kind="caption"' in button  # only the post captions can be copied
+
+
+def test_the_read_only_script_has_no_review_export_or_command_code():
+    import dashboard_assets
+    local, share = dashboard_assets.script_for("local"), dashboard_assets.script_for("share")
+    assert local == dashboard_assets.JS and "PowerShell" in local and "/api/review" in local
+    for gone in ("PowerShell", "/api/review", "/api/export", "export-david", "[data-action]", ".bat", "LOCAL-ONLY"):
+        assert gone not in share, gone
+    for kept in ("Caption copied.", "openLightbox", "applyStories", "applyActivity", "show(location.hash"):
+        assert kept in share, kept
 
 
 def test_davids_copy_shows_small_previews_and_links_the_full_slides(tmp_path):

@@ -10,8 +10,8 @@
 ## Daily use for Kint
 1. **Watch Slack.** Official launches arrive by themselves. A rumor arrives only when two sites report it.
 2. **When a "Carousel draft ready" message arrives,** double-click **Open Review Dashboard.bat**. Type your name in the box at the top of the page.
-3. **Open "To review."** Read the preview and `factcheck.md` in the draft's folder. Then press **Approve**, or type a reason and press **Reject**.
-4. **After you post by hand** (Meta Business Suite), choose the account, paste the link and press **Log as posted**. If Slack sends a health message, check `data\watcher.log` and Advanced, then Sources.
+3. **Open "Needs your attention."** Read the preview and `factcheck.md` in the draft's folder. Then press **Approve**, or type a reason and press **Reject**.
+4. **After you post by hand** (Meta Business Suite), choose the account, paste the link and press **Log as posted**. If Slack sends a health message, check `data\watcher.log` and the Sources tab.
 5. **Send to David.** Press **Export for David** in the top bar (or double-click **Export for David.bat**). Upload the contents of `output\share\latest\` to the web host and send him the link, or send him the zip from `output\share\`. When he says yes to a carousel, press **Approve** and type "David" as the name.
 6. **Need the files?** Every finished carousel has **Download all slides (ZIP)** and one button per slide. **Download all approved carousels** is at the top of the Carousels page.
 
@@ -75,8 +75,7 @@
 - **What it does:** writes one row for every event, with the Manila time, the type and the details: each hourly check (articles read, alerts sent, errors), each Slack alert, each carousel build (built or failed, and why), each fact check, each review step (approved, rejected, waiting for David, posted, with the name and the account), each download, each Export for David (with its size) and each health message.
 - **Code:** `src/activity.py`. Secrets and file paths from this PC are removed before a row is written.
 - **Output:** `data/activity-log.csv` (open it in Excel). The Activity page shows it as a table with filters (type, words, time range) and the counts for this week: alerts sent, carousels built, approved and posted.
-- **Where:** Advanced, then Activity (Kint's page only).
-- **Is it alive?** The top of every page shows **Last checked** (from the run history) and **Next check** (from the Windows task, or estimated when the task can't be read).
+- **Is it alive?** The top of every page shows **Last check** (from the run history) and **Next check at** (from the Windows task, or estimated when the task can't be read).
 
 ### Downloads
 - **What it does:** each finished carousel has **Download all slides (ZIP)** and a button per slide. The zip holds the slides in order (`01-cover.png`, `02-<feature>.png` ...), one caption file per account (`captions-tpm-facebook.txt`, `captions-tpm-instagram.txt`, `captions-david-facebook.txt`), `sources.txt` with the official links, and a short `README.txt`. **Download all approved carousels** puts every approved carousel in one zip. A sample's zip name starts with `SAMPLE-`.
@@ -90,7 +89,7 @@
 - **Two ways to send it:**
   1. **Web link (best for a phone):** upload everything inside `output\share\latest\`, as it is, to any static web host (for example Netlify Drop, GitHub Pages or Cloudflare Pages), then send David the link. The page is marked "noindex", so search engines skip it.
   2. **Zip:** send the zip. David unzips it and double-clicks `index.html`.
-- **What is in it:** three plain pages (**Start here**, **Carousels**, **News**), the note "Read only copy. To approve a carousel, tell Kint.", the carousels (samples and rejected ones are left out) and `READ ME FIRST.txt`. The page shows small JPEG previews (720 px wide) so it loads fast; every download (single slide or zip) is the full 1080 x 1440 PNG. No Advanced area, no review buttons, no commands, no secrets and no file paths from this PC. The export checks every file and stops (and deletes the copy) if it finds one. It stays under 100 MB.
+- **What is in it:** a read only twin of Kint's dashboard: the same look, sidebar, pages and sections (Start here, Overview, Needs your attention, Stories, Carousels, Activity, Sources, How it works), rendered from the same template with `read_only=True`. Only these are left out: the approve, reject, review, export and command copy buttons (each carousel shows its status badge where they were), every command, and every path from this PC. The note "Read only copy. To approve a carousel, tell Kint." is at the top. Samples and rejected carousels are left out. The images and downloads are copied in and linked relatively. The slides show as JPEG previews (720 px wide), so they load fast; every download (single slide or zip) is the full 1080 x 1440 PNG. The export checks every file (secrets, `.env` values, PC paths, commands, PowerShell wording) and stops, deleting the copy, if it finds one. It stays under 100 MB.
 - **Use:** the **Export for David** button in the top bar (review server), or double-click **Export for David.bat**, or `.venv\Scripts\python.exe scripts\export_share_pack.py`.
 - **Code:** `src/share_pack.py`, `src/previews.py` (the previews, made with the same Chromium that renders the slides; without it the page shows the full PNGs), `scripts/export_share_pack.py`. The size is written to the activity log.
 
@@ -133,16 +132,11 @@ The watcher also runs in the cloud, on GitHub, so it keeps working while the lap
   4. Actions tab, **TPM photo news watcher**, **Run workflow**. After the green tick, the link for David works.
 
 ## Dashboard sections
-The page is a simple app with a sidebar. Less is more: only what is needed day to day. The sections, in this order:
-- **Start here** (the home page): what the system does in plain words, what needs doing now, how many carousels wait for David, and when the news was last checked.
-- **To review** (Kint only): carousels to approve, reject or log as posted, official stories with no carousel and why, and feeds that failed.
-- **Carousels**: each carousel with its slides, the caption for each account, the fact check, the official sources, the downloads and (Kint only) the review buttons. Below them: every official story and its carousel, or the reason it has none.
-- **News**: the stories, with a search box and filters.
-- One small **Advanced** area, for Kint only and never in David's copy: **Activity** (every event, with filters and this week's counts), **Numbers** (the counts, the pipeline and the run history) and **Sources** (feeds, brands and software).
+The page is an app with a sidebar. The sections, in this order: **Start here** (what the system does, in one minute), **Overview** (the counts, the pipeline, Last check and Next check at, the run history, and Export for David), **Needs your attention** (drafts to review, official stories with no carousel and why, feeds that failed), **Stories** (every story, with filters), **Carousels** (the gallery: slides, captions, fact check, sources, downloads and the review buttons), **Activity** (every event, with filters and this week's counts), **Sources** (feeds, brands and software), and **How it works** (the steps in plain words).
 
-The top bar always shows **Last checked** and **Next check**, so anyone can tell the system is alive.
+Two ways to open it: **Open Review Dashboard.bat** (through the review server, the buttons work) or **Open TPM News Dashboard.bat** (a plain file, read only, the buttons copy the command instead). It needs no internet: the fonts, icons, CSS and JS are inside the page (`src/dashboard_assets.py`).
 
-Two ways to open it: **Open Review Dashboard.bat** (through the review server, the buttons work) or **Open TPM News Dashboard.bat** (a plain file, read only, the buttons copy the command instead). It needs no internet: the fonts, icons, CSS and JS are inside the page (`src/dashboard_assets.py`). It works on a phone too.
+David's copy (Share with David, and the GitHub Pages link) is the same page with the same sections, rendered from the same template with `read_only=True`. It opens on Start here, and leaves out only the review, approve, reject, export and command copy buttons (each carousel shows its status badge instead) and every command.
 
 ## Setup and tests (once)
 ```powershell

@@ -4,9 +4,10 @@ install, no server, no internet needed to view it.
 
 Builds output/share/TPM-News-Dashboard-<date>/ and output/share/TPM-News-Dashboard-<date>.zip, and refreshes
 output/share/latest/ with the same contents (the folder to upload):
-  index.html                  the dashboard in share mode, at the root: relative paths only, all CSS, JS and fonts
-                              inline, a note at the top ("Read only copy. To approve a carousel, tell Kint."), a Start
-                              here page for David, no review buttons, no commands and no paths from Kint's PC
+  index.html                  Kint's dashboard, rendered from the same template with read_only=True: the same look,
+                              sidebar, pages and sections, at the root, relative paths only, all CSS, JS and fonts
+                              inline, the note at the top ("Read only copy. To approve a carousel, tell Kint."), and
+                              no approve, reject, review, export or command copy buttons, no commands, no paths
   READ ME FIRST.txt           how to open it or put it on the web
   carousels/<folder>/view/01.jpg  small previews the page shows, so it loads fast on a phone
   carousels/<folder>/01.png   the full 1080 x 1440 slides, for the single slide downloads
@@ -120,7 +121,19 @@ def scan_pack(path: Path, root: Path) -> list[str]:
         for what, pattern in checks:
             if pattern.search(text):
                 problems.append(f"{name} contains {what}")
+        if name.endswith(".html"):
+            for what, pattern in PAGE_ONLY_CHECKS:
+                if pattern.search(text):
+                    problems.append(f"{name} contains {what}")
     return problems
+
+
+# The page David sees must hold no command and no control: checked on every .html file of the pack.
+PAGE_ONLY_CHECKS = [
+    ("PowerShell wording", re.compile(r"powershell", re.I)),
+    ("a command copy button", re.compile(r'data-kind="command"|data-base="|id="export-david"|id="reviewer"')),
+    ("a command", re.compile(r"python\.exe|\.venv\\|src\\[a-z_]+\.py|scripts\\[a-z_]+\.py|\.bat\b", re.I)),
+]
 
 
 def _keep(card: dict) -> bool:
@@ -200,7 +213,7 @@ def export_pack(now: datetime | None = None, root: Path | None = None, out_root:
         page, _ = dashboard.build_page(
             db_path=root / "data" / "seen.sqlite", sources_path=root / "config" / "sources.yaml",
             rules_path=root / "config" / "rules.yaml", now=now, carousels_dir=carousels_dir,
-            samples_dir=root / "output" / "samples", mode="share",
+            samples_dir=root / "output" / "samples", read_only=True,
             card_filter=lambda c: c["name"] in keep_names, base_for=place,
             approved_href=f"carousels/{downloads.APPROVED_ZIP_NAME}" if with_approved else None)
         (folder / "index.html").write_text(page, encoding="utf-8")

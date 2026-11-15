@@ -10,6 +10,7 @@ red failed, grey out of the flow).
 from __future__ import annotations
 
 import base64
+import re
 from pathlib import Path
 
 FONT_FILES = ((400, "Inter-Regular.ttf"), (600, "Inter-SemiBold.ttf"))
@@ -375,38 +376,7 @@ box-shadow:var(--shadow-lg);font-size:var(--t-md)}
 .car-body{grid-template-columns:minmax(0,1fr)}
 .thumbs{grid-template-columns:repeat(3,minmax(0,1fr))}
 .kv,.facts{grid-template-columns:minmax(0,1fr)}
-.adv{width:100%}
 }
-/* phones */
-@media (max-width:600px){
-.content{padding:var(--s2)}
-.topbar{gap:var(--s1);padding:var(--s1) var(--s2)}
-.crumb{width:100%}
-.stat{max-width:none}
-.who input{width:100%}
-.cards{grid-template-columns:repeat(2,minmax(0,1fr))}
-.card .v{font-size:var(--t-2xl)}
-.thumbs{grid-template-columns:repeat(2,minmax(0,1fr))}
-.card-head,.car-body,.car-cols{padding-left:var(--s2);padding-right:var(--s2)}
-.start-hero{padding:var(--s3)}
-.start-hero p{font-size:var(--t-md)}
-.nodes,.flow{grid-template-columns:minmax(0,1fr)}
-th,td{padding:10px 12px}
-.hide-sm{display:none}
-.banner{padding:12px var(--s2)}
-}
-/* the Advanced area of the sidebar (Kint only) */
-.adv{margin-top:var(--s1);border-top:1px solid var(--line);padding-top:var(--s1)}
-.adv summary{cursor:pointer;padding:6px 12px;font-size:var(--t-xs);font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.adv .nav-sub{display:flex;flex-direction:column;gap:4px;margin-top:4px}
-.adv .nav-sub button{font-weight:500;font-size:var(--t-sm)}
-.start-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s2)}
-.start-steps li{display:flex;gap:var(--s1);align-items:flex-start;padding:var(--s2);background:var(--surface);border:1px solid var(--line);
-border-radius:var(--r2);font-size:var(--t-sm);color:var(--ink-2)}
-.start-steps li b{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;flex:none;
-background:var(--accent);color:#fff;font-size:var(--t-xs)}
-@media (max-width:900px){.start-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:600px){.start-steps{grid-template-columns:minmax(0,1fr)}}
 """
 
 JS = r"""
@@ -438,15 +408,12 @@ JS = r"""
   var navs = $$('.nav [data-nav]');
   function show(name) {
     if (!pages.some(function (p) { return p.getAttribute('data-page') === name; })) {
-      name = document.body.getAttribute('data-home') || 'start';
+      name = document.body.getAttribute('data-home') || 'overview';
     }
     pages.forEach(function (p) { p.hidden = p.getAttribute('data-page') !== name; });
     var label = '';
     navs.forEach(function (b) {
-      if (b.getAttribute('data-nav') === name) {
-        b.setAttribute('aria-current', 'page'); label = b.getAttribute('data-label');
-        var holder = b.closest('details'); if (holder) { holder.open = true; }
-      }
+      if (b.getAttribute('data-nav') === name) { b.setAttribute('aria-current', 'page'); label = b.getAttribute('data-label'); }
       else { b.removeAttribute('aria-current'); }
     });
     var crumb = $('#crumb');
@@ -481,10 +448,13 @@ JS = r"""
     copyText(text).then(function () {
       button.classList.add('done');
       setTimeout(function () { button.classList.remove('done'); }, 1400);
-      toast(button.getAttribute('data-kind') === 'caption' ? 'Caption copied.' : 'Command copied. Paste it into PowerShell.', true);
+      toast(button.getAttribute('data-kind') === 'caption' ? 'Caption copied.'
+        : (typeof COMMAND_COPIED !== 'undefined' ? COMMAND_COPIED : 'Copied.'), true);
     }, function () { toast('Could not copy. Select the text and copy it by hand.', false); });
   });
 
+  /* LOCAL-ONLY START: review buttons, the review server and command copies (never in David's read only copy) */
+  var COMMAND_COPIED = 'Command copied. Paste it into PowerShell.';
   /* ---------- review buttons ---------- */
   function post(url, payload, done) {
     fetch(url, {
@@ -535,6 +505,8 @@ JS = r"""
     });
   });
 
+  /* LOCAL-ONLY END */
+
   /* ---------- downloads: real downloads through the review server, the prebuilt files otherwise ---------- */
   if (live) {
     $$('[data-live-href]').forEach(function (a) {
@@ -550,6 +522,7 @@ JS = r"""
     toast(a.getAttribute('title') || 'Not available in this copy.', false);
   });
 
+  /* LOCAL-ONLY START: the Export for David button */
   /* ---------- export for David ---------- */
   var exportButton = $('#export-david');
   if (exportButton) {
@@ -569,6 +542,8 @@ JS = r"""
       });
     });
   }
+
+  /* LOCAL-ONLY END */
 
   /* ---------- focus trap ---------- */
   function trap(container, event) {
@@ -645,17 +620,16 @@ JS = r"""
   function applyStories() {
     if (!controls.search) { return; }
     var text = controls.search.value.trim().toLowerCase();
-    var range = controls.range ? controls.range.value : 'all';
-    var cutoff = range === '24h' ? Date.now() - DAY : range === '7d' ? Date.now() - 7 * DAY : 0;
+    var cutoff = controls.range.value === '24h' ? Date.now() - DAY
+      : controls.range.value === '7d' ? Date.now() - 7 * DAY : 0;
     var shown = 0;
     rows.forEach(function (row) {
       var d = row.dataset;
-      function pick(el) { return el ? el.value : ''; }
       var ok = (!text || d.text.indexOf(text) !== -1)
-        && (!pick(controls.label) || d.label === controls.label.value)
-        && (!pick(controls.brand) || d.brand === controls.brand.value)
-        && (!pick(controls.stage) || d.stage === controls.stage.value)
-        && (!pick(controls.status) || d.status === controls.status.value)
+        && (!controls.label.value || d.label === controls.label.value)
+        && (!controls.brand.value || d.brand === controls.brand.value)
+        && (!controls.stage.value || d.stage === controls.stage.value)
+        && (!controls.status.value || d.status === controls.status.value)
         && (!cutoff || Number(d.ts) >= cutoff);
       row.hidden = !ok;
       if (ok) { shown += 1; }
@@ -795,6 +769,17 @@ JS = r"""
     }
   });
 
-  show(location.hash.replace('#', '') || document.body.getAttribute('data-home') || 'start');
+  show(location.hash.replace('#', '') || document.body.getAttribute('data-home') || 'overview');
 })();
 """
+
+_LOCAL_ONLY = re.compile(r"/\* LOCAL-ONLY START.*?/\* LOCAL-ONLY END \*/", re.S)
+
+
+def script_for(mode: str) -> str:
+    """The page script. Kint's page gets all of it. David's read only copy ("share") gets the same script without the
+    review buttons, the review server calls, the Export for David button and the command copy text, so the copy holds
+    no command, no PowerShell wording and no way to change anything."""
+    if mode != "share":
+        return JS
+    return _LOCAL_ONLY.sub("", JS)

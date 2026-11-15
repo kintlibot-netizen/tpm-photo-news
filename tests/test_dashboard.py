@@ -100,7 +100,7 @@ def test_dashboard_renders_sample_stories_and_required_sections(tmp_path):
         "Sent to Slack", "Waiting for a 2nd source", "Rejected: not relevant", "Practice run only",
         "Canon Announces R6 Mark III", "Canon R6 Mark IV rumored specs", "Canon Dry Story",
         "Run history", "Feed health", "Carousels",
-        "No carousels yet. Finished carousels will appear here.",
+        "Coming in Phase 2: ready-to-post slides and captions will appear here.",
         'id="search"', 'id="f-label"', 'id="f-brand"', 'id="f-status"', 'id="f-range"',
     ]:
         assert text in page, text

@@ -152,6 +152,27 @@ def test_the_pack_holds_no_secret_no_path_from_this_pc_and_no_review_command(pro
     assert share_pack.scan_pack(folder, project) == []
 
 
+def test_the_pack_page_is_the_read_only_twin_with_no_command_wording(project):
+    folder = share_pack.export_pack(now=NOW, root=project)["folder"]
+    page = (folder / "index.html").read_text(encoding="utf-8")
+    for kept in ('data-nav="overview"', 'data-nav="attention"', 'data-nav="how"', "Run history", "Feed health",
+                 '<div class="review-area"><div class="review"><span class="tag'):
+        assert kept in page, kept
+    for gone in ("powershell", 'data-kind="command"', "data-base=", "python.exe", "export_share_pack", ".bat"):
+        assert gone not in page.lower(), gone
+
+
+def test_a_page_with_command_wording_is_refused(project, tmp_path):
+    pack = tmp_path / "pack"
+    pack.mkdir()
+    (pack / "index.html").write_text("<p>Command copied. Paste it into PowerShell.</p>", encoding="utf-8")
+    assert any("PowerShell wording" in p for p in share_pack.scan_pack(pack, project))
+    (pack / "index.html").write_text('<button data-kind="command" data-copy="x">Copy</button>', encoding="utf-8")
+    assert any("command copy button" in p for p in share_pack.scan_pack(pack, project))
+    (pack / "index.html").write_text("<p>Read only copy. To approve a carousel, tell Kint.</p>", encoding="utf-8")
+    assert share_pack.scan_pack(pack, project) == []
+
+
 def test_a_secret_planted_in_a_caption_stops_the_export_and_leaves_nothing(project):
     captions = project / "output" / "carousels" / "2026-11-11-photoshop-2027" / "captions.txt"
     captions.write_text(captions.read_text(encoding="utf-8").replace("Which would you try?", WEBHOOK),

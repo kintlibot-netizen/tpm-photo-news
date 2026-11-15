@@ -498,7 +498,7 @@ def test_dashboard_card_shows_status_facts_design_and_copy_buttons(tmp_path):
 
 
 def test_dashboard_without_carousels_keeps_the_placeholder(tmp_path):
-    assert "No carousels yet" in dashboard.carousels_panel([])
+    assert "Coming in Phase 2" in dashboard.carousels_panel([])
 
 
 def test_dashboard_card_status_words_for_each_state(tmp_path):
