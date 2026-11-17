@@ -95,3 +95,8 @@ time,type,outcome,details,who
 2026-11-17T18:08:48+08:00,check,ok,"Live check: 276 articles read, 144 in the time window, 18 passed the free rules, 1 alerts sent, 23 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-17T19:54:02+08:00,check,ok,"Live check: 276 articles read, 149 in the time window, 18 passed the free rules, 0 alerts sent, 25 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-17T21:09:23+08:00,check,ok,"Live check: 276 articles read, 155 in the time window, 19 passed the free rules, 0 alerts sent, 26 rumors waiting for a 2nd source, 0 feeds failed",
+2026-11-17T22:57:30+08:00,alert,sent,"OFFICIAL: LEAKED: This is the Lumix SHX1, Panasonic’s upcoming full-frame modular cinema camera.",
+2026-11-17T22:57:31+08:00,alert,sent,OFFICIAL: No love for MFT: Panasonic announced a new L-mount cine camera only,
+2026-11-17T22:57:31+08:00,carousel,needs Kint,"Story 56, LEAKED: This is the Lumix SHX1, Panasonic’s upcoming full-frame modular cinema camera.: Waiting for Kint to build it on her laptop, where the fact check and the official image check run. The cloud never makes a carousel without them.",
+2026-11-17T22:57:31+08:00,carousel,needs Kint,"Story 57, No love for MFT: Panasonic announced a new L-mount cine camera only: Waiting for Kint to build it on her laptop, where the fact check and the official image check run. The cloud never makes a carousel without them.",
+2026-11-17T22:57:31+08:00,check,ok,"Live check: 276 articles read, 162 in the time window, 20 passed the free rules, 2 alerts sent, 25 rumors waiting for a 2nd source, 0 feeds failed",
