@@ -152,3 +152,6 @@ time,type,outcome,details,who
 2026-11-20T03:02:23+08:00,check,ok,"Live check: 276 articles read, 201 in the time window, 19 passed the free rules, 0 alerts sent, 28 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-20T04:07:27+08:00,check,ok,"Live check: 276 articles read, 199 in the time window, 18 passed the free rules, 0 alerts sent, 28 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-20T05:00:10+08:00,check,ok,"Live check: 276 articles read, 199 in the time window, 18 passed the free rules, 0 alerts sent, 28 rumors waiting for a 2nd source, 0 feeds failed",
+2026-11-20T05:55:21+08:00,alert,sent,"OFFICIAL: Nikon is clearly dedicated to updating its cameras after release, but will ‘vibe coding’ push others to follow the Nikon ZR’s lead?",
+2026-11-20T05:55:21+08:00,carousel,needs Kint,"Story 67, Nikon is clearly dedicated to updating its cameras after release, but will ‘vibe coding’ push others to follow the Nikon ZR’s lead?: Waiting for Kint to build it on her laptop, where the fact check and the official image check run. The cloud never makes a carousel without them.",
+2026-11-20T05:55:21+08:00,check,some feeds failed,"Live check: 269 articles read, 193 in the time window, 16 passed the free rules, 1 alerts sent, 28 rumors waiting for a 2nd source, 1 feeds failed (L-Rumors)",
