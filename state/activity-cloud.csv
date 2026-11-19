@@ -144,3 +144,4 @@ time,type,outcome,details,who
 2026-11-19T18:16:27+08:00,alert,sent,OFFICIAL: Sony ECM-W5 and ECM-W5R firmware 1.1 fixes wireless monitoring audio interruptions,
 2026-11-19T18:16:27+08:00,carousel,needs Kint,"Story 64, Sony ECM-W5 and ECM-W5R firmware 1.1 fixes wireless monitoring audio interruptions: Waiting for Kint to build it on her laptop, where the fact check and the official image check run. The cloud never makes a carousel without them.",
 2026-11-19T18:16:27+08:00,check,ok,"Live check: 276 articles read, 192 in the time window, 19 passed the free rules, 1 alerts sent, 26 rumors waiting for a 2nd source, 0 feeds failed",
+2026-11-19T20:01:02+08:00,check,ok,"Live check: 276 articles read, 207 in the time window, 18 passed the free rules, 0 alerts sent, 27 rumors waiting for a 2nd source, 0 feeds failed",
