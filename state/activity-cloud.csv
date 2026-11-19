@@ -134,3 +134,6 @@ time,type,outcome,details,who
 2026-11-19T06:55:51+08:00,check,ok,"Live check: 276 articles read, 179 in the time window, 19 passed the free rules, 2 alerts sent, 25 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-19T07:59:15+08:00,check,ok,"Live check: 276 articles read, 179 in the time window, 19 passed the free rules, 0 alerts sent, 25 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-19T09:13:17+08:00,check,ok,"Live check: 276 articles read, 187 in the time window, 19 passed the free rules, 0 alerts sent, 25 rumors waiting for a 2nd source, 0 feeds failed",
+2026-11-19T10:56:13+08:00,alert,sent,OFFICIAL: New ZY Optics (Zhongyi) Mitakon Speedmaster 65mm f/1.4 II lens for Fuji GFX & Hasselblad X mount announced,
+2026-11-19T10:56:13+08:00,carousel,needs Kint,"Story 62, New ZY Optics (Zhongyi) Mitakon Speedmaster 65mm f/1.4 II lens for Fuji GFX & Hasselblad X mount announced: Waiting for Kint to build it on her laptop, where the fact check and the official image check run. The cloud never makes a carousel without them.",
+2026-11-19T10:56:13+08:00,check,ok,"Live check: 276 articles read, 188 in the time window, 20 passed the free rules, 1 alerts sent, 25 rumors waiting for a 2nd source, 0 feeds failed",
