@@ -1,0 +1,50 @@
+{
+  "status": "waiting_for_david",
+  "history": [
+    {
+      "event": "built",
+      "at": "2026-11-20T22:07:39+00:00"
+    }
+  ],
+  "build": {
+    "slides": 6,
+    "confirmed": 23,
+    "removed_count": 0,
+    "removed": [],
+    "missing": [
+      "01.jpg",
+      "02.jpg",
+      "03.jpg",
+      "04.jpg",
+      "05.jpg"
+    ],
+    "placed": [],
+    "design_summary": "Design check: 0 fail, 1 warn.",
+    "design_fail": 0,
+    "design_warn": 1,
+    "captions_words": {
+      "david": 37,
+      "tpm": 37
+    },
+    "official_url": "https://www.dji.com",
+    "title": "DJI ROMO P2 UK price and availability announced",
+    "fact_check_passed": true,
+    "lint_passed": true,
+    "sample": false,
+    "closing": true,
+    "timings": {
+      "official page": 6.2,
+      "slide plan (reused or Claude draft)": 24.7,
+      "fact check": 15.2,
+      "hook check": 0.0,
+      "official help pages": 6.5,
+      "official images (downloads side by side)": 0.3,
+      "official demo videos and posters (one browser for all trims)": 0.3,
+      "image check": 0.0,
+      "render slides (one browser for all)": 7.4,
+      "design check": 0.0,
+      "total": 60.8
+    }
+  },
+  "built_at": "2026-11-20T22:07:39+00:00"
+}

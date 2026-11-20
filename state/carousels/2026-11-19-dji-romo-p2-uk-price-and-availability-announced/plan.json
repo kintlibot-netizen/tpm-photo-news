@@ -1,0 +1,135 @@
+{
+  "product": {
+    "text": "DJI",
+    "quote": "DJI - Official Website"
+  },
+  "cover": {
+    "label": "NEW IN DJI",
+    "headline": {
+      "text": "DJI",
+      "quote": "DJI - Official Website"
+    },
+    "subline": {
+      "text": "8K FLAGSHIP 360° DRONE",
+      "quote": "8K Flagship 360° Drone"
+    },
+    "subline_alt": {
+      "text": "8K 360° CAMERA",
+      "quote": "8K 360° Camera"
+    }
+  },
+  "slides": [
+    {
+      "template": "left_body",
+      "label": "NEW DRONE",
+      "headline": {
+        "text": "AVATA 360",
+        "quote": "Shot on DJI Avata 360"
+      },
+      "accent": {
+        "text": "8K FLAGSHIP 360° DRONE",
+        "quote": "8K Flagship 360° Drone"
+      },
+      "body": {
+        "text": "Its tagline promises you can see it all from above.",
+        "quote": "Above It All, See It All"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "NEW CAMERA",
+      "headline": {
+        "text": "OSMO POCKET 4P",
+        "quote": "Shot on Osmo Pocket 4P"
+      },
+      "accent": {
+        "text": "DUAL LENS CINEMATIC GIMBAL CAMERA",
+        "quote": "Dual-Lens Cinematic Pocket Gimbal Camera"
+      },
+      "body": {
+        "text": "A pocket gimbal camera with two lenses made for cinematic shots.",
+        "quote": "Dual-Lens Cinematic Pocket Gimbal Camera"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "NEW CAMERA",
+      "headline": {
+        "text": "OSMO 360 II",
+        "quote": "Shot on Osmo 360 II"
+      },
+      "accent": {
+        "text": "8K 360° CAMERA",
+        "quote": "8K 360° Camera"
+      },
+      "body": {
+        "text": "The tagline promises all angles and all epic.",
+        "quote": "All Angles. All Epic."
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "NEW MIC",
+      "headline": {
+        "text": "MIC MINI 2S",
+        "quote": "mic-mini-2s"
+      },
+      "accent": {
+        "text": "INTERNAL RECORDING MIC",
+        "quote": "Internal Recording Mini Wireless Mic"
+      },
+      "body": {
+        "text": "A mini wireless mic that records internally.",
+        "quote": "Internal Recording Mini Wireless Mic"
+      },
+      "specs": []
+    }
+  ],
+  "comparison": null,
+  "price": null,
+  "captions": {
+    "david": {
+      "hook": {
+        "text": "My pick from DJI is the Avata 360.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "Avata 360 is an 8K flagship 360° drone.",
+          "quote": "8K Flagship 360° Drone"
+        },
+        {
+          "text": "Osmo Pocket 4P is a dual lens cinematic pocket gimbal camera.",
+          "quote": "Dual-Lens Cinematic Pocket Gimbal Camera"
+        }
+      ],
+      "closing": {
+        "text": "Which DJI camera would you take on your next trip?",
+        "quote": ""
+      }
+    },
+    "tpm": {
+      "hook": {
+        "text": "We think the Avata 360 is the one to watch.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "You get an 8K flagship 360° drone with Avata 360.",
+          "quote": "8K Flagship 360° Drone"
+        },
+        {
+          "text": "Osmo 360 II gives you an 8K 360° camera.",
+          "quote": "8K 360° Camera"
+        }
+      ],
+      "closing": {
+        "text": "Drone or camera, which would you pick first?",
+        "quote": ""
+      }
+    }
+  }
+}
