@@ -169,3 +169,6 @@ time,type,outcome,details,who
 2026-11-20T18:06:08+08:00,check,ok,"Live check: 276 articles read, 198 in the time window, 16 passed the free rules, 0 alerts sent, 27 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-20T19:08:21+08:00,check,ok,"Live check: 276 articles read, 198 in the time window, 16 passed the free rules, 0 alerts sent, 27 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-20T21:14:23+08:00,check,ok,"Live check: 276 articles read, 195 in the time window, 14 passed the free rules, 0 alerts sent, 27 rumors waiting for a 2nd source, 0 feeds failed",
+2026-11-20T22:57:48+08:00,alert,sent,OFFICIAL: Thypoch Sculptor AF 23mm f/1.4 APS-C lens for Fujifilm X-mount officially announced,
+2026-11-20T22:57:48+08:00,carousel,needs Kint,"Story 69, Thypoch Sculptor AF 23mm f/1.4 APS-C lens for Fujifilm X-mount officially announced: Waiting for Kint to build it on her laptop, where the fact check and the official image check run. The cloud never makes a carousel without them.",
+2026-11-20T22:57:48+08:00,check,ok,"Live check: 276 articles read, 193 in the time window, 14 passed the free rules, 1 alerts sent, 27 rumors waiting for a 2nd source, 0 feeds failed",
