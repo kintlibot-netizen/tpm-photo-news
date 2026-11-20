@@ -517,8 +517,37 @@ def reject_reason(image: dict, data: bytes | None, page_url: str, domains: list[
     return None
 
 
+DOWNLOAD_WORKERS = 6  # image downloads that run side by side
+# carousel.run_story sets this to data/image-cache: an official image downloaded once is read from disk on a rebuild
+# (for IMAGE_CACHE_DAYS). The bytes are exactly what the official server sent; nothing is changed.
+IMAGE_CACHE_DIR: Path | None = None
+IMAGE_CACHE_DAYS = 7
+
+
+def parallel_map(work, items: list, workers: int | None = None) -> list:
+    """work(item) for every item, several at a time, results in the same order as items."""
+    items = list(items)
+    if len(items) <= 1:
+        return [work(item) for item in items]
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=min(workers or DOWNLOAD_WORKERS, len(items))) as pool:
+        return list(pool.map(work, items))
+
+
+def _cache_file(url: str) -> Path | None:
+    if IMAGE_CACHE_DIR is None:
+        return None
+    import hashlib
+    return Path(IMAGE_CACHE_DIR) / (hashlib.sha256(url.encode("utf-8")).hexdigest() + ".bin")
+
+
 def fetch_bytes(url: str) -> bytes:
     """Downloads one image, up to MAX_BYTES. Only used for official pages' images."""
+    cached = _cache_file(url)
+    if cached is not None and cached.is_file():
+        import time
+        if time.time() - cached.stat().st_mtime < IMAGE_CACHE_DAYS * 86400:
+            return cached.read_bytes()
     response = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=25, stream=True)
     response.raise_for_status()
     data = bytearray()
@@ -526,6 +555,12 @@ def fetch_bytes(url: str) -> bytes:
         data.extend(chunk)
         if len(data) > MAX_BYTES:
             raise ValueError("image is too large")
+    if cached is not None:
+        try:
+            cached.parent.mkdir(parents=True, exist_ok=True)
+            cached.write_bytes(bytes(data))
+        except OSError:
+            pass  # the cache is only a speedup
     return bytes(data)
 
 
@@ -547,18 +582,17 @@ def gather(pages: list[tuple[str, str]], domains: list[str], out_dir: Path,
                 all_images.append((image, page_url))
     all_images.sort(key=lambda pair: pair[0]["kind"] != "og")  # the page's main image first
     folder = out_dir / "candidates"
-    for image, page_url in all_images[:CANDIDATE_LIMIT]:
+    chosen = all_images[:CANDIDATE_LIMIT]
+
+    def first_rule(image: dict) -> str | None:
         if image["w"] and image["h"] and str(image["w"]).isdigit() and str(image["h"]).isdigit():
             if max(int(image["w"]), int(image["h"])) < MIN_LONG_SIDE:
-                rejected.append({"image_url": image["src"], "page": page_url,
-                                 "reason": "declared size under 1000px"})
-                continue
-        # 1. Rules that need only the page's own text: host, AI wording, logos, people.
-        early = reject_reason(image, None, page_url, domains)
-        if early and early != "could not be downloaded":
-            rejected.append({"image_url": image["src"], "page": page_url, "reason": early})
-            continue
-        # 2. Download the file. A failed download is recorded, not fatal.
+                return "declared size under 1000px"
+        # Rules that need only the page's own text: host, AI wording, logos, people.
+        early = reject_reason(image, None, page_url_of[id(image)], domains)
+        return early if early and early != "could not be downloaded" else None
+
+    def download(image: dict) -> tuple[bytes | None, str | None, str]:
         # A blog image is asked for at its largest width first (2000, then 1200, then the width the page gave).
         data, download_error, used_url = None, None, image["src"]
         for url in larger_urls(image["src"]):
@@ -567,6 +601,19 @@ def gather(pages: list[tuple[str, str]], domains: list[str], out_dir: Path,
                 break
             except (requests.RequestException, ValueError) as exc:
                 download_error = type(exc).__name__
+        return data, download_error, used_url
+
+    page_url_of = {id(image): page_url for image, page_url in chosen}
+    early_reasons = [first_rule(image) for image, _ in chosen]
+    # The downloads run side by side (they were one after another); the decisions below stay in page order.
+    wanted = [image for (image, _), reason in zip(chosen, early_reasons) if reason is None]
+    fetched = dict(zip((id(i) for i in wanted), parallel_map(download, wanted)))
+    for (image, page_url), early in zip(chosen, early_reasons):
+        if early:
+            rejected.append({"image_url": image["src"], "page": page_url, "reason": early})
+            continue
+        # 2. A failed download is recorded, not fatal.
+        data, download_error, used_url = fetched[id(image)]
         # 3. Rules that need the file: metadata, format and pixel size.
         if data is None:
             rejected.append({"image_url": image["src"], "page": page_url,
@@ -620,20 +667,38 @@ def gather_posters(videos: list[dict], domains: list[str], out_dir: Path, featur
     rejected: list[dict] = []
     seen: set[str] = set()
     folder = out_dir / "candidates"
+    # 1. The posters to look at, in order (each once, official hosts only).
+    todo: list[tuple[dict, str]] = []
     for video in videos:
         poster = video.get("poster") or ""
         if not poster or poster in seen:
             continue
         seen.add(poster)
-        page = video.get("url", "")
         if not host_allowed(poster, domains):
-            rejected.append({"image_url": poster, "page": page, "reason": "image is not hosted on an official domain"})
-            continue
+            todo.append((video, "image is not hosted on an official domain"))
+        else:
+            todo.append((video, ""))
+
+    # 2. The downloads run side by side.
+    def download(video: dict):
         try:
-            data = fetch(poster)
+            return fetch(video["poster"]), None
         except (requests.RequestException, ValueError) as exc:
-            rejected.append({"image_url": poster, "page": page,
-                             "reason": f"could not be downloaded ({type(exc).__name__})"})
+            return None, f"could not be downloaded ({type(exc).__name__})"
+
+    to_fetch = [video for video, why in todo if not why]
+    fetched = dict(zip((id(v) for v in to_fetch), parallel_map(download, to_fetch)))
+
+    # 3. The file rules, in order; the posters that pass are then trimmed together, in one browser.
+    valid: list[tuple[dict, bytes, tuple[int, int]]] = []
+    for video, why in todo:
+        poster, page = video["poster"], video.get("url", "")
+        if why:
+            rejected.append({"image_url": poster, "page": page, "reason": why})
+            continue
+        data, error = fetched[id(video)]
+        if data is None:
+            rejected.append({"image_url": poster, "page": page, "reason": error})
             continue
         reason = None
         size = image_dimensions(data)
@@ -648,11 +713,16 @@ def gather_posters(videos: list[dict], domains: list[str], out_dir: Path, featur
         if reason:
             rejected.append({"image_url": poster, "page": page, "reason": reason})
             continue
+        valid.append((video, data, size))
+
+    trims = trim_all(trim, [data for _, data, _ in valid])
+    for (video, data, size), trim_result in zip(valid, trims):
+        poster, page = video["poster"], video.get("url", "")
         folder.mkdir(parents=True, exist_ok=True)
         number = start + len(accepted) + 1
         trimmed_note = ""
-        if trim is not None:
-            new_data, info = trim(data)
+        if trim_result is not None:
+            new_data, info = trim_result
             new_size = image_dimensions(new_data) if info.get("trimmed") else None
             if new_size and max(new_size) >= MIN_LONG_SIDE:
                 (folder / "originals").mkdir(exist_ok=True)
@@ -672,6 +742,19 @@ def gather_posters(videos: list[dict], domains: list[str], out_dir: Path, featur
             title=video.get("title", ""),
             kind="video poster", match_text=video_text(video), trimmed=trimmed_note))
     return accepted, rejected
+
+
+def trim_all(trim, datas: list[bytes]) -> list:
+    """trim(data) for each image, or None for each when there is no trim. A trim that offers a batch version
+    (trim.many, like border_trim.trim_border) gets every image at once: one browser start instead of one per image."""
+    if trim is None:
+        return [None] * len(datas)
+    if not datas:
+        return []
+    batch = getattr(trim, "many", None)
+    if batch is not None:
+        return list(batch(datas))
+    return [trim(data) for data in datas]
 
 
 def candidates_markdown(accepted: list[Candidate], rejected: list[dict], pages: list[str]) -> str:

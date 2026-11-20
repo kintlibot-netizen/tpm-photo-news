@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 from html.parser import HTMLParser
+from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
 import requests
@@ -398,9 +399,88 @@ def fetch_html_browser(url: str) -> str:
     return markup
 
 
+PAGE_CACHE = {"dir": None, "hours": 6.0, "memo": {}, "failed": {}}
+
+
+def enable_page_cache(directory, hours: float = 6.0) -> None:
+    """Turns on the page cache for this run (carousel.run_story does). A page read once is not fetched again: within the
+    run from memory, and for `hours` from data/page-cache on disk. A page that could not be read (a helpx 403 that also
+    fails in Chromium, which costs a browser start and up to 45 s) is not tried again within the same hours."""
+    PAGE_CACHE.update({"dir": Path(directory), "hours": hours, "memo": {}, "failed": {}})
+
+
+def disable_page_cache() -> None:
+    PAGE_CACHE.update({"dir": None, "memo": {}, "failed": {}})
+
+
+def _cache_path(url: str) -> Path:
+    import hashlib
+    return PAGE_CACHE["dir"] / (hashlib.sha256(url.encode("utf-8")).hexdigest() + ".json")
+
+
+def _cached_page(url: str):
+    """("ok", markup), ("failed", reason) or None, from memory, then from disk."""
+    if url in PAGE_CACHE["memo"]:
+        return "ok", PAGE_CACHE["memo"][url]
+    if url in PAGE_CACHE["failed"]:
+        return "failed", PAGE_CACHE["failed"][url]
+    import json
+    import time
+    try:
+        path = _cache_path(url)
+        if time.time() - path.stat().st_mtime > PAGE_CACHE["hours"] * 3600:
+            return None
+        entry = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if entry.get("url") != url:
+        return None
+    if "markup" in entry:
+        PAGE_CACHE["memo"][url] = entry["markup"]
+        return "ok", entry["markup"]
+    if "error" in entry:
+        PAGE_CACHE["failed"][url] = entry["error"]
+        return "failed", entry["error"]
+    return None
+
+
+def _store_page(url: str, markup: str | None = None, error: str | None = None) -> None:
+    import json
+    if markup is not None:
+        PAGE_CACHE["memo"][url] = markup
+    else:
+        PAGE_CACHE["failed"][url] = error
+    try:
+        path = _cache_path(url)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        entry = {"url": url, "markup": markup} if markup is not None else {"url": url, "error": error}
+        path.write_text(json.dumps(entry), encoding="utf-8")
+    except OSError:
+        pass  # the cache is only a speedup
+
+
 def fetch_html(url: str) -> str:
     """One official page: a plain request with a normal browser identity first; when that is refused (helpx answers
-    403 to scripts), the same page is loaded in Chromium. If both fail, PageUnreadable says what each one got."""
+    403 to scripts), the same page is loaded in Chromium. If both fail, PageUnreadable says what each one got.
+    With the page cache on (enable_page_cache), a page is read at most once per run and once per cache window."""
+    if PAGE_CACHE["dir"] is None:
+        return _fetch_html_uncached(url)
+    hit = _cached_page(url)
+    if hit is not None:
+        kind, value = hit
+        if kind == "ok":
+            return value
+        raise PageUnreadable(value)
+    try:
+        markup = _fetch_html_uncached(url)
+    except PageUnreadable as exc:
+        _store_page(url, error=str(exc))
+        raise
+    _store_page(url, markup=markup)
+    return markup
+
+
+def _fetch_html_uncached(url: str) -> str:
     try:
         return fetch_html_plain(url)
     except requests.RequestException as exc:

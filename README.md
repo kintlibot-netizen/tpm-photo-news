@@ -53,6 +53,8 @@
   - Text only, no rendering: add `--skip-render`
   - An older story: `.venv\Scripts\python.exe src\carousel.py --settle 12` rebuilds it if its facts and images still check out against the official page, otherwise marks it rejected with the reason (shown on the dashboard)
 - **One-time setup for rendering:** `.venv\Scripts\python.exe -m playwright install chromium`, and `.venv\Scripts\python.exe scripts\fetch_fonts.py` for the free Inter font.
+- **Speed:** each build writes `Timing:` lines (seconds per step) to `data\watcher.log` and saves them in `status.json` (`timings`). Official pages, official image downloads and Claude's answers are reused from `data\page-cache`, `data\image-cache` and `data\carousel-cache` (never published), so a rebuild only asks about what changed. Image downloads and the first image check of each slide run side by side, and all demo poster trims share one browser. Settings: `image_check_workers` and `page_cache_hours` in `config/carousel.yaml`. Delete those `data\` folders to force fresh answers.
+- **Last slide:** a call to action slide ("Which one would you try first?", a recap of the confirmed feature names, "Save this post. Share your take.", The Photo Mentorship). It states no product fact and is left out when the carousel ends on its price slide or is already at 7 slides (`closing_slide` in `config/carousel.yaml`).
 - **Product images:** each build saves candidate photos to `images\candidates\` with `candidates.md`. Copy the one you want to `images\01.jpg`, `02.jpg` and so on. Nothing is generated or cut out.
 
 ### Review dashboard and approvals

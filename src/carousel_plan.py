@@ -526,6 +526,33 @@ def build_views(plan: dict) -> list[dict]:
     return views
 
 
+CLOSING_LABEL = "YOUR TAKE"
+CLOSING_CTA = "SAVE THIS POST. SHARE YOUR TAKE."
+BRAND_LINE = "THE PHOTO MENTORSHIP"
+
+
+def closing_view(views: list[dict], max_slides: int) -> dict | None:
+    """The last slide: a clear call to action. It states no product fact at all (only the question, the confirmed
+    feature names already on the slides as a recap, the save and comment prompt and the TPM name), so nothing on it can
+    be wrong. Left out when the carousel already ends on the price slide (that slide has its own call to action), when
+    there is no confirmed feature to recap, or when one more slide would go over the slide limit."""
+    if len(views) >= max_slides or any(v["type"] == "price" for v in views):
+        return None
+    features = [" ".join(v["headline"].split()) for v in views if v["type"] == "feature"]
+    if not features:
+        return None
+    question = "WHICH ONE WOULD YOU TRY FIRST?" if len(features) >= 2 else "WOULD YOU USE THIS?"
+    return {
+        "type": "closing",
+        "label": CLOSING_LABEL,
+        "headline": question,
+        "features": features[:COVER_FEATURES_MAX],
+        "cta": CLOSING_CTA,
+        "footer": BRAND_LINE,
+        "product": None,
+    }
+
+
 def _comparison_view(comparison: dict, product: str | None) -> dict | None:
     title = _kept(comparison["title"])
     rows = []

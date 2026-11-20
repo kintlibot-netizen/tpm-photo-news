@@ -178,8 +178,55 @@ def no_image_reason(slot: Slot, offered: list[Candidate], verdicts: list[tuple[C
             + (f"; {left} more were not checked (the limit is {MAX_TRIES_PER_SLOT} per slide)" if left > 0 else ""))
 
 
+def checked_slot_for(candidate: Candidate, slot: Slot) -> Slot:
+    """The slot as the image check sees it: for a feature's own demo poster it names the demo video."""
+    return replace(slot, demo=candidate.title or candidate.alt or "demo") if is_demo(candidate, slot) else slot
+
+
+def first_checks(order: list[Slot], candidates: list[Candidate]) -> list[tuple[Candidate, Slot]]:
+    """(candidate, slot as checked) for the first candidate each slot will try, in slot order. The cover's first
+    candidate is left out when a feature slide tries it first (the feature slide is likely to use it)."""
+    jobs: list[tuple[Candidate, Slot]] = []
+    taken: set[str] = set()
+    for slot in order:
+        offered = candidates_for(slot, candidates)
+        if not offered:
+            continue
+        candidate = offered[0]
+        if slot.kind == "cover" and candidate.file in taken:
+            continue
+        taken.add(candidate.file)
+        jobs.append((candidate, checked_slot_for(candidate, slot)))
+    return jobs
+
+
+def prefetch_verify(verify, jobs: list[tuple[Candidate, Slot]], out_dir: Path, official_text: str, product: str,
+                    workers: int):
+    """Runs the given checks side by side, then returns a verify function that answers those from memory (each once)
+    and asks verify for anything else. A check that raised is simply asked again later, in order."""
+    def run(job):
+        candidate, checked = job
+        try:
+            return verify(out_dir / candidate.file, checked, official_text, product)
+        except Exception:  # the sequential pick asks again and handles it as before
+            return None
+
+    memo = {}
+    for (candidate, checked), verdict in zip(jobs, images.parallel_map(run, jobs, workers)):
+        if verdict is not None:
+            memo[(str(out_dir / candidate.file), repr(checked))] = verdict
+
+    def remembered(path, slot, text, name):
+        key = (str(path), repr(slot))
+        if key in memo:
+            return memo.pop(key)
+        return verify(path, slot, text, name)
+
+    return remembered
+
+
 def pick_for_slots(slots: list[Slot], candidates: list[Candidate], out_dir: Path, official_text: str,
-                   product: str, verify) -> tuple[dict[str, Candidate | None], list[str]]:
+                   product: str, verify, workers: int = 1) -> tuple[dict[str, Candidate | None], list[str]]:
     """Picks an image for every slot. verify(image_path, slot, official_text, product) returns a verdict dict.
 
     Copies each chosen image to images/<slot>.<ext>. Returns (choices by slot, log lines for sources.md).
@@ -197,6 +244,10 @@ def pick_for_slots(slots: list[Slot], candidates: list[Candidate], out_dir: Path
     # The cover is picked last, so each feature slide first takes its own tagged demo poster and the cover
     # takes the best general image left (or, with none left, a poster no slide is waiting for).
     order = [s for s in slots if s is not cover_slot] + ([cover_slot] if cover_slot is not None else [])
+    if workers > 1:
+        # Speed: the first check of every slot (almost always the one that is used) runs side by side; the picking
+        # below is unchanged and simply reads those answers. Any further check still runs one at a time, in order.
+        verify = prefetch_verify(verify, first_checks(order, candidates), out_dir, official_text, product, workers)
     unplaced: list[Slot] = []
     placed: list[tuple[Slot, Candidate, dict]] = []
     why: dict[str, str] = {}

@@ -175,3 +175,7 @@ def trim_many(datas: list[bytes]) -> list[tuple[bytes, dict]]:
 def trim_border(data: bytes) -> tuple[bytes, dict]:
     """One image. See trim_many."""
     return trim_many([data])[0]
+
+
+# images.trim_all hands every poster of a build to trim_many at once: one Chromium start for all of them.
+trim_border.many = trim_many

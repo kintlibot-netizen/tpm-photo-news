@@ -11,6 +11,18 @@ draft_model: sonnet
 factcheck_model: sonnet
 image_check_model: sonnet
 
+# Speed. image_check_workers: how many image checks run side by side (the first check of each slide; 1 = one at a
+# time, as before). page_cache_hours: an official page read once is not fetched again within this time (a page that
+# could not be read is not retried either). Claude's answers and downloaded official images are remembered per
+# carousel in data/ (never published), so a rebuild only asks about what changed.
+image_check_workers: 3
+page_cache_hours: 6
+
+# Quality. closing_slide: end the carousel with a call to action slide (the question, a recap of the confirmed feature
+# names, "Save this post. Share your take.", The Photo Mentorship). It states no product fact. It is left out when the
+# carousel ends on its price slide or is already at the 7 slide limit.
+closing_slide: true
+
 # Official post indexes, searched for a story when its article has no link to the official page.
 # Adobe: blog.adobe.com's JSON index. Article URL = base + path. A post matches when its title
 # contains every key word of the story. Posts within window_days of the story come first.

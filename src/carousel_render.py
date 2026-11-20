@@ -175,7 +175,7 @@ def split_headline(text: str, mode: str = "split") -> list[str]:
 def slide_layout(view: dict) -> dict:
     """Where the pill and footer sit on this slide, for the consistency check."""
     layout = {"pill_top": None, "footer_top": None}
-    if view["type"] == "cover" or view["type"] in ("feature", "comparison", "price"):
+    if view["type"] == "cover" or view["type"] in ("feature", "comparison", "price", "closing"):
         layout["pill_top"] = PILL_TOP if view["type"] != "comparison" else None
         layout["footer_top"] = FOOTER_TOP
     return layout
@@ -650,6 +650,34 @@ def price_body(view: dict, slots: dict) -> str:
     return "".join(parts)
 
 
+CLOSING_HEADLINE_TOP, CLOSING_HEADLINE_H = 300, 340  # two lines of the question, centred in the upper third
+CLOSING_RECAP_TOP = 712  # the "In this post" rule, then the feature names
+CLOSING_RECAP_STEP = 76
+CLOSING_CTA_TOP = 1150  # the call to action pill, clear of the footer at FOOTER_TOP
+
+
+def closing_body(view: dict, slots: dict) -> str:
+    """The last slide, a clear call to action: the pill, the question as a two-line headline (last line in the brand
+    gradient), a recap of the feature names already shown (one per line, light blue), the save and comment pill, and
+    the TPM name in the footer. Every line keeps the 64px safe margin, so nothing is cut off in the Facebook or
+    Instagram feed. No product image and no product fact: it is the same on every carousel."""
+    parts = [pill(view["label"], PILL_TOP), _glow(140, CLOSING_HEADLINE_TOP, 800, CLOSING_HEADLINE_H)]
+    parts.append(headline_box(view["headline"], CLOSING_HEADLINE_TOP, CLOSING_HEADLINE_H, 124,
+                              left=64, width=952, max_lines=2))
+    if view.get("features"):
+        parts.append(
+            f'<div class="abs quick-label" style="top:{CLOSING_RECAP_TOP}px;left:72px;width:936px">'
+            '<span class="rule"></span><span class="spaced cyan">In this post</span><span class="rule"></span></div>')
+        for index, name in enumerate(view["features"][:4]):
+            parts.append(text_box("feat", name, CLOSING_RECAP_TOP + 72 + index * CLOSING_RECAP_STEP, 60, 40,
+                                  left=64, width=952, safe=(64, 1016), max_lines=1))
+    parts.append(
+        f'<div class="abs" style="top:{CLOSING_CTA_TOP}px;left:0;width:{WIDTH}px;text-align:center">'
+        f'<span class="pill cta">{esc(view["cta"])}</span></div>')
+    parts.append(footer(view.get("footer")))
+    return "".join(parts)
+
+
 BODY = {
     "cover": cover_body,
     "left_body": left_body_body,
@@ -657,6 +685,7 @@ BODY = {
     "stat_hero": stat_hero_body,
     "comparison": comparison_body,
     "price": price_body,
+    "closing": closing_body,
 }
 
 

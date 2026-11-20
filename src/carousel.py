@@ -31,6 +31,7 @@ import border_trim
 import carousel_plan
 import carousel_render
 import carousel_status
+import claude_cache
 import classify
 import dashboard
 import dedupe
@@ -41,6 +42,7 @@ import image_pick
 import images
 import official
 import official_index
+import timing
 from carousel_text import LintError, lint_overflow, lint_texts
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -98,6 +100,9 @@ def load_config(path: Path = CONFIG_PATH) -> dict:
     config.setdefault("official_indexes", {})
     config.setdefault("official_pages", {})
     config.setdefault("image_pages", {})
+    config.setdefault("image_check_workers", 3)
+    config.setdefault("closing_slide", True)
+    config.setdefault("page_cache_hours", 6)
     return config
 
 
@@ -322,23 +327,39 @@ def draft_checked(title: str, url: str, text: str, model: str, names: list[str] 
     raise carousel_plan.PlanError(error)
 
 
-def verify_image(path: Path, slot, official_text: str, product: str, model: str) -> dict:
-    """One Claude check of one candidate image. A failure is an unreadable answer, never a pass."""
+def verify_image(path: Path, slot, official_text: str, product: str, model: str, cache=None) -> dict:
+    """One Claude check of one candidate image. A failure is an unreadable answer, never a pass.
+    With a claude_cache.ReplyCache, the same image (same bytes), slot and official text is never checked twice."""
     if not path.exists():
         return {"unreadable": True, "notes": f"image check could not run: {path.name} is missing"}
     prompt = image_pick.verifier_prompt(path, slot, official_text, product)
-    try:
-        reply = classify.ask_claude_read(prompt, model, path.parent.resolve(), timeout=240)
-    except (RuntimeError, OSError, TimeoutError) as exc:
-        return {"unreadable": True, "notes": f"image check could not run: {str(exc)[:200]}"}
-    return image_pick.parse_verdict(reply)
+    key = claude_cache.key_for(model, prompt, path.read_bytes()) if cache is not None else None
+    reply = cache.get(key) if cache is not None else None
+    if reply is None:
+        try:
+            reply = classify.ask_claude_read(prompt, model, path.parent.resolve(), timeout=240)
+        except (RuntimeError, OSError, TimeoutError) as exc:
+            return {"unreadable": True, "notes": f"image check could not run: {str(exc)[:200]}"}
+    verdict = image_pick.parse_verdict(reply)
+    if cache is not None and not verdict.get("unreadable"):
+        cache.put(key, reply)  # only an answer that was read is remembered
+    return verdict
 
 
-def factcheck_with_claude(plan: dict, text: str, model: str, only: set[str] | None = None) -> dict[str, dict]:
-    """One fact-check call. `only` limits it to those fact ids (used to re-check a fallback cover)."""
+def factcheck_with_claude(plan: dict, text: str, model: str, only: set[str] | None = None,
+                          cache=None) -> dict[str, dict]:
+    """One fact-check call. `only` limits it to those fact ids (used to re-check a fallback cover).
+    With a claude_cache.ReplyCache, the same claims against the same official text are never sent twice."""
     facts = [f for f in carousel_plan.iter_facts(plan) if only is None or f["id"] in only]
-    reply = classify.ask_claude(carousel_plan.factcheck_prompt(facts, text), model, timeout=300)
-    return carousel_plan.parse_verdicts(reply, facts)
+    prompt = carousel_plan.factcheck_prompt(facts, text)
+    key = claude_cache.key_for(model, prompt) if cache is not None else None
+    reply = cache.get(key) if cache is not None else None
+    if reply is None:
+        reply = classify.ask_claude(prompt, model, timeout=300)
+    verdicts = carousel_plan.parse_verdicts(reply, facts)
+    if cache is not None:
+        cache.put(key, reply)  # stored only after the reply was read
+    return verdicts
 
 
 def settle_cover(plan_data: dict, text: str, verdicts: dict, names: list[str], recheck) -> tuple[dict, dict, list[str]]:
@@ -478,11 +499,19 @@ class DesignFailed(LintError):
 def assemble(plan_data, *, title: str, official_text: str, verdicts: dict | None, out_dir: Path,
              official_url: str, article_links: list[tuple[str, str]], press_images: bool,
              render: bool, checked_on: str, extra_notes: list[str] | None = None,
-             candidates_md: str | None = None, is_sample: bool = False) -> dict:
-    """Checks the facts, lints the text, writes the folder, renders the PNGs and runs the design check."""
+             candidates_md: str | None = None, is_sample: bool = False, closing: bool = False,
+             clock: timing.Clock | None = None) -> dict:
+    """Checks the facts, lints the text, writes the folder, renders the PNGs and runs the design check.
+    closing=True adds the call to action slide at the end when there is room (carousel_plan.closing_view).
+    clock (a timing.Clock) times the render and the design check and saves every step's time in status.json."""
+    timed = clock is not None
+    clock = clock or timing.Clock(title, echo=False)
     plan = carousel_plan.load_plan(plan_data)
     report = carousel_plan.verify(plan, official_text, verdicts)
     views = carousel_plan.build_views(plan)
+    closing_slide = carousel_plan.closing_view(views, design_check.MAX_SLIDES) if closing else None
+    if closing_slide:
+        views.append(closing_slide)
     captions = {who: carousel_plan.build_caption(plan, who) for who in ("david", "tpm")}
     extra_notes = list(extra_notes or []) + [
         f"caption {who}: the drafted hook was not kept, so the fallback hook {carousel_plan.fallback_hook(plan, who)!r} "
@@ -526,16 +555,18 @@ def assemble(plan_data, *, title: str, official_text: str, verdicts: dict | None
     overflow: list[str] = []
     measure_log: list | None = None
     if render:
-        documents = [carousel_render.slide_document(v, s, FONT_DIR if FONT_DIR.exists() else None)
-                     for v, s in zip(views, slots)]
-        measure_log = []
-        overflow = carousel_render.render_pngs(documents, pngs, out_dir / ".work", measure_log=measure_log)
+        with clock.step("render slides (one browser for all)"):
+            documents = [carousel_render.slide_document(v, s, FONT_DIR if FONT_DIR.exists() else None)
+                         for v, s in zip(views, slots)]
+            measure_log = []
+            overflow = carousel_render.render_pngs(documents, pngs, out_dir / ".work", measure_log=measure_log)
         # No preview.png contact sheet any more: the dashboard and the download zip show every slide, so the extra
         # render only made each build slower. An old preview.png is removed so it never shows outdated slides.
         (out_dir / "preview.png").unlink(missing_ok=True)
         import shutil
         shutil.rmtree(out_dir / ".work", ignore_errors=True)
-    findings = design_check.run_design_check(views, captions, measure_log)
+    with clock.step("design check"):
+        findings = design_check.run_design_check(views, captions, measure_log)
     design_md = design_check.markdown(findings)
     removed = [r for r in report if r["verdict"] == "NOT CONFIRMED"]
     confirmed = sum(1 for r in report if r["verdict"] in ("CONFIRMED", "NOT A FACT"))
@@ -551,6 +582,10 @@ def assemble(plan_data, *, title: str, official_text: str, verdicts: dict | None
         # Read by carousel_status.write_build: a draft that passes all three becomes Waiting for David.
         "fact_check_passed": True, "lint_passed": not overflow, "sample": is_sample,
     }
+    if closing_slide:
+        build["closing"] = True  # downloads names the last slide NN-your-take.png
+    if timed:
+        build["timings"] = clock.as_dict()  # seconds per step, to compare builds
     (out_dir / "factcheck.md").write_text(
         factcheck_markdown(title, official_url, report, checked_on, design_md), encoding="utf-8")
     if not is_sample:
@@ -614,7 +649,28 @@ def item_folder(title: str, first_seen: datetime | None) -> Path:
 
 # ---- commands ----
 
+PAGE_CACHE_DIR = ROOT / "data" / "page-cache"
+IMAGE_CACHE_DIR = ROOT / "data" / "image-cache"
+
+
 def run_story(key: str, official_url: str | None, render: bool) -> dict:
+    """One real build, timed step by step (Timing lines in the run log, totals in status.json). Fetched official pages,
+    downloaded official images and Claude's answers are reused from data/ for a rebuild, so only what changed is asked
+    again. The caches are switched off again when the build ends."""
+    config = load_config()
+    clock = timing.Clock(f"story {key}")
+    official.enable_page_cache(PAGE_CACHE_DIR, float(config.get("page_cache_hours", 6)))
+    images.IMAGE_CACHE_DIR = IMAGE_CACHE_DIR
+    try:
+        result = _run_story(key, official_url, render, config, clock)
+    finally:
+        official.disable_page_cache()
+        images.IMAGE_CACHE_DIR = None
+        print(clock.summary())
+    return result
+
+
+def _run_story(key: str, official_url: str | None, render: bool, config: dict, clock: timing.Clock) -> dict:
     if not DATA_PATH.exists():
         raise Refused("No watcher data yet. Run the watcher first.")
     rules = load_rules()
@@ -623,33 +679,39 @@ def run_story(key: str, official_url: str | None, render: bool) -> dict:
     story = find_story(store, key, now)
     check_eligible(story, rules)
 
-    config = load_config()
     print(f"Finding the official page for {story.brand or 'this brand'}...")
-    page = locate_official(story, story.brand, config, official_url)
+    with clock.step("official page"):
+        page = locate_official(story, story.brand, config, official_url)
     print(f"Official page: {page.url}")
 
     if page.note:
         print(f"Facts come from: {page.note}")
     names = carousel_plan.official_names(page.text, page.terms)
     out_dir = item_folder(story.title, story.first_seen)
-    plan_data, plan_note = plan_for_story(
-        out_dir / "plan.json",
-        lambda: draft_checked(story.title, page.url, page.text, config["draft_model"], names))
+    cache = claude_cache.for_folder(out_dir.name)
+    with clock.step("slide plan (reused or Claude draft)"):
+        plan_data, plan_note = plan_for_story(
+            out_dir / "plan.json",
+            lambda: draft_checked(story.title, page.url, page.text, config["draft_model"], names))
     if plan_note:
         print(plan_note)
     plan = carousel_plan.load_plan(plan_data)
     print("Fact-checking every claim with Claude...")
-    verdicts = factcheck_with_claude(plan, page.text, config["factcheck_model"])
-    plan_data, verdicts, cover_notes = settle_cover(
-        plan_data, page.text, verdicts, names,
-        lambda new_plan, ids: factcheck_with_claude(new_plan, page.text, config["factcheck_model"], ids))
+    with clock.step("fact check"):
+        verdicts = factcheck_with_claude(plan, page.text, config["factcheck_model"], cache=cache)
+        plan_data, verdicts, cover_notes = settle_cover(
+            plan_data, page.text, verdicts, names,
+            lambda new_plan, ids: factcheck_with_claude(new_plan, page.text, config["factcheck_model"], ids,
+                                                        cache=cache))
     for line in cover_notes:
         print(line)
     hook_features = [h["text"] for h in (s["headline"] for s in carousel_plan.load_plan(plan_data)["slides"]) if h]
-    plan_data, verdicts, hook_notes = settle_hook(
-        plan_data, page.text, verdicts,
-        [" ".join(carousel_plan.strip_parentheses(f).split()) for f in hook_features],
-        lambda new_plan, ids: factcheck_with_claude(new_plan, page.text, config["factcheck_model"], ids))
+    with clock.step("hook check"):
+        plan_data, verdicts, hook_notes = settle_hook(
+            plan_data, page.text, verdicts,
+            [" ".join(carousel_plan.strip_parentheses(f).split()) for f in hook_features],
+            lambda new_plan, ids: factcheck_with_claude(new_plan, page.text, config["factcheck_model"], ids,
+                                                        cache=cache))
     for line in hook_notes:
         print(line)
     cover_notes += hook_notes
@@ -670,20 +732,24 @@ def run_story(key: str, official_url: str | None, render: bool) -> dict:
     help_notes: list[str] = []
     if domains:
         print("Looking for official help pages with images of each feature...")
-        extra, page_tags, help_notes = images.discover_image_pages(
-            page.pages, image_pages_for(config, story.brand, page.terms), features, domains, terms=page.terms,
-            fallback_images=image_override.known_page_images())
+        with clock.step("official help pages"):
+            extra, page_tags, help_notes = images.discover_image_pages(
+                page.pages, image_pages_for(config, story.brand, page.terms), features, domains, terms=page.terms,
+                fallback_images=image_override.known_page_images())
         image_pages += extra
     print("Looking for product images on the official pages...")
     images.clear_candidates(out_dir)  # nothing from an earlier run stays beside this run's files
-    accepted, rejected = images.gather(image_pages, domains, out_dir, features=features, page_tags=page_tags)
+    with clock.step("official images (downloads side by side)"):
+        accepted, rejected = images.gather(image_pages, domains, out_dir, features=features, page_tags=page_tags)
     video_notes: list[str] = list(help_notes)
     if domains:
         print("Looking for official demo videos (their poster frames are real screenshots of the product)...")
-        videos, found_notes = official.discover_videos(image_pages, page.terms)
-        video_notes += found_notes
-        posters, poster_rejected = images.gather_posters(videos, domains, out_dir, features, start=len(accepted),
-                                                         trim=border_trim.trim_border, page_tags=page_tags)
+        with clock.step("official demo videos and posters (one browser for all trims)"):
+            videos, found_notes = official.discover_videos(image_pages, page.terms)
+            video_notes += found_notes
+            posters, poster_rejected = images.gather_posters(videos, domains, out_dir, features,
+                                                             start=len(accepted), trim=border_trim.trim_border,
+                                                             page_tags=page_tags)
         accepted += posters
         rejected += poster_rejected
         video_notes += [f"official demo video {v['url']} (found on {v['found_on']}): title {v['title']!r}, "
@@ -707,19 +773,25 @@ def run_story(key: str, official_url: str | None, render: bool) -> dict:
         product = plan["product"]["text"] if plan["product"] and plan["product"]["ok"] else story.title
         slots_to_pick = [s for s in image_pick.slots_for(views_now) if s.name not in overridden]
         print(f"Claude Code is checking {len(accepted)} candidate images for {len(slots_to_pick)} slots...")
-        _, log = image_pick.pick_for_slots(
-            slots_to_pick, accepted, out_dir, page.text, product,
-            lambda path, slot, text, name: verify_image(path, slot, text, name, config["image_check_model"]),
-        )
+        with clock.step("image check"):
+            _, log = image_pick.pick_for_slots(
+                slots_to_pick, accepted, out_dir, page.text, product,
+                lambda path, slot, text, name: verify_image(path, slot, text, name, config["image_check_model"],
+                                                            cache=cache),
+                workers=int(config.get("image_check_workers", 3)),
+            )
         notes += log
     else:
         notes.append("auto-placement is off (use_official_press_images: false). Copy the chosen files to images/.")
+    if cache.hits:
+        notes.append(f"speed: {cache.hits} answers reused from the earlier build of this carousel (same question, same "
+                     "official text, same image), so Claude was not asked again")
     article_links = [(src["source"], src.get("link") or src["url"]) for src in story.sources]
     return assemble(
         plan_data, title=story.title, official_text=page.text, verdicts=verdicts, out_dir=out_dir,
         official_url=page.url, article_links=article_links, press_images=config["use_official_press_images"],
         render=render, checked_on=now.astimezone(dashboard.MANILA).strftime("%Y-%m-%d"), extra_notes=notes,
-        candidates_md=candidates_md,
+        candidates_md=candidates_md, closing=bool(config.get("closing_slide", True)), clock=clock,
     )
 
 

@@ -92,6 +92,8 @@ def slide_labels(folder: Path) -> list[str]:
     labels += features[1:]
     if plan.get("price"):
         labels.append("price")
+    if carousel_status.read_status(folder).get("build", {}).get("closing"):
+        labels.append("your-take")  # the closing call to action slide (carousel_plan.closing_view)
     return labels
 
 
