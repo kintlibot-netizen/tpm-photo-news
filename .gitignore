@@ -17,6 +17,7 @@ data/
 output/
 dashboard/
 *.log
+logs/
 *.sqlite-journal
 state/*.tmp
 state/.*

@@ -130,7 +130,7 @@ def test_a_sent_ready_message_is_logged(tmp_path, caplog):
     caplog.set_level(logging.INFO, logger="watcher")
     carousel_auto.after_alerts(db, [(story, "A")], NOW, "u", build=lambda sid: ok_result(tmp_path),
                                notify=no_message)
-    assert "Carousel draft ready sent" in caplog.text
+    assert "Carousel ready for approval sent" in caplog.text
     assert SECRET_URL not in caplog.text
 
 

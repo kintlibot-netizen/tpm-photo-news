@@ -148,7 +148,10 @@ def reject(folder: Path, reason: str, now: datetime, by: str = "") -> None:
     if not reason or not reason.strip():
         raise ReviewError("--reject needs --reason.")
     status = carousel_status.read_status(folder)
-    carousel_status.set_status(folder, "rejected", reason=reason.strip(), rejected_at=now.isoformat(timespec="seconds"))
+    # rebuild_requested: the carousel bot rebuilds a carousel a person rejected, following the reason as its note
+    # (a rejection made by the system itself, such as a settle, is not rebuilt).
+    carousel_status.set_status(folder, "rejected", reason=reason.strip(), rejected_at=now.isoformat(timespec="seconds"),
+                               rebuild_requested=True)
     activity.log_event("review", "rejected", f"{_title(status, folder)} ({folder.name}). Reason: {reason.strip()}",
                        who=by.strip(), now=now)
     refresh_dashboard(folder)

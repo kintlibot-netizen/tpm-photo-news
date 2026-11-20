@@ -73,6 +73,14 @@ def write_build(folder: Path, build: dict) -> dict:
     return data
 
 
+def update_fields(folder: Path, **fields) -> dict:
+    """Saves extra fields (for example the carousel bot's rebuild marker) without changing the status or the history."""
+    data = read_status(folder)
+    data.update(fields)
+    _write(folder, data)
+    return data
+
+
 def set_status(folder: Path, status: str, **fields) -> dict:
     if status not in STATUSES:
         raise ValueError(f"unknown status {status!r}")

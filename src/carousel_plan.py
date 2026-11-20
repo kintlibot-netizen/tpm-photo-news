@@ -737,9 +737,21 @@ def names_block(names: list[str] | None) -> str:
     return "The official page has no clear product name. Name the product only as the official text does."
 
 
-def draft_prompt(title: str, url: str, text: str, names: list[str] | None = None) -> str:
-    return (DRAFT_PROMPT.replace("__NAMES__", names_block(names)).replace("__TITLE__", title)
-            .replace("__URL__", url).replace("__TEXT__", text[:12000]))
+def draft_prompt(title: str, url: str, text: str, names: list[str] | None = None, note: str | None = None) -> str:
+    prompt = (DRAFT_PROMPT.replace("__NAMES__", names_block(names)).replace("__TITLE__", title)
+              .replace("__URL__", url).replace("__TEXT__", text[:12000]))
+    return prompt + review_note_block(note)
+
+
+def review_note_block(note: str | None) -> str:
+    """The reviewer's note on the earlier version (a rejection reason, or why the last build failed), added to a fresh
+    draft. The note can change the angle, the order or the wording, never the facts: every fact still has to be in the
+    official text, and the fact check still checks every claim."""
+    note = " ".join(str(note or "").split())[:600]
+    if not note:
+        return ""
+    return ("\n\nREVIEW NOTE on the earlier version of this carousel (follow it where the official text allows; never "
+            "add a fact, name or number that is not in the official text above; no em dashes):\n" + note + "\n")
 
 
 def redraft_prompt(prompt: str, draft, error: str) -> str:

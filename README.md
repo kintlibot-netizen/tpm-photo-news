@@ -3,14 +3,14 @@
 ## What the system does
 1. Checks the photo news and rumor sites every hour and keeps the headlines about cameras, lenses, editing software and gear.
 2. Sends each new official launch to Slack at once. Rumors are sent only after a second site reports them.
-3. Builds a carousel draft after an official alert, fact-checks it against the brand's own page, and waits for David.
-4. Lets you review drafts in a dashboard. You approve or reject, and log each post after you post it by hand.
+3. The **TPM Carousel Bot** makes the carousel by itself after an official alert: it fact-checks it against the brand's own page, uses real official images only, and Slack says when it is ready for approval. Nobody has to run anything.
+4. Kint approves or rejects in her dashboard; David approves by telling Kint. Kint posts by hand after approval and logs the post.
 5. Never posts to social media, and sends at most one health message a day if the watcher stops working.
 
 ## Daily use for Kint
 1. **Watch Slack.** Official launches arrive by themselves. A rumor arrives only when two sites report it.
-2. **When a "Carousel draft ready" message arrives,** double-click **Open Review Dashboard.bat**. Type your name in the box at the top of the page.
-3. **Open "Needs your attention."** Read the preview and `factcheck.md` in the draft's folder. Then press **Approve**, or type a reason and press **Reject**.
+2. **When a "Carousel ready for approval" message arrives** (the carousel bot made it by itself), double-click **Open Review Dashboard.bat**. Type your name in the box at the top of the page. You never have to build a carousel.
+3. **Open "Needs your attention."** Read the preview and `factcheck.md` in the carousel's folder. Then press **Approve**, or type a reason and press **Reject**. A rejection with a reason is rebuilt by the bot on its next run, following your reason, and Slack says when it is ready again.
 4. **After you post by hand** (Meta Business Suite), choose the account, paste the link and press **Log as posted**. If Slack sends a health message, check `data\watcher.log` and the Sources tab.
 5. **Send to David.** Press **Export for David** in the top bar (or double-click **Export for David.bat**). Upload the contents of `output\share\latest\` to the web host and send him the link, or send him the zip from `output\share\`. When he says yes to a carousel, press **Approve** and type "David" as the name.
 6. **Need the files?** Every finished carousel has **Download all slides (ZIP)** and one button per slide. **Download all approved carousels** is at the top of the Carousels page.
@@ -118,15 +118,25 @@ Photo Rumors and Imaging Resource (added in the functional round) loaded in the 
 ## Cloud (24/7)
 The watcher also runs in the cloud, on GitHub, so it keeps working while the laptop is off. The repository is **public**, so nothing secret or personal is ever committed.
 
-- **What the cloud does, every hour:** checks the news with the free rules (no Claude in the cloud), sends the Slack alerts, marks each official story that needs a carousel as **Needs Kint**, and publishes the read only copy for David.
+- **What the cloud does, every hour:** checks the news with the free rules (no Claude in the cloud), sends the Slack alerts, marks each official story that needs a carousel as **Being made by the carousel bot**, and publishes the read only copy for David.
 - **The link for David:** `https://<your GitHub name>.github.io/<repository name>/` (also shown on the repository's **Settings, Pages** screen). It is read only: no approve buttons, and the note "Read only copy. To approve a carousel, tell Kint." is at the top.
 - **See the runs:** the repository's **Actions** tab, then **TPM photo news watcher**. A green tick means the run worked.
 - **Run it now by hand:** Actions tab, **TPM photo news watcher**, **Run workflow**.
 - **Pause it:** Actions tab, **TPM photo news watcher**, the **...** menu, **Disable workflow**. Turn it back on with **Enable workflow**.
-- **Carousels stay on the laptop.** The fact check and the official image check need Claude, which runs only on the laptop, and nothing else may stand in for a real official image. So the cloud never builds a carousel. It marks the story **Needs Kint** (on the dashboard and in one Slack message). Double-click **Sync with cloud.bat** on the laptop. It gets the latest from the cloud, builds those carousels, opens the review dashboard, and then saves your carousels and approvals back to the cloud. David's link updates at the next hourly run.
+- **The TPM Carousel Bot makes the carousels, on the laptop, by itself.** The fact check and the official image check need Claude, which runs only on the laptop, and nothing else may stand in for a real official image, so the cloud never builds a carousel. It marks the story **Being made by the carousel bot**. Every hour (and at logon) the Windows task **TPM Carousel Bot** runs hidden, with no window and nothing to click:
+  1. gets the latest from the cloud (`git pull`, then `state\` into the working folders)
+  2. rebuilds any carousel Kint rejected with a reason, following the reason (once per rejection)
+  3. builds every waiting official story, with the same caps (1 a day, 3 a week), fact check, official image check and design check. A build that fails gets one more try on a later run: a fresh draft that follows the failure reason.
+  4. saves the new carousels and your approvals to `state\`, runs the safety check, commits "Carousel bot: new drafts" (only `state\`) and pushes. David's link updates at the next cloud run.
+  5. Slack says **Carousel ready for approval** with the title and the dashboard link.
+  - **Claude's usage limit:** the bot stops building, counts nothing as failed, and tries again next hour.
+  - **Log:** `logs\carousel-bot.log` (every step with its time). Two runs never overlap (a lock file).
+  - **Turn it on (once):** `powershell -ExecutionPolicy Bypass -File scripts\setup-carousel-bot-task.ps1`. Run it now: `Start-ScheduledTask -TaskName "TPM Carousel Bot"`. Turn it off: `Unregister-ScheduledTask -TaskName "TPM Carousel Bot" -Confirm:$false`.
+  - The laptop must be on and signed in. The bot catches up as soon as it is.
+  - **Sync with cloud.bat** still works as an optional manual fallback (it does the same steps and opens the review dashboard). Nobody needs it day to day.
 - **No alert is ever sent twice.** Once the cloud is on (the file `state\CLOUD-ON` exists), the laptop's hourly check does nothing. Only the cloud sends news alerts. You can also remove the laptop task: `Unregister-ScheduledTask -TaskName "TPM Photo News Watcher"`.
 - **The shared memory** is the small `state\` folder (`src/cloud_state.py`). Each side writes only its own files, so the two never clash. The cloud writes `seen.sqlite` (stories, alerts sent, run history) and `activity-cloud.csv`. The laptop writes `carousels\` (slides, captions, approvals), `laptop-builds.csv`, `post-log.csv` and `activity-laptop.csv`. The cloud commits its files as github-actions[bot], only when they changed.
-- **Safety check:** `python scripts\check_public_safe.py` fails if any file git would commit holds the Slack address, a token, a value from `.env`, your git email or a folder path from your PC. The cloud and **Sync with cloud.bat** run it before every commit.
+- **Safety check:** `python scripts\check_public_safe.py` fails if any file git would commit holds the Slack address, a token, a value from `.env`, your git email or a folder path from your PC. The cloud, the carousel bot and **Sync with cloud.bat** run it before every commit.
 - **Setup (once):**
   1. Double-click **Start cloud (first time).bat**, then run the git commands it shows.
   2. On GitHub: **Settings, Secrets and variables, Actions, New repository secret**. Name it `SLACK_WEBHOOK_URL`, and paste the Slack address from `.env`.
@@ -175,5 +185,8 @@ Checks run only while this PC is on. The hourly task catches up when the PC wake
 | `run-*.ps1` | Helpers that run a Claude Code round and then the tests (kept on this PC only, never committed) |
 | `state/` | The shared memory of the cloud and the laptop (committed; see Cloud (24/7)) |
 | `.github/workflows/watch.yml` | The hourly cloud run and the GitHub Pages site for David |
-| `Sync with cloud.bat` | Laptop: get the latest, build the "needs Kint" carousels, review, save back |
+| `Sync with cloud.bat` | Optional manual fallback: get the latest, build the waiting carousels, review, save back |
+| `scripts/carousel_bot.py` | The TPM Carousel Bot (run hourly and hidden by the task "TPM Carousel Bot") |
+| `scripts/setup-carousel-bot-task.ps1` | Registers the task "TPM Carousel Bot" (once) |
+| `logs/` | `carousel-bot.log` (kept on this PC only, never committed) |
 | `Start cloud (first time).bat` | Run once to start the cloud from the laptop's memory |

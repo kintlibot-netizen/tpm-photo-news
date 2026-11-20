@@ -183,7 +183,8 @@ def test_the_cloud_never_builds_a_carousel(monkeypatch, tmp_path):
     sent = []
     monkeypatch.setattr(carousel_auto.alert, "send_to_slack", lambda text, url: sent.append(text))
     run.cloud_carousel_step(db_path, [(3, "Sony A7 V announced")], FAKE_WEBHOOK)
-    assert len(sent) == 1 and sent[0].startswith("Carousel needs Kint: Sony A7 V announced")
+    assert len(sent) == 1 and sent[0].startswith("Carousel being made by the carousel bot: Sony A7 V announced")
+    assert "Sync with cloud" not in sent[0] and "Nothing to do now" in sent[0]
 
 
 # ---- needs Kint ----
@@ -196,11 +197,12 @@ def test_needs_kint_is_marked_once_and_is_not_a_failed_build(tmp_path):
                                           notify=lambda text, url: sent.append(text))
     second = carousel_auto.mark_needs_kint(db_path, [(5, "Nikon Z5 III")], NOW + timedelta(hours=1), FAKE_WEBHOOK,
                                            notify=lambda text, url: sent.append(text))
-    assert first == ["5: needs Kint"] and second == ["5: needs Kint (already marked)"] and len(sent) == 1
+    assert first == ["5: being made by the carousel bot"] and len(sent) == 1
+    assert second == ["5: being made by the carousel bot (already marked)"]
     assert carousel_auto.failed_attempts(db_path, 5) == 0 and not carousel_auto.already_built(db_path, 5)
     assert carousel_auto.may_build(db_path, NOW)[0]  # a mark uses up no cap: the laptop can still build it
     event = next(e for e in activity.read_events() if e["type"] == "carousel")
-    assert event["outcome"] == "needs Kint" and "Nikon Z5 III" in event["details"]
+    assert event["outcome"] == "being made by the carousel bot" and "Nikon Z5 III" in event["details"]
     assert FAKE_WEBHOOK not in sent[0] and "Nothing is posted" in sent[0]
 
 
@@ -208,7 +210,8 @@ def test_the_dashboard_says_needs_kint_with_the_reason():
     story = {"carousel": None, "build_row": {"status": "needs_kint", "message": carousel_auto.NEEDS_KINT_REASON},
              "first_seen": NOW}
     words, cls = dashboard.coverage_reason(story, NOW)
-    assert words.startswith("Needs Kint: Waiting for Kint to build it on her laptop") and cls == "st-held"
+    assert words.startswith("Being made by the carousel bot.") and cls == "st-held"
+    assert "Kint" not in words and "Nothing to do now" in words  # nothing says Kint has to build it
 
 
 # ---- public repo safety ----

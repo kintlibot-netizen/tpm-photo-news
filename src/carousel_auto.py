@@ -126,7 +126,12 @@ def record(db_path: Path, story_id: int, now: datetime, status: str, folder: str
         db.close()
 
 
+# David's read only copy of the dashboard (GitHub Pages). Kint approves or rejects in her own dashboard.
+DASHBOARD_URL = "https://kintlibot-netizen.github.io/tpm-photo-news/"
+
+
 def ready_message(title: str, result: dict) -> str:
+    """The Slack message when the carousel bot (or a manual build) has finished a carousel that passed every check."""
     design = result.get("design", [])
     fails = sum(f["level"] == "FAIL" for f in design)
     warns = sum(f["level"] == "WARN" for f in design)
@@ -134,14 +139,15 @@ def ready_message(title: str, result: dict) -> str:
     missing = ", ".join(result.get("missing", [])) or "none"
     removed = len(result.get("removed", []))
     lines = [
-        f"Carousel draft ready: {title}",
-        f"Folder: {result['folder']}",
+        f"Carousel ready for approval: {title}",
+        "Made by the TPM carousel bot. Nothing is posted automatically.",
         f"Slides: {result['slides']}",
         f"Facts: {result['confirmed']} confirmed, {removed} removed as not confirmed.",
-        f"Images placed: {placed}",
-        f"Images missing (placeholder kept): {missing}",
+        f"Official images placed: {placed}",
+        f"Text only slides (no official image of that feature): {missing}",
         f"Design check: {fails} fail, {warns} warn.",
-        "Review the folder (README-for-review.txt). Nothing is posted.",
+        "Approve or reject it in your dashboard (Needs your attention).",
+        f"Dashboard: {DASHBOARD_URL}",
     ]
     return alert.escape("\n".join(lines))
 
@@ -150,11 +156,17 @@ def failed_message(title: str, reason: str) -> str:
     return alert.escape(f"Carousel not made for: {title}\nReason: {reason}")
 
 
+USAGE_LIMIT_OUTCOME = "Claude usage limit"
+
+
 def after_alerts(db_path: Path, stories: list[tuple[int, str]], now: datetime, webhook: str,
-                 build, notify=alert.send_to_slack) -> list[str]:
+                 build, notify=alert.send_to_slack, max_failed: int = MAX_FAILED_ATTEMPTS) -> list[str]:
     """stories: (story id, title), in the order to try them. Returns what happened, per story.
 
     build(story_id) returns the assemble result (a dict) or raises. notify(text, webhook) posts to Slack.
+    max_failed: how many failed builds a story may have before it is no longer tried (the carousel bot allows one
+    more, a fresh draft that follows the failure reason). When Claude's usage limit is reached, nothing is recorded
+    (it is not the story's fault) and the remaining stories wait for the next run.
     """
     outcomes = []
     for story_id, title in stories:
@@ -162,7 +174,7 @@ def after_alerts(db_path: Path, stories: list[tuple[int, str]], now: datetime, w
             if already_built(db_path, story_id):
                 outcomes.append(f"{story_id}: already built")
                 continue
-            if failed_attempts(db_path, story_id) >= MAX_FAILED_ATTEMPTS:
+            if failed_attempts(db_path, story_id) >= max_failed:
                 outcomes.append(f"{story_id}: skipped (failed before, not retried)")
                 continue
             allowed, reason = may_build(db_path, now)
@@ -172,6 +184,10 @@ def after_alerts(db_path: Path, stories: list[tuple[int, str]], now: datetime, w
                 continue
             try:
                 result = build(story_id)
+            except classify.ClaudeUsageLimit as exc:
+                log.warning("Carousel paused for story %s: %s. Trying again on the next run.", story_id, exc)
+                outcomes.append(f"{story_id}: {USAGE_LIMIT_OUTCOME} (not counted, tried again next run)")
+                break
             except Exception as exc:  # any build failure is reported, never raised
                 reason = str(exc) or type(exc).__name__
                 record(db_path, story_id, now, "failed", None, reason)
@@ -183,7 +199,7 @@ def after_alerts(db_path: Path, stories: list[tuple[int, str]], now: datetime, w
             record(db_path, story_id, now, "ok", str(result["folder"]), "draft ready")
             activity.log_event("carousel", "built", f"Story {story_id}, {title}: draft ready in "
                                f"{Path(str(result['folder'])).name}, {result.get('slides', '?')} slides", now=now)
-            _notify_safely(notify, ready_message(title, result), webhook, sent_line="Carousel draft ready sent")
+            _notify_safely(notify, ready_message(title, result), webhook, sent_line="Carousel ready for approval sent")
             outcomes.append(f"{story_id}: draft ready at {result['folder']}")
         except Exception as exc:  # the alert run must never stop
             log.error("Carousel step failed for story %s: %s", story_id, type(exc).__name__)
@@ -191,9 +207,10 @@ def after_alerts(db_path: Path, stories: list[tuple[int, str]], now: datetime, w
     return outcomes
 
 
-NEEDS_KINT = "needs_kint"
-NEEDS_KINT_REASON = ("Waiting for Kint to build it on her laptop, where the fact check and the official image check "
-                     "run. The cloud never makes a carousel without them.")
+NEEDS_KINT = "needs_kint"  # the stored status name; the words shown are "Being made by the carousel bot"
+BOT_OUTCOME = "being made by the carousel bot"
+NEEDS_KINT_REASON = ("Being made by the carousel bot on the laptop, where the fact check and the official image check "
+                     "run. Nobody has to do anything; Slack says when it is ready for approval.")
 
 
 def needs_kint_marked(db_path: Path, story_id: int) -> bool:
@@ -207,8 +224,9 @@ def needs_kint_marked(db_path: Path, story_id: int) -> bool:
 
 
 def needs_kint_message(title: str) -> str:
-    return alert.escape(f"Carousel needs Kint: {title}\nThe cloud found an official story for a carousel. On the "
-                        "laptop, double-click Sync with cloud.bat to build it and review it. Nothing is posted.")
+    return alert.escape(f"Carousel being made by the carousel bot: {title}\nThe cloud found an official story for a "
+                        "carousel. The TPM carousel bot on the laptop makes it on its next hourly run, and Slack says "
+                        "when it is ready for approval. Nothing to do now. Nothing is posted automatically.")
 
 
 def mark_needs_kint(db_path: Path, stories: list[tuple[int, str]], now: datetime, webhook: str,
@@ -226,12 +244,12 @@ def mark_needs_kint(db_path: Path, stories: list[tuple[int, str]], now: datetime
                 outcomes.append(f"{story_id}: skipped (failed before, not retried)")
                 continue
             if needs_kint_marked(db_path, story_id):
-                outcomes.append(f"{story_id}: needs Kint (already marked)")
+                outcomes.append(f"{story_id}: {BOT_OUTCOME} (already marked)")
                 continue
             record(db_path, story_id, now, NEEDS_KINT, None, NEEDS_KINT_REASON)
-            activity.log_event("carousel", "needs Kint", f"Story {story_id}, {title}: {NEEDS_KINT_REASON}", now=now)
+            activity.log_event("carousel", BOT_OUTCOME, f"Story {story_id}, {title}: {NEEDS_KINT_REASON}", now=now)
             _notify_safely(notify, needs_kint_message(title), webhook)
-            outcomes.append(f"{story_id}: needs Kint")
+            outcomes.append(f"{story_id}: {BOT_OUTCOME}")
         except Exception as exc:  # the alert run must never stop
             log.error("Carousel step failed for story %s: %s", story_id, type(exc).__name__)
             outcomes.append(f"{story_id}: step failed ({type(exc).__name__})")

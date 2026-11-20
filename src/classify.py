@@ -349,10 +349,30 @@ def ask_claude_read(prompt: str, model: str, folder: Path, timeout: int = 240) -
         input=prompt, capture_output=True, text=True, encoding="utf-8",
         timeout=timeout, env=env, check=False,
     )
+    check_usage_limit(result.returncode, result.stdout, result.stderr)
     if result.returncode != 0:
         detail = (result.stderr or result.stdout or "").strip().splitlines()[-1:] or [""]
         raise RuntimeError(f"Claude Code exited with code {result.returncode}: {detail[0][:200]}")
     return result.stdout
+
+
+class ClaudeUsageLimit(RuntimeError):
+    """The signed-in Claude plan has reached its usage limit. Nothing is wrong with the story: the carousel bot stops
+    this run without counting a failed build, and tries again on its next hourly run."""
+
+
+USAGE_LIMIT = re.compile(r"usage limit|rate limit|limit reached|limit will reset|out of (?:extra )?usage|"
+                         r"too many requests|\b429\b", re.I)
+
+
+def check_usage_limit(returncode: int, stdout: str | None, stderr: str | None) -> None:
+    """Raises ClaudeUsageLimit when Claude Code says the plan's limit is reached. Only a short message counts, so a
+    real answer that happens to mention a limit is never mistaken for one."""
+    for text in (stderr or "", stdout or ""):
+        short = text.strip()
+        if short and len(short) <= 400 and USAGE_LIMIT.search(short):
+            if returncode != 0 or short.lower().startswith(("claude ai usage limit", "usage limit", "rate limit")):
+                raise ClaudeUsageLimit(f"Claude usage limit reached: {short.splitlines()[0][:160]}")
 
 
 def ask_claude(prompt: str, model: str, timeout: int = 240) -> str:
@@ -366,6 +386,7 @@ def ask_claude(prompt: str, model: str, timeout: int = 240) -> str:
         input=prompt, capture_output=True, text=True, encoding="utf-8",
         timeout=timeout, env=env, check=False,
     )
+    check_usage_limit(result.returncode, result.stdout, result.stderr)
     if result.returncode != 0:
         raise RuntimeError(f"Claude Code exited with code {result.returncode}")
     return result.stdout

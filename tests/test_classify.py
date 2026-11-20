@@ -224,6 +224,7 @@ def test_claude_runs_without_tools_or_api_key(monkeypatch):
     class Done:
         returncode = 0
         stdout = "[]"
+        stderr = ""
 
     def fake_run(command, **kwargs):
         seen.update(command=command, env=kwargs["env"])

@@ -255,8 +255,9 @@ def locate_official(story, brand: str | None, config: dict, explicit: str | None
 
 # ---- Claude steps (the same free Claude CLI route as the watcher) ----
 
-def draft_with_claude(title: str, url: str, text: str, model: str, names: list[str] | None = None) -> dict:
-    reply = classify.ask_claude(carousel_plan.draft_prompt(title, url, text, names), model, timeout=300)
+def draft_with_claude(title: str, url: str, text: str, model: str, names: list[str] | None = None,
+                      note: str | None = None) -> dict:
+    reply = classify.ask_claude(carousel_plan.draft_prompt(title, url, text, names, note), model, timeout=300)
     return carousel_plan.parse_json_reply(reply)
 
 
@@ -272,14 +273,18 @@ def read_previous_plan(path: Path) -> dict | None:
     return data if isinstance(data, dict) and isinstance(data.get("slides"), list) and data["slides"] else None
 
 
-def plan_for_story(plan_path: Path, draft) -> tuple[dict, str]:
+def plan_for_story(plan_path: Path, draft, redraft: bool = False) -> tuple[dict, str]:
     """The plan to build from: stable across rebuilds. draft() makes a fresh Claude draft.
 
     When the story already has a plan.json, its slide list, order, features and copy are reused and Claude is not asked
     to draft again (edit plan.json to change the copy of a slide). If that plan no longer passes validation, a fresh draft
     is made but it keeps the earlier plan's features in the earlier order, so a fix never drops or reorders a feature.
+    redraft=True (the carousel bot, after a rejection with a note or a failed build) always makes a fresh draft.
     Returns (plan data, a note for sources.md; "" when this is a first build)."""
     previous = read_previous_plan(plan_path)
+    if redraft and previous is not None:
+        print("Drafting the slides again with Claude, following the review note...")
+        return draft(), "slide plan: a fresh draft was made after a review note or a failed build"
     if previous is None:
         print("Drafting the slides with Claude...")
         return draft(), ""
@@ -295,11 +300,14 @@ def plan_for_story(plan_path: Path, draft) -> tuple[dict, str]:
                       "no new draft was made")
 
 
-def draft_checked(title: str, url: str, text: str, model: str, names: list[str] | None = None) -> dict:
+def draft_checked(title: str, url: str, text: str, model: str, names: list[str] | None = None,
+                  note: str | None = None) -> dict:
     """A draft that passes validation. A rejected draft goes back to Claude with the exact errors (up to
-    DRAFT_RETRIES times); a missing cover.label then falls back to the official product name."""
-    data = draft_with_claude(title, url, text, model, names)
-    base = carousel_plan.draft_prompt(title, url, text, names)
+    DRAFT_RETRIES times); a missing cover.label then falls back to the official product name.
+    note: a reviewer's note on the earlier version, followed in the fresh draft (carousel_plan.review_note_block)."""
+    data = (draft_with_claude(title, url, text, model, names, note) if note
+            else draft_with_claude(title, url, text, model, names))
+    base = carousel_plan.draft_prompt(title, url, text, names, note)
     error = ""
     for attempt in range(DRAFT_RETRIES + 1):
         try:
@@ -338,6 +346,8 @@ def verify_image(path: Path, slot, official_text: str, product: str, model: str,
     if reply is None:
         try:
             reply = classify.ask_claude_read(prompt, model, path.parent.resolve(), timeout=240)
+        except classify.ClaudeUsageLimit:
+            raise  # the plan's limit: the whole build stops and is tried again later, never shown without an image
         except (RuntimeError, OSError, TimeoutError) as exc:
             return {"unreadable": True, "notes": f"image check could not run: {str(exc)[:200]}"}
     verdict = image_pick.parse_verdict(reply)
@@ -653,16 +663,18 @@ PAGE_CACHE_DIR = ROOT / "data" / "page-cache"
 IMAGE_CACHE_DIR = ROOT / "data" / "image-cache"
 
 
-def run_story(key: str, official_url: str | None, render: bool) -> dict:
+def run_story(key: str, official_url: str | None, render: bool, review_note: str | None = None) -> dict:
     """One real build, timed step by step (Timing lines in the run log, totals in status.json). Fetched official pages,
     downloaded official images and Claude's answers are reused from data/ for a rebuild, so only what changed is asked
-    again. The caches are switched off again when the build ends."""
+    again. The caches are switched off again when the build ends.
+    review_note: the carousel bot's rebuild after a rejection with a note (or a failed build): a fresh draft that
+    follows the note. The fact check and the official image check run exactly as on any build."""
     config = load_config()
     clock = timing.Clock(f"story {key}")
     official.enable_page_cache(PAGE_CACHE_DIR, float(config.get("page_cache_hours", 6)))
     images.IMAGE_CACHE_DIR = IMAGE_CACHE_DIR
     try:
-        result = _run_story(key, official_url, render, config, clock)
+        result = _run_story(key, official_url, render, config, clock, review_note)
     finally:
         official.disable_page_cache()
         images.IMAGE_CACHE_DIR = None
@@ -670,7 +682,8 @@ def run_story(key: str, official_url: str | None, render: bool) -> dict:
     return result
 
 
-def _run_story(key: str, official_url: str | None, render: bool, config: dict, clock: timing.Clock) -> dict:
+def _run_story(key: str, official_url: str | None, render: bool, config: dict, clock: timing.Clock,
+               review_note: str | None = None) -> dict:
     if not DATA_PATH.exists():
         raise Refused("No watcher data yet. Run the watcher first.")
     rules = load_rules()
@@ -692,7 +705,8 @@ def _run_story(key: str, official_url: str | None, render: bool, config: dict, c
     with clock.step("slide plan (reused or Claude draft)"):
         plan_data, plan_note = plan_for_story(
             out_dir / "plan.json",
-            lambda: draft_checked(story.title, page.url, page.text, config["draft_model"], names))
+            lambda: draft_checked(story.title, page.url, page.text, config["draft_model"], names, note=review_note),
+            redraft=bool(review_note))
     if plan_note:
         print(plan_note)
     plan = carousel_plan.load_plan(plan_data)

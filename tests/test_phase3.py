@@ -317,8 +317,10 @@ def test_a_successful_build_posts_a_ready_message(tmp_path):
                                           notify=lambda text, url: sent.append((text, url)))
     assert outcomes[0].startswith("7: draft ready")
     text = sent[0][0]
-    assert "Carousel draft ready" in text and "Facts: 9 confirmed, 0 removed" in text
-    assert "Images missing (placeholder kept): 02.jpg" in text and "Nothing is posted" in text
+    assert text.startswith("Carousel ready for approval: Adobe Releases Photoshop 27.1")
+    assert "Facts: 9 confirmed, 0 removed" in text and "https://kintlibot-netizen.github.io/tpm-photo-news/" in text
+    assert "Text only slides (no official image of that feature): 02.jpg" in text and "Nothing is posted" in text
+    assert "Folder:" not in text  # no path from this PC in Slack
 
 
 def test_a_failed_build_says_why_and_never_raises(tmp_path):

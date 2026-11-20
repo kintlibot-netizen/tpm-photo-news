@@ -459,7 +459,8 @@ def coverage_reason(story: dict, now: datetime) -> tuple[str, str]:
     if row and row["status"] == "failed":
         return f"Not made: {row.get('message') or 'no reason recorded'}", "st-fail"
     if row and row["status"] == "needs_kint":
-        return f"Needs Kint: {row.get('message') or 'to be built on her laptop.'}", "st-held"
+        return ("Being made by the carousel bot. It runs every hour on the laptop and Slack says when it is ready "
+                "for approval. Nothing to do now."), "st-held"
     first = story.get("first_seen")
     if first and now - first > timedelta(hours=72):
         return ("Not made: older than 72 hours, so there is no automatic build. Kint can build it by hand.",
@@ -931,10 +932,9 @@ def attention_items(cards: list[dict], stories: list[dict], latest_feeds: list[d
     for_kint = [s for s in stories if s.get("official_sent") and not s.get("carousel")
                 and s.get("build_row") and s["build_row"]["status"] == "needs_kint"]
     if for_kint:
-        items.append(("amber", f"{len(for_kint)} carousels need Kint's laptop",
-                      "The cloud found them. Kint builds and reviews them on her laptop." if mode == "share" else
-                      "The cloud found them. Double-click Sync with cloud.bat to build and review them.",
-                      "carousels", ""))
+        items.append(("blue", f"{len(for_kint)} carousels being made by the carousel bot",
+                      "Nothing to do: the bot makes them on its next hourly run, and Slack says when each one is "
+                      "ready for approval.", "carousels", ""))
     for feed in latest_feeds:
         if not feed["ok"]:
             items.append(("red", f"Feed failed: {feed['feed']}", feed["error"] or "Unknown problem.", "sources", ""))
@@ -1053,16 +1053,20 @@ HOW_IT_WORKS = [
     "Once an hour, the watcher reads the photo news feeds listed under Sources.",
     "It keeps only stories published in the last 72 hours that name a known brand or editing software.",
     "Rumors are sent to Slack only after a second site reports them. Official launches are sent at once.",
-    "After an official alert, it can build a carousel draft, within 1 a day and 3 a week.",
-    "Every draft is fact-checked against the brand's own page. Claims that are not confirmed are removed.",
-    "A draft that passes the checks waits for David. Nothing is posted by the watcher.",
-    "Posting is done by hand in Meta Business Suite, then logged here with the account and link.",
+    "After an official alert, the TPM carousel bot makes the carousel by itself, every hour on the laptop, within 1 "
+    "a day and 3 a week. Nobody has to run anything.",
+    "Every carousel is fact-checked against the brand's own page. Claims that are not confirmed are removed. Every "
+    "image is a real official image of that feature.",
+    "A carousel that passes the checks waits for approval, and Slack says so. Kint approves or rejects it here; "
+    "David approves by telling Kint. A rejection with a note is rebuilt by the bot, following the note.",
+    "After approval, Kint posts by hand in Meta Business Suite, then logs it here with the account and link.",
     "If no feed works for two runs in a row, or none has worked for 6 hours, one health message is sent to Slack a day.",
 ]
 FLOW_NODES = [
     ("clock", "Hourly check", "Reads the photo news and rumor sites every hour while the PC is on.", False),
     ("send", "Slack alert", "Official launches at once. A rumor only after a second site reports it.", False),
-    ("image", "Carousel draft", "Built from the brand's own page, with real official product images only.", False),
+    ("image", "Carousel bot", "Makes the carousel by itself from the brand's own page, with real official product "
+     "images only.", False),
     ("check", "Fact check", "Every claim is checked against the official text. Anything unconfirmed is removed.",
      False),
     ("user", "David approves", "Nothing moves without David's yes. Kint approves on his word.", True),

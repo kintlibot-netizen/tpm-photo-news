@@ -121,7 +121,7 @@ def test_the_whole_live_pipeline_runs_offline_and_the_page_shows_it(project, fak
     texts = [text for _, text in posts]
     alerts = [t for t in texts if OFFICIAL_TITLE in t and "OFFICIAL" in t]
     assert len(alerts) == 1
-    assert any(t.startswith(f"Carousel draft ready: {OFFICIAL_TITLE}") for t in texts)
+    assert any(t.startswith(f"Carousel ready for approval: {OFFICIAL_TITLE}") for t in texts)
     assert not any(RUMOR_TITLE in t for t in texts), "a rumor reported by one site is held, not sent"
     assert not any(HOW_TO_TITLE in t for t in texts), "how-to headlines are not alert-worthy"
     assert not any("health" in t.lower() for t in texts)

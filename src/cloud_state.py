@@ -226,9 +226,11 @@ def _is_sample(folder: Path) -> bool:
     return downloads.is_sample(folder)
 
 
-def copy_carousels(source: Path, target: Path, mirror: bool) -> int:
+def copy_carousels(source: Path, target: Path, mirror: bool, overwrite: bool = True) -> int:
     """Copies every real carousel folder's files (no samples, no candidate images). mirror=True also removes folders
     and files from the target that the source no longer has (used for state/, never for the laptop's own folders).
+    overwrite=False only adds files the target does not have: the laptop is the only writer of the carousels, so its
+    own files (an approval Kint made a minute ago) are always newer than state/ and are never replaced.
     Returns how many files were written."""
     if not source.exists():
         return 0
@@ -242,7 +244,8 @@ def copy_carousels(source: Path, target: Path, mirror: bool) -> int:
         for path, relative in _carousel_files(folder):
             out = target / folder.name / relative
             keep.add(relative.as_posix())
-            if out.exists() and out.stat().st_size == path.stat().st_size and out.read_bytes() == path.read_bytes():
+            if out.exists() and (not overwrite or (out.stat().st_size == path.stat().st_size
+                                                   and out.read_bytes() == path.read_bytes())):
                 continue
             out.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, out)
@@ -277,7 +280,8 @@ def pull(side: str, root: Path | None = None) -> list[str]:
         if side == "cloud" or not p["local_posts"].exists() or \
                 p["state_posts"].stat().st_size > p["local_posts"].stat().st_size:
             shutil.copyfile(p["state_posts"], p["local_posts"])
-    written = copy_carousels(p["state_carousels"], p["local_carousels"], mirror=(side == "cloud"))
+    written = copy_carousels(p["state_carousels"], p["local_carousels"], mirror=(side == "cloud"),
+                             overwrite=(side == "cloud"))
     notes.append(f"carousel files updated: {written}")
     return notes
 
