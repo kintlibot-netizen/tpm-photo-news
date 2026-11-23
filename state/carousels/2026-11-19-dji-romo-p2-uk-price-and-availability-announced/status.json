@@ -1,9 +1,16 @@
 {
-  "status": "waiting_for_david",
+  "status": "rejected",
   "history": [
     {
       "event": "built",
       "at": "2026-11-20T22:07:39+00:00"
+    },
+    {
+      "event": "rejected",
+      "at": "2026-11-23T15:24:22+00:00",
+      "reason": "Wrong content: the slides came from dji.com's home page (Avata 360, Osmo Pocket 4P and others), not the ROMO P2 page, and have no official images.",
+      "rejected_at": "2026-11-23T15:24:22+00:00",
+      "rebuild_requested": true
     }
   ],
   "build": {
@@ -46,5 +53,9 @@
       "total": 60.8
     }
   },
-  "built_at": "2026-11-20T22:07:39+00:00"
+  "built_at": "2026-11-20T22:07:39+00:00",
+  "posts": [],
+  "reason": "Wrong content: the slides came from dji.com's home page (Avata 360, Osmo Pocket 4P and others), not the ROMO P2 page, and have no official images.",
+  "rejected_at": "2026-11-23T15:24:22+00:00",
+  "rebuild_requested": true
 }
