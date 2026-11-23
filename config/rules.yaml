@@ -57,6 +57,10 @@ brands:
   SanDisk: [sandisk]
   Lexar: [lexar]
   ProGrade: [prograde]
+  # Editing software makers (the brand of a software story, for its official pages).
+  Skylum: [skylum, luminar]
+  # More lens makers.
+  Thypoch: [thypoch]
 
 # A name that is also an ordinary word only counts when one of these words is in the same text
 # (or a model number follows it, as in "Sigma 85mm"). Keys are brand or software names, lower case.

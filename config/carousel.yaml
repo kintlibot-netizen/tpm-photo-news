@@ -70,3 +70,6 @@ official_domains:
   Samyang: [samyang.com]
   Ricoh: [ricoh-imaging.co.jp, ricoh-imaging.com, pentax.jp]
   Adobe: [adobe.com, blog.adobe.com, news.adobe.com, helpx.adobe.com, helpx-prod.scene7.com]
+  # Skylum makes Luminar. Its images are served from media.macphun.com (Macphun is Skylum's former name).
+  Skylum: [skylum.com, macphun.com]
+  Thypoch: [thypoch.com]

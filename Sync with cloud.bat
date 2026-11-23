@@ -1,7 +1,7 @@
 @echo off
 rem Sync with cloud: Kint's laptop part when the cloud watcher is on.
 rem 1. gets the latest news, alerts and "needs Kint" marks from the cloud (git pull, then state/ into data/ and output/)
-rem 2. builds the carousels the cloud marked "needs Kint" (the fact check and the official image check need Claude)
+rem 2. builds the waiting carousels that have a written plan (data\plans), never with Claude (--no-claude)
 rem 3. opens the review dashboard in its own window, so you can approve, reject or log posts
 rem 4. when you press a key here, saves your carousels and reviews to state/ and pushes them (after a safety check)
 rem The laptop never sends news alerts while the cloud is on, so no alert is ever sent twice. Nothing is posted.
@@ -13,8 +13,8 @@ git pull --rebase || goto failed
 "%PYTHON%" src\cloud_state.py pull --side laptop || goto failed
 
 echo.
-echo 2. Building the carousels the cloud marked "needs Kint". This can take a while...
-"%PYTHON%" src\run.py --carousels-only
+echo 2. Building the waiting carousels that have a written plan (no Claude)...
+"%PYTHON%" src\run.py --carousels-only --no-claude
 
 echo.
 echo 3. Opening the review dashboard in its own window.

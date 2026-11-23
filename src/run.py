@@ -257,7 +257,12 @@ def main(argv: list[str] | None = None) -> int:
                              "which runs on Kint's laptop); stories that need one are marked 'needs Kint'")
     parser.add_argument("--carousels-only", action="store_true",
                         help="the laptop with the cloud on: build the waiting carousels, check no news, send no alerts")
+    parser.add_argument("--plans-only", action="store_true",
+                        help="carousels only from written plans (data/plans, src/plan_build.py), never with Claude. "
+                             "--carousels-only --no-claude means the same")
+    parser.add_argument("--plan-dir", help="where the written carousel plans are (default data/plans)")
     args = parser.parse_args(argv)
+    plans_only = args.plans_only or (args.carousels_only and args.no_claude)
 
     (ROOT / "data").mkdir(exist_ok=True)
     logging.basicConfig(
@@ -272,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
                  "The cloud sends every Slack alert; use Sync with cloud.bat to build carousels and review.")
         return 0
     if args.carousels_only:
-        return carousels_only()
+        return carousels_only(no_claude=plans_only, plan_dir=args.plan_dir)
 
     url = None
     if not args.dry_run:
@@ -328,7 +333,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.cloud:
         cloud_carousel_step(ROOT / "data" / "seen.sqlite", sent_now, url)
     else:
-        carousel_step(ROOT / "data" / "seen.sqlite", sent_now, url)
+        carousel_step(ROOT / "data" / "seen.sqlite", sent_now, url, **(
+            {"no_claude": True, "plan_dir": args.plan_dir} if plans_only else {}))
     return 0
 
 
@@ -344,7 +350,7 @@ def laptop_must_skip(args) -> bool:
         return False
 
 
-def carousels_only() -> int:
+def carousels_only(no_claude: bool = False, plan_dir: str | None = None) -> int:
     """The laptop's part when the cloud is on: build the carousels the cloud marked 'needs Kint' (official, sent,
     72 hours old or less, not built yet), within the same caps, then refresh the download zips and the page."""
     try:
@@ -352,7 +358,7 @@ def carousels_only() -> int:
     except RuntimeError as exc:
         log.error("%s", exc)
         return 2
-    carousel_step(ROOT / "data" / "seen.sqlite", [], url)
+    carousel_step(ROOT / "data" / "seen.sqlite", [], url, no_claude=no_claude, plan_dir=plan_dir)
     try:
         import downloads
         downloads.ensure_zips(ROOT / "output" / "carousels", ROOT / "output" / "samples")
@@ -383,28 +389,41 @@ def check_health(now: datetime, url: str) -> None:
         log.error("Health check did not run: %s", type(exc).__name__)
 
 
-def carousel_step(db_path: Path, sent_now: list[tuple[int, str]], url: str) -> None:
-    """Every live run: the stories sent in this run, plus official stories still waiting for a carousel."""
+def carousel_step(db_path: Path, sent_now: list[tuple[int, str]], url: str, no_claude: bool = False,
+                  plan_dir: str | None = None) -> None:
+    """Every live run: the stories sent in this run, plus official stories still waiting for a carousel.
+    no_claude=True: Claude is never called; only stories with a written plan are built (src/plan_build.py)."""
     try:
         import carousel_auto  # imported here, so a broken carousel module cannot stop the alert run
         pending = carousel_auto.pending_stories(db_path, datetime.now(timezone.utc))
         sent_ids = {story_id for story_id, _ in sent_now}
         stories = list(sent_now) + [item for item in pending if item[0] not in sent_ids]
-        after_official_alerts(db_path, stories, datetime.now(timezone.utc), url)
+        after_official_alerts(db_path, stories, datetime.now(timezone.utc), url, **(
+            {"no_claude": True, "plan_dir": plan_dir} if no_claude else {}))
     except Exception as exc:  # the alert run is already done; a carousel problem never fails it
         log.error("Carousel step did not run: %s", type(exc).__name__)
 
 
-def after_official_alerts(db_path: Path, stories: list, now: datetime, url: str) -> list[str]:
+def after_official_alerts(db_path: Path, stories: list, now: datetime, url: str, no_claude: bool = False,
+                          plan_dir: str | None = None) -> list[str]:
     """Builds carousel drafts for the given (story id, title) pairs, within the caps. Imported here, so a
-    broken carousel module cannot stop the alert run from starting."""
-    import carousel
+    broken carousel module cannot stop the alert run from starting. With no_claude, only stories that have a
+    written plan are built (src/plan_build.py) and Claude is never called."""
     import carousel_auto
 
-    def build(story_id: int) -> dict:
-        return carousel.run_story(str(story_id), None, render=True)
+    if no_claude:
+        import plan_build
+        outcomes = plan_build.build_waiting_from_plans(db_path, now, url, plan_dir=Path(plan_dir) if plan_dir else None,
+                                                       stories=stories)
+        for line in outcomes:
+            log.info("Carousel (Claude off): %s", line)
+    else:
+        import carousel
 
-    outcomes = carousel_auto.after_alerts(db_path, stories, now, url, build)
+        def build(story_id: int) -> dict:
+            return carousel.run_story(str(story_id), None, render=True)
+
+        outcomes = carousel_auto.after_alerts(db_path, stories, now, url, build)
     try:
         import dashboard  # a carousel result shows on the page straight away
         dashboard.write_dashboard(

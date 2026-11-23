@@ -254,9 +254,17 @@ def webhook_or_none() -> str | None:
         return None
 
 
+def skip_rebuilds_without_claude(db_path: Path, carousels_dir: Path, now: datetime, webhook, notify=None) -> list[str]:
+    """With Claude off, a rejected carousel is not redrafted: its note is for the plan writer, who saves a new plan."""
+    return [f"{folder.name}: not rebuilt (Claude is off; write a new plan that follows the note, then build it)"
+            for folder, _ in rejected_to_rebuild(carousels_dir)]
+
+
 def run_once(root: Path = ROOT, now: datetime | None = None, git=run_git, build=None, rebuild=None,
-             safety=None, sync=None) -> dict:
-    """One bot run. Every part can be replaced for tests (git, build, rebuild, safety, sync)."""
+             safety=None, sync=None, no_claude: bool = False, plan_dir: Path | None = None) -> dict:
+    """One bot run. Every part can be replaced for tests (git, build, rebuild, safety, sync).
+    no_claude=True: Claude is never called. Only stories with a written plan (data/plans/story-<id>.json, see
+    src/plan_build.py) are built; the others are skipped, and rejected carousels wait for a new plan."""
     import timing
     now = now or datetime.now(timezone.utc)
     clock = timing.Clock("carousel bot", echo=False)
@@ -275,6 +283,11 @@ def run_once(root: Path = ROOT, now: datetime | None = None, git=run_git, build=
     db_path = root / "data" / "seen.sqlite"
     url = webhook_or_none()
     notify = carousel_auto.alert.send_to_slack if url else (lambda text, webhook: None)
+    if no_claude:
+        import plan_build
+        rebuild = rebuild or skip_rebuilds_without_claude
+        build = build or (lambda db, when, hook, notify=None: plan_build.build_waiting_from_plans(
+            db, when, hook, notify=notify, plan_dir=plan_dir))
     with clock.step("rebuild rejected carousels"):
         summary["rebuilt"] = (rebuild or rebuild_rejected)(db_path, root / "output" / "carousels", now, url,
                                                           notify=notify)
@@ -287,7 +300,8 @@ def run_once(root: Path = ROOT, now: datetime | None = None, git=run_git, build=
     if limit:
         log.warning("Carousel bot: Claude's usage limit was reached. Nothing was counted as failed; the bot tries "
                     "again on its next hourly run.")
-    worked = [line for line in summary["built"] + summary["rebuilt"] if "draft ready" in line or "rebuilt" in line]
+    worked = [line for line in summary["built"] + summary["rebuilt"]
+              if "draft ready" in line or ("rebuilt" in line and "not rebuilt" not in line)]
     if worked:
         _refresh_pages(root)
     with clock.step("state push"):
@@ -335,16 +349,23 @@ def setup_logging(path: Path = LOG_FILE) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Always returns 0, so the task never retries in a loop; every problem is in logs/carousel-bot.log."""
+    """Always returns 0, so the task never retries in a loop; every problem is in logs/carousel-bot.log.
+    --no-claude: build only from written plans (src/plan_build.py); Claude is never called."""
+    import argparse
     from dotenv import load_dotenv
+    parser = argparse.ArgumentParser(description="TPM Carousel Bot")
+    parser.add_argument("--no-claude", action="store_true", help="build only from written plans, never call Claude")
+    parser.add_argument("--plan-dir", help="where the plans are (default data/plans)")
+    args, _ = parser.parse_known_args(sys.argv[1:] if argv is None else argv)
     setup_logging()
     load_dotenv(ROOT / ".env")
     if not acquire_lock():
         log.info("Carousel bot: the previous run is still going; this run is skipped.")
         return 0
     try:
-        log.info("Carousel bot: run started.")
-        run_once()
+        log.info("Carousel bot: run started%s.", " (Claude off, plans only)" if args.no_claude else "")
+        run_once(**({"no_claude": True, "plan_dir": Path(args.plan_dir) if args.plan_dir else None}
+                    if args.no_claude else {}))
     except Exception as exc:  # logged, never raised: the next hourly run starts clean
         log.exception("Carousel bot: the run stopped with an error: %s", type(exc).__name__)
     finally:
