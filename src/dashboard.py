@@ -353,22 +353,40 @@ def summarize(stories: list[dict], now: datetime) -> dict:
 
 # ---------- carousels ----------
 
-def read_carousels(carousels_dir: Path, samples_dir: Path | None = None) -> list[dict]:
-    """Each carousel folder that has captions.txt: real drafts first, then samples. Newest name first."""
+REAL_KINDS = ("draft",)  # a card of any other kind (sample, preview) is never counted, linked to a story or approved
+
+
+def is_real(card: dict) -> bool:
+    return card.get("kind") in REAL_KINDS
+
+
+PREVIEW_NOTE = "Preview, not sent for approval yet"
+SAMPLE_NOTE = "Layout sample not for posting"
+
+
+def read_carousels(carousels_dir: Path, samples_dir: Path | None = None,
+                   previews_dir: Path | None = None) -> list[dict]:
+    """Every carousel folder that has captions.txt: real carousels first (newest name first), then previews, then
+    samples. Nothing is left out; the dashboard filter decides what is shown."""
     cards = []
-    sources = [(carousels_dir, "carousels"), (samples_dir, "samples")]
+    sources = [(carousels_dir, "carousels"), (previews_dir, "plan-previews"), (samples_dir, "samples")]
     for root, base in sources:
         if root is None or not root.exists():
             continue
         for folder in sorted((p for p in root.iterdir() if p.is_dir()), reverse=True):
-            if not (folder / "captions.txt").exists():
-                continue
+            if not (folder / "captions.txt").exists() or any(c["name"] == folder.name for c in cards):
+                continue  # a preview of a story that was then built for real is shown once, as the real carousel
             status = carousel_status.read_status(folder)
-            is_sample = base == "samples" or downloads.is_sample(folder, status)
+            if base == "plan-previews":
+                kind = "preview"
+            elif base == "samples" or downloads.is_sample(folder, status):
+                kind = "sample"
+            else:
+                kind = "draft"
             prebuilt = downloads.prebuilt_zip(folder)
             cards.append({
                 "name": folder.name,
-                "kind": "sample" if is_sample else "draft",
+                "kind": kind,
                 "base": f"../output/{base}/{folder.name}",
                 "root": base,
                 "folder": folder,
@@ -384,13 +402,31 @@ def read_carousels(carousels_dir: Path, samples_dir: Path | None = None) -> list
                 "reason": status.get("reason", ""),
                 "posts": status.get("posts", []),
             })
+    rank = {"draft": 0, "preview": 1, "sample": 2}
+    cards.sort(key=lambda c: c["name"], reverse=True)  # newest first
+    cards.sort(key=lambda c: rank[c["kind"]])  # real carousels, then previews, then samples
     return cards
+
+
+CAROUSEL_FILTERS = (("all", "All carousels"), ("waiting_for_david", "Waiting for David"), ("draft", "Draft"),
+                    ("preview", "Preview"), ("approved", "Approved"), ("rejected", "Rejected"),
+                    ("posted", "Posted"), ("sample", "Layout samples"))
+GROUP_TITLES = {"preview": "Previews, not sent for approval yet", "sample": "Layout samples, not for posting"}
+
+
+def chip_key(card: dict) -> str:
+    """The one status a card is filtered by: preview, sample, or the review status of a real carousel."""
+    if card.get("kind") in ("preview", "sample"):
+        return card["kind"]
+    return card["status"] if card["status"] in carousel_status.STATUSES else "draft"
 
 
 def _carousel_state(card: dict) -> tuple[str, str]:
     status = card["status"]
     if card.get("kind") == "sample":
-        return "Sample for checking the layout. Not for posting.", "st-dry"
+        return SAMPLE_NOTE, "st-dry"
+    if card.get("kind") == "preview":
+        return PREVIEW_NOTE, "st-held"
     if status == "waiting_for_david":
         return "Waiting for David", "st-accent"
     if status == "approved":
@@ -420,7 +456,7 @@ def carousel_stage(card: dict) -> str:
 def link_carousels(stories: list[dict], cards: list[dict], builds: list[dict]) -> None:
     """Gives each story its carousel card (story["carousel"]) and last build attempt (story["build_row"]).
     A carousel belongs to a story through the build record, or else through the folder name made from its title."""
-    real = [c for c in cards if c.get("kind") != "sample"]
+    real = [c for c in cards if is_real(c)]
     by_name = {c["name"]: c for c in real}
     last_build: dict[int, dict] = {}
     for row in builds:
@@ -743,6 +779,7 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
     title = display_text(build.get("title") or name)
     state, state_class = _carousel_state(card)
     is_sample = card.get("kind") == "sample"
+    is_preview = card.get("kind") == "preview"
     slide_names = card.get("slide_names", {})
     views = card.get("views") or {}  # David's copy may show the same slide as a smaller JPEG; downloads stay full PNG
     thumbs = []
@@ -790,6 +827,9 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
     if is_sample:
         actions = ('<div class="sample-banner">Samples are for checking the layout. They can\'t be approved or posted.'
                    '</div>')
+    elif is_preview:
+        actions = ('<div class="sample-banner">Preview made from a written plan. It has not been sent for approval yet, '
+                   'so it can\'t be approved or posted from here.</div>')
     elif mode == "share":
         # Read only: where the approve, reject and posted controls are on Kint's page, only the status badge.
         actions = (f'<div class="review-area"><div class="review"><span class="tag {state_class}">{esc(state)}</span>'
@@ -809,12 +849,14 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
         )
         actions = ('<div class="review-area">' + review_controls(name, card["status"])
                    + f'<details class="copy-row"><summary>PowerShell commands</summary>{copies}</details></div>')
-    kind_label = "Sample" if is_sample else "Draft"
-    sample_tag = '<span class="tag tag-sample">SAMPLE</span>' if is_sample else ""
+    kind_label = "Sample" if is_sample else "Preview" if is_preview else "Draft"
+    sample_tag = ('<span class="tag tag-sample">SAMPLE</span>' if is_sample
+                  else '<span class="tag tag-sample">PREVIEW</span>' if is_preview else "")
     cover = views.get(card["slides"][0], f"{base}/{card['slides'][0]}") if card["slides"] else ""
     return (
         f'<article class="carousel-card" id="car-{esc(name)}{esc(where)}" '
-        f'data-kind="{esc("sample" if is_sample else "draft")}" data-status="{esc(card["status"])}">'
+        f'data-kind="{esc(card.get("kind", "draft"))}" data-status="{esc(card["status"])}" '
+        f'data-chip="{esc(chip_key(card))}">'
         f'<div class="card-head"><h2 class="story-title">{esc(title)}</h2>'
         f'<div class="chips">{sample_tag}<span class="tag {state_class}">{esc(state)}</span></div></div>'
         f'<p class="meta">{esc(kind_label)}: {esc(name)}</p>'
@@ -838,21 +880,29 @@ def carousels_panel(cards: list[dict], mode: str = "local", approved_href: str |
             '<div class="panel empty carousel"><h2>Carousels</h2>'
             "<p>Coming in Phase 2: ready-to-post slides and captions will appear here.</p></div>"
         )
-    approved = sum(1 for c in cards if c.get("kind") != "sample" and c["status"] in ("approved", "posted"))
+    approved = sum(1 for c in cards if is_real(c) and c["status"] in ("approved", "posted"))
     note = ("Every approved carousel in one zip. Through Open Review Dashboard it is made on the spot."
             if mode == "local" else "Not included in this copy.")
     all_button = download_link(f"Download all approved carousels ({approved})", approved_href,
                                "/api/download/approved", mode, note, primary=False)
-    sample_option = '<option value="sample">Samples</option>' if mode == "local" else ""
+    counts: dict[str, int] = {}
+    for c in cards:
+        counts[chip_key(c)] = counts.get(chip_key(c), 0) + 1
+    options = "".join(
+        f'<option value="{key}"{" selected" if key == "all" else ""}>{esc(label)} ({counts.get(key, 0) if key != "all" else len(cards)})</option>'
+        for key, label in CAROUSEL_FILTERS)
     kinds = (
         '<div class="panel"><div class="toolbar"><label class="muted" for="carousel-kind">Show</label>'
-        '<select id="carousel-kind" aria-label="Show drafts or samples">'
-        '<option value="all">All carousels</option><option value="draft">Real drafts</option>'
-        f'{sample_option}</select>'
+        f'<select id="carousel-kind" aria-label="Show carousels by status">{options}</select>'
         f'<span class="count-note">{all_button}</span></div></div>'
     )
-    return kinds + '<div id="carousel-list" class="car-list">' + "".join(
-        carousel_card(c, mode) for c in cards) + "</div>"
+    body, group = [], None
+    for c in cards:
+        if c["kind"] != group and c["kind"] in GROUP_TITLES:
+            body.append(f'<h2 class="section-title car-group" data-group="{c["kind"]}">{esc(GROUP_TITLES[c["kind"]])}</h2>')
+        group = c["kind"]
+        body.append(carousel_card(c, mode))
+    return kinds + '<div id="carousel-list" class="car-list">' + "".join(body) + "</div>"
 
 
 def coverage_panel(stories: list[dict], now: datetime) -> str:
@@ -905,7 +955,7 @@ def next_check_text(latest: dict | None, next_run: datetime | None, now: datetim
 
 def attention_items(cards: list[dict], stories: list[dict], latest_feeds: list[dict], mode: str) -> list[tuple]:
     """(icon colour, title, note, go to page, target id) for everything that needs a person."""
-    real = [c for c in cards if c.get("kind") != "sample"]
+    real = [c for c in cards if is_real(c)]
     items = []
     for c in real:
         title = display_text(c["build"].get("title") or c["name"])
@@ -957,7 +1007,7 @@ def attention_list(items: list[tuple]) -> str:
 def attention_panel(cards: list[dict], latest_feeds: list[dict], stories: list[dict] | None = None,
                     mode: str = "local") -> str:
     items = attention_items(cards, stories or [], latest_feeds, mode)
-    waiting = [c for c in cards if c.get("kind") != "sample" and c["status"] in ("waiting_for_david", "draft", "approved")]
+    waiting = [c for c in cards if is_real(c) and c["status"] in ("waiting_for_david", "draft", "approved")]
     parts = [attention_list(items)]
     if waiting:
         parts.append('<h2 class="section-title">Carousel drafts to review</h2>'
@@ -1160,7 +1210,7 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
         story["stage"] = story_stage(story)
         story["official_sent"] = story["status"] == runlog.ALERTED and story["label"] == classify.OFFICIAL
         story["now"] = now
-    real = [c for c in all_cards if c.get("kind") != "sample"]
+    real = [c for c in all_cards if is_real(c)]
     counts = {
         "drafted": len(real),
         "waiting_david": sum(1 for c in real if c["status"] == "waiting_for_david"),
@@ -1295,7 +1345,8 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
 
 def build_page(db_path=None, sources_path=None, rules_path=None, now=None, carousels_dir=None, samples_dir=None,
                activity_path=None, mode: str = "local", card_filter=None, base_for=None,
-               approved_href: str | None = "auto", read_only: bool = False) -> tuple[str, list[dict]]:
+               approved_href: str | None = "auto", read_only: bool = False,
+               previews_dir=None) -> tuple[str, list[dict]]:
     """(page HTML, the carousel cards on it). card_filter(card) keeps a card; base_for(card) gives its image folder.
     approved_href is the link of the "Download all approved carousels" button ("auto": the prebuilt zip, if any).
     read_only=True is David's copy: the same template as Kint's page, without any control or command."""
@@ -1304,6 +1355,8 @@ def build_page(db_path=None, sources_path=None, rules_path=None, now=None, carou
     db_path = Path(db_path) if db_path is not None else ROOT / "data" / "seen.sqlite"
     sources_path = Path(sources_path) if sources_path is not None else ROOT / "config" / "sources.yaml"
     rules_path = Path(rules_path) if rules_path is not None else ROOT / "config" / "rules.yaml"
+    if previews_dir is None and carousels_dir is None:
+        previews_dir = ROOT / "output" / "plan-previews"  # a caller that names its own folders names the previews too
     carousels_dir = Path(carousels_dir) if carousels_dir is not None else ROOT / "output" / "carousels"
     samples_dir = Path(samples_dir) if samples_dir is not None else ROOT / "output" / "samples"
     now = now or datetime.now(timezone.utc)
@@ -1311,7 +1364,7 @@ def build_page(db_path=None, sources_path=None, rules_path=None, now=None, carou
     data = read_database(db_path)
     rules = load_rules(rules_path)
     stories = build_stories(data, rules)
-    cards = read_carousels(carousels_dir, samples_dir)
+    cards = read_carousels(carousels_dir, samples_dir, Path(previews_dir) if previews_dir is not None else None)
     if card_filter is not None:
         cards = [c for c in cards if card_filter(c)]
     if base_for is not None:
@@ -1331,10 +1384,11 @@ def build_page(db_path=None, sources_path=None, rules_path=None, now=None, carou
 
 
 def write_dashboard(db_path=None, out_path=None, sources_path=None, rules_path=None, now=None,
-                    carousels_dir=None, samples_dir=None, activity_path=None) -> Path:
+                    carousels_dir=None, samples_dir=None, activity_path=None, previews_dir=None) -> Path:
     """Reads the data and writes the page. Paths default to the project folders."""
     out_path = Path(out_path) if out_path is not None else ROOT / "dashboard" / "index.html"
-    page, _ = build_page(db_path, sources_path, rules_path, now, carousels_dir, samples_dir, activity_path)
+    page, _ = build_page(db_path, sources_path, rules_path, now, carousels_dir, samples_dir, activity_path,
+                         previews_dir=previews_dir)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     temp = out_path.with_name(out_path.name + ".tmp")
     temp.write_text(page, encoding="utf-8")

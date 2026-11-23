@@ -1,0 +1,119 @@
+{
+  "product": {
+    "text": "PHOTOSHOP 2027",
+    "quote": "Photoshop 2027 brings new tools"
+  },
+  "cover": {
+    "label": "NEW IN PHOTOSHOP",
+    "headline": {
+      "text": "PHOTOSHOP 2027",
+      "quote": "Photoshop 2027 brings new tools"
+    },
+    "subline": {
+      "text": "RELIGHT IMAGES. NEW STYLES.",
+      "quote": "new tools to relight an image, generate in a new style"
+    }
+  },
+  "slides": [
+    {
+      "template": "left_body",
+      "label": "NEW TOOLS",
+      "headline": {
+        "text": "RELIGHT\nIMAGES",
+        "quote": "new tools to relight an image"
+      },
+      "accent": {
+        "text": "NEW LIGHTING TOOLS",
+        "quote": "new tools to relight an image"
+      },
+      "body": {
+        "text": "New tools relight an image.",
+        "quote": "new tools to relight an image"
+      },
+      "specs": []
+    },
+    {
+      "template": "stat_hero",
+      "label": "NEW LOOK",
+      "headline": {
+        "text": "NEW STYLES",
+        "quote": "generate in a new style"
+      },
+      "accent": {
+        "text": "GENERATE IN A NEW STYLE",
+        "quote": "generate in a new style"
+      },
+      "body": {
+        "text": "Creates images in a new style.",
+        "quote": "generate in a new style"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "AND MORE",
+      "headline": {
+        "text": "BETA\nFEATURES",
+        "quote": "a long list of new beta features"
+      },
+      "accent": null,
+      "body": {
+        "text": "Includes a long list of new beta features.",
+        "quote": "a long list of new beta features"
+      },
+      "specs": []
+    }
+  ],
+  "comparison": null,
+  "price": null,
+  "captions": {
+    "david": {
+      "hook": {
+        "text": "Photoshop 2027 can now relight an image with new tools.",
+        "quote": "brings new tools to relight an image"
+      },
+      "facts": [
+        {
+          "text": "Relight an image with the new tools.",
+          "quote": "brings new tools to relight an image"
+        },
+        {
+          "text": "Generate images in a new style.",
+          "quote": "generate in a new style"
+        },
+        {
+          "text": "Try a long list of new beta features.",
+          "quote": "a long list of new beta features"
+        }
+      ],
+      "closing": {
+        "text": "Which of these would you try first?",
+        "quote": ""
+      }
+    },
+    "tpm": {
+      "hook": {
+        "text": "Relight a photo, then generate it in a new style.",
+        "quote": "relight an image, generate in a new style"
+      },
+      "facts": [
+        {
+          "text": "Use the new tools to relight an image.",
+          "quote": "brings new tools to relight an image"
+        },
+        {
+          "text": "Generate in a new style.",
+          "quote": "generate in a new style"
+        },
+        {
+          "text": "Explore a long list of new beta features.",
+          "quote": "a long list of new beta features"
+        }
+      ],
+      "closing": {
+        "text": "Which feature would you try first?",
+        "quote": ""
+      }
+    }
+  }
+}

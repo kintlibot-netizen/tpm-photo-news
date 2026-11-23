@@ -1,0 +1,156 @@
+{
+  "product": {
+    "text": "Luminar",
+    "quote": "The Luminar Fall Update is available starting October 28, 2026"
+  },
+  "cover": {
+    "label": "LUMINAR FALL UPDATE",
+    "headline": {
+      "text": "LUMINAR\nFALL UPDATE",
+      "quote": "The Luminar Fall Update is available starting October 28, 2026"
+    },
+    "subline": {
+      "text": "ITS BIGGEST UPDATE OF THE YEAR",
+      "quote": "Luminar rolls out its biggest update of the year"
+    },
+    "subline_alt": {
+      "text": "EVERY TOOL READS THE PHOTO FIRST",
+      "quote": "every tool now examines the photograph before it changes anything"
+    }
+  },
+  "slides": [
+    {
+      "template": "left_body",
+      "label": "UPGRADED",
+      "headline": {
+        "text": "ENHANCE",
+        "quote": "bringing upgraded Enhance, Atmosphere, Smart Compositions, AI Assistant, and Printing"
+      },
+      "accent": {
+        "text": "EIGHT DIFFERENT SITUATIONS",
+        "quote": "evaluates each image across eight different situations"
+      },
+      "body": {
+        "text": "Adapts its processing to each shot, with protection for highlights, color, skies and skin.",
+        "quote": "adapts its processing to that specific shot, with protection for highlights, color, skies, and skin"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "UPGRADED",
+      "headline": {
+        "text": "ATMOSPHERE",
+        "quote": "strengthens the atmosphere a scene already had"
+      },
+      "accent": {
+        "text": "REAL 3D VOLUMETRIC FOG",
+        "quote": "built as real 3D volumetric fog"
+      },
+      "body": {
+        "text": "Fog settles along the ground, thins with height and warms toward the sun.",
+        "quote": "fog settles along the ground, thins with height, warms toward the sun"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "UPGRADED",
+      "headline": {
+        "text": "SMART COMPOSITIONS",
+        "quote": "Smart Compositions: understands the whole scene first"
+      },
+      "accent": {
+        "text": "TESTS MANY CROPS",
+        "quote": "tests many crops against classic principles"
+      },
+      "body": {
+        "text": "Reads the main subject, faces and gaze direction, and what draws the eye.",
+        "quote": "the main subject, faces and gaze direction, what draws the eye"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "NEW",
+      "headline": {
+        "text": "AI ASSISTANT",
+        "quote": "the AI Assistant understands the creative intent"
+      },
+      "accent": {
+        "text": "DESCRIBE THE RESULT YOU WANT",
+        "quote": "describe the desired final result in a few words"
+      },
+      "body": {
+        "text": "Suggests what to adjust and where to stop, keeping the original idea intact.",
+        "quote": "suggests what to adjust and where to stop, keeping the original idea intact"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "NEW",
+      "headline": {
+        "text": "SIGNATURE & PRINTING",
+        "quote": "they can add their signature and bring their finished work to the wall"
+      },
+      "accent": {
+        "text": "PRINTING BUILT IN",
+        "quote": "by building printing directly into Luminar"
+      },
+      "body": {
+        "text": "Add your signature and send finished work to the wall, a shelf or a mailbox.",
+        "quote": "bring their finished work to the wall, shelf, or someone’s mailbox"
+      },
+      "specs": []
+    }
+  ],
+  "comparison": null,
+  "price": null,
+  "captions": {
+    "david": {
+      "hook": {
+        "text": "My favorite part: every tool examines the photo first.",
+        "quote": "every tool now examines the photograph before it changes anything"
+      },
+      "facts": [
+        {
+          "text": "Enhance adapts its processing to each specific shot.",
+          "quote": "adapts its processing to that specific shot"
+        },
+        {
+          "text": "Printing is now built right into Luminar.",
+          "quote": "by building printing directly into Luminar"
+        }
+      ],
+      "closing": {
+        "text": "Would you print your next edit straight from Luminar?",
+        "quote": ""
+      }
+    },
+    "tpm": {
+      "hook": {
+        "text": "We think Atmosphere is the standout this fall.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "Atmosphere is built as real 3D volumetric fog.",
+          "quote": "built as real 3D volumetric fog"
+        },
+        {
+          "text": "Smart Compositions tests many crops against classic principles.",
+          "quote": "tests many crops against classic principles"
+        },
+        {
+          "text": "It is out now across desktop, web and mobile.",
+          "quote": "available starting October 28, 2026, across desktop, web, and mobile"
+        }
+      ],
+      "closing": {
+        "text": "Which tool would you try first?",
+        "quote": ""
+      }
+    }
+  }
+}

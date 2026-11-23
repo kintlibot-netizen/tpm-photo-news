@@ -653,6 +653,8 @@ def price_body(view: dict, slots: dict) -> str:
 CLOSING_HEADLINE_TOP, CLOSING_HEADLINE_H = 300, 340  # two lines of the question, centred in the upper third
 CLOSING_RECAP_TOP = 712  # the "In this post" rule, then the feature names
 CLOSING_RECAP_STEP = 76
+CLOSING_RECAP_STEP_5 = 68
+CLOSING_RECAP_MAX = 5
 CLOSING_CTA_TOP = 1150  # the call to action pill, clear of the footer at FOOTER_TOP
 
 
@@ -668,8 +670,10 @@ def closing_body(view: dict, slots: dict) -> str:
         parts.append(
             f'<div class="abs quick-label" style="top:{CLOSING_RECAP_TOP}px;left:72px;width:936px">'
             '<span class="rule"></span><span class="spaced cyan">In this post</span><span class="rule"></span></div>')
-        for index, name in enumerate(view["features"][:4]):
-            parts.append(text_box("feat", name, CLOSING_RECAP_TOP + 72 + index * CLOSING_RECAP_STEP, 60, 40,
+        names = view["features"][:CLOSING_RECAP_MAX]
+        step = CLOSING_RECAP_STEP if len(names) <= 4 else CLOSING_RECAP_STEP_5  # 5 lines end at 1116, above the CTA
+        for index, name in enumerate(names):
+            parts.append(text_box("feat", name, CLOSING_RECAP_TOP + 72 + index * step, 60, 40,
                                   left=64, width=952, safe=(64, 1016), max_lines=1))
     parts.append(
         f'<div class="abs" style="top:{CLOSING_CTA_TOP}px;left:0;width:{WIDTH}px;text-align:center">'

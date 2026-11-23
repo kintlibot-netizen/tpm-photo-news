@@ -237,6 +237,33 @@ def official_links(markup: str, base_url: str, domains: list[str]) -> list[str]:
     return sorted(found, key=lambda u: not any(word in u.lower() for word in PRESS_WORDS))
 
 
+def is_home_page(url: str) -> bool:
+    """True for a site's front page (no path), which is never an announcement."""
+    return urlsplit(url).path.strip("/") == ""
+
+
+def product_match_score(markup: str, terms: list[str], url: str = "") -> int:
+    """How much a page is about the product named by `terms`: 0 means it is not.
+
+    A term in the page title or a heading counts 3 and one in the body counts 1. With no term in the title or
+    headings, the body must name at least two different terms (all of them when there are fewer)."""
+    terms = [t for t in terms if t]
+    if not terms:
+        return 0
+    meta = _MetaParser()
+    meta.feed(markup)
+    meta.close()
+    path_words = re.sub(r"[^A-Za-z0-9.]+", " ", urlsplit(url).path)  # "luminar-neo-relight" names the product too
+    head = " ".join([meta.meta.get("og:title", ""), meta.title, path_words]
+                    + [s["heading"] for s in page_sections(markup)])
+    in_head = [t for t in terms if _names(head, [t])]
+    body = page_text(markup)
+    in_body = [t for t in terms if _names(body, [t])]
+    if in_head:
+        return 3 * len(in_head) + len(in_body)
+    return len(in_body) if len(in_body) >= min(2, len(terms)) else 0
+
+
 def hero_image_url(markup: str, base_url: str) -> str | None:
     image = parse_page(markup).hero_image
     return urljoin(base_url, image) if image else None

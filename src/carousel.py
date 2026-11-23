@@ -170,6 +170,25 @@ def image_pages_for(config: dict, brand: str | None, terms: list[str]) -> list[s
     return [url for product, urls in pages.items() if product.lower() in wanted for url in urls]
 
 
+def heading_title(title: str) -> str:
+    """A story title for a markdown heading: en and em dashes become a comma (or a colon when a colon follows)."""
+    title = re.sub(r"\s*[–—]\s*", ", ", title)
+    return title.replace(":,", ":").replace(", :", ":")
+
+
+MAX_CANDIDATES = 15
+GENERIC_TITLE_WORDS = {"the", "and", "for", "with", "new", "now", "its", "from", "into", "launches", "launch", "announces",
+                       "announced", "introduces", "unveils", "releases", "released", "update", "updates", "officially",
+                       "official", "available", "adds", "brings", "gets", "camera", "lens", "version"}
+
+
+def product_match_terms(title: str, brand: str | None) -> list[str]:
+    """Words of the story title that name its product: everything but the brand, filler and verbs of news."""
+    skip = GENERIC_TITLE_WORDS | set(re.findall(r"[a-z0-9]+", (brand or "").lower()))
+    words = [w.strip(".-").lower() for w in re.findall(r"[A-Za-z0-9][A-Za-z0-9.\-]*", title)]
+    return list(dict.fromkeys(w for w in words if len(w) >= 3 and w not in skip))
+
+
 def locate_official(story, brand: str | None, config: dict, explicit: str | None) -> OfficialPage:
     """The brand's own page for this story. Article sites give links only, never facts."""
     domains = config["official_domains"].get(brand, []) if brand else []
@@ -180,9 +199,11 @@ def locate_official(story, brand: str | None, config: dict, explicit: str | None
         if not official.host_allowed(explicit, domains):
             raise Refused(f"{explicit} is not on the official domains for {brand}: {', '.join(domains)}.")
         candidates = [explicit]
+        article_links = []
         checked.append(f"--official-url {explicit}")
     else:
         candidates = []
+        article_links = []
         for src in story.sources[:4]:
             article = src.get("link") or src["url"]
             try:
@@ -194,6 +215,7 @@ def locate_official(story, brand: str | None, config: dict, explicit: str | None
             candidates += [link for link in dict.fromkeys(links)
                            if official.host_allowed(link, domains) and link not in candidates]
             checked.append(f"links on {article}")
+        article_links = list(candidates)
         anchors = story_anchors(story.title, brand)
         index_cfg = config.get("official_indexes", {}).get(brand)
         if index_cfg:
@@ -228,7 +250,11 @@ def locate_official(story, brand: str | None, config: dict, explicit: str | None
             if status == "found" and all(a in body.lower() for a in anchors):
                 candidates.append(page_url)
             checked.append(f"{page_url} ({'checked' if status == 'found' else 'not found: ' + body})")
-    for url in dict.fromkeys(candidates):
+    match_terms = [] if explicit else product_match_terms(story.title, brand)
+    best: tuple[int, str, str] | None = None  # (score, url, markup) of the best product match so far
+    unmatched: dict[str, str] = {}  # url -> markup of readable pages that did not match
+    from_article = set(article_links)
+    for url in list(dict.fromkeys(candidates))[:MAX_CANDIDATES]:
         try:
             markup = official.fetch_html(url)
         except (requests.RequestException, ValueError) as exc:
@@ -237,20 +263,48 @@ def locate_official(story, brand: str | None, config: dict, explicit: str | None
         text = official.page_text(markup)
         if len(text) < MIN_OFFICIAL_CHARS:
             continue
-        pages = [(url, markup)]
-        press = images.press_pages(images.parse_page(markup, url)[1], domains)
-        for extra in press[:3]:
-            try:
-                pages.append((extra, official.fetch_html(extra)))
-            except (requests.RequestException, ValueError):
-                continue
-        terms, others = story_product_terms(story.title)
-        fact_text, note = official.product_text(markup, terms, others)
-        return OfficialPage(url=url, text=fact_text, markup=markup, pages=pages, terms=terms, note=note)
-    raise Refused(
-        "No official page for this story was found. Checked: " + "; ".join(checked or ["nothing configured"])
-        + ". Pass --official-url with the brand's own announcement page."
-    )
+        if not explicit:
+            if official.is_home_page(url):
+                score = 0
+            elif url not in from_article:
+                score = max(1, official.product_match_score(markup, match_terms, url))  # the index lookup vetted it
+            else:
+                score = official.product_match_score(markup, match_terms, url)
+            if score <= 0:
+                unmatched[url] = markup
+            elif best is None or score > best[0]:
+                best = (score, url, markup)
+            continue
+        best = (1, url, markup)
+        break
+    deep = {u: m for u, m in unmatched.items() if not official.is_home_page(u)}
+    if best is None and len(deep) == 1:
+        # The one official page the story's own article links to, when nothing else is on offer: still a real
+        # announcement page, not a home page. Two or more unmatched pages are ambiguous and stay refused.
+        (only_url, only_markup), = deep.items()
+        if only_url in from_article:
+            best = (1, only_url, only_markup)
+    if best is None:
+        if unmatched:
+            raise Refused(
+                f"No official page matches the product of this story ({', '.join(match_terms) or 'no product words'}). "
+                "Pages read and skipped: " + ", ".join(list(unmatched)[:5]) + ". Checked: " + "; ".join(checked)
+                + ". Pass --official-url with the brand's own announcement page.")
+        raise Refused(
+            "No official page for this story was found. Checked: " + "; ".join(checked or ["nothing configured"])
+            + ". Pass --official-url with the brand's own announcement page."
+        )
+    _, url, markup = best
+    pages = [(url, markup)]
+    press = images.press_pages(images.parse_page(markup, url)[1], domains)
+    for extra in press[:3]:
+        try:
+            pages.append((extra, official.fetch_html(extra)))
+        except (requests.RequestException, ValueError):
+            continue
+    terms, others = story_product_terms(story.title)
+    fact_text, note = official.product_text(markup, terms, others)
+    return OfficialPage(url=url, text=fact_text, markup=markup, pages=pages, terms=terms, note=note)
 
 
 # ---- Claude steps (the same free Claude CLI route as the watcher) ----
@@ -457,7 +511,7 @@ def factcheck_markdown(title: str, url: str, report: list[dict], checked_on: str
     confirmed = [r for r in report if r["verdict"] in ("CONFIRMED", "NOT A FACT")]
     removed = [r for r in report if r["verdict"] == "NOT CONFIRMED"]
     lines = [
-        f"# Fact-check: {title}", "",
+        f"# Fact-check: {heading_title(title)}", "",
         f"Official source: {url}",
         f"Checked on: {checked_on}", "",
         "Every claim on the slides and in the captions is listed below. A claim marked NOT CONFIRMED "
@@ -482,7 +536,7 @@ def factcheck_markdown(title: str, url: str, report: list[dict], checked_on: str
 def sources_markdown(title: str, url: str, article_links: list[tuple[str, str]], text_len: int,
                      images_note: list[str], press_images: bool) -> str:
     lines = [
-        f"# Sources: {title}", "",
+        f"# Sources: {heading_title(title)}", "",
         f"Official source for every fact on the slides and captions: {url}",
         f"Official page text checked: {text_len} characters.", "",
         "News reports the story came from (context only, not used for facts):",

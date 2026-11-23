@@ -224,6 +224,7 @@ def publish(
             rules_path=ROOT / "config" / "rules.yaml",
             carousels_dir=ROOT / "output" / "carousels",
             samples_dir=ROOT / "output" / "samples",
+            previews_dir=ROOT / "output" / "plan-previews",
             now=datetime.now(timezone.utc),
         )
     except Exception as exc:  # the dashboard is extra; it must never fail a run
@@ -433,6 +434,7 @@ def after_official_alerts(db_path: Path, stories: list, now: datetime, url: str,
             rules_path=ROOT / "config" / "rules.yaml",
             carousels_dir=ROOT / "output" / "carousels",
             samples_dir=ROOT / "output" / "samples",
+            previews_dir=ROOT / "output" / "plan-previews",
             now=datetime.now(timezone.utc),
         )
     except Exception as exc:

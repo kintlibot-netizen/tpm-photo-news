@@ -526,6 +526,7 @@ def build_views(plan: dict) -> list[dict]:
     return views
 
 
+CLOSING_FEATURES_MAX = 5  # feature names recapped on the closing slide (the render spaces 5 lines clear of the CTA)
 CLOSING_LABEL = "YOUR TAKE"
 CLOSING_CTA = "SAVE THIS POST. SHARE YOUR TAKE."
 BRAND_LINE = "THE PHOTO MENTORSHIP"
@@ -546,7 +547,7 @@ def closing_view(views: list[dict], max_slides: int) -> dict | None:
         "type": "closing",
         "label": CLOSING_LABEL,
         "headline": question,
-        "features": features[:COVER_FEATURES_MAX],
+        "features": features[:CLOSING_FEATURES_MAX],  # slide order is importance order: the first ones are kept
         "cta": CLOSING_CTA,
         "footer": BRAND_LINE,
         "product": None,

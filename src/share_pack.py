@@ -137,8 +137,9 @@ PAGE_ONLY_CHECKS = [
 
 
 def _keep(card: dict) -> bool:
-    """David's copy holds real carousels only: never a sample, never a rejected one, and only with slides."""
-    return card.get("kind") != "sample" and card["status"] != "rejected" and bool(card["slides"])
+    """David's copy shows every carousel that has slides: real ones, rejected ones (with the reason), previews and
+    layout samples, each with its plain status chip."""
+    return bool(card["slides"])
 
 
 def plan_pack(cards: list[dict], limit_bytes: int, approved_bytes: int) -> tuple[list[dict], list[str], bool]:
@@ -181,8 +182,10 @@ def export_pack(now: datetime | None = None, root: Path | None = None, out_root:
     zip_path.unlink(missing_ok=True)
     folder.mkdir(parents=True)
     try:
-        all_cards = [c for c in dashboard.read_carousels(carousels_dir, root / "output" / "samples") if _keep(c)]
-        left_out = len(dashboard.read_carousels(carousels_dir, root / "output" / "samples")) - len(all_cards)
+        previews_dir = root / "output" / "plan-previews"
+        found = dashboard.read_carousels(carousels_dir, root / "output" / "samples", previews_dir)
+        all_cards = [c for c in found if _keep(c)]
+        left_out = len(found) - len(all_cards)
         approved_data, approved_count = downloads.approved_zip_bytes(carousels_dir)
         chosen, notes, with_approved = plan_pack(all_cards, limit_mb * 1024 * 1024,
                                                  len(approved_data) if approved_count else 0)
@@ -213,7 +216,7 @@ def export_pack(now: datetime | None = None, root: Path | None = None, out_root:
         page, _ = dashboard.build_page(
             db_path=root / "data" / "seen.sqlite", sources_path=root / "config" / "sources.yaml",
             rules_path=root / "config" / "rules.yaml", now=now, carousels_dir=carousels_dir,
-            samples_dir=root / "output" / "samples", read_only=True,
+            samples_dir=root / "output" / "samples", previews_dir=previews_dir, read_only=True,
             card_filter=lambda c: c["name"] in keep_names, base_for=place,
             approved_href=f"carousels/{downloads.APPROVED_ZIP_NAME}" if with_approved else None)
         (folder / "index.html").write_text(page, encoding="utf-8")
@@ -241,7 +244,7 @@ def export_pack(now: datetime | None = None, root: Path | None = None, out_root:
             raise
         raise ExportError(f"{type(exc).__name__}: {exc}") from exc
 
-    skipped = f"{left_out} left out (samples and rejected)"
+    skipped = f"{left_out} left out (no slides)"
     extra = f"; {'; '.join(notes)}" if notes else ""
     if log_made:
         activity.log_event("export", "made", f"{zip_path.name}, {size_mb:.1f} MB, {len(chosen)} carousels, "

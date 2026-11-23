@@ -9,7 +9,11 @@ The design is "each side writes only its own files", so a git pull never has a m
   state/laptop-builds.csv     LAPTOP writes it. The carousel builds made on the laptop.
   state/post-log.csv          LAPTOP writes it. Every post Kint logged by hand.
   state/carousels/<folder>/   LAPTOP writes it. Each real carousel: slides, captions, sources, fact check, status
-                              (approvals), the download zip. Never samples, never the candidate image folders.
+                              (approvals), the download zip. Never the candidate image folders.
+  state/previews/<folder>/    LAPTOP writes it. Plan previews (output/plan-previews), shown as "Preview, not sent for
+                              approval yet".
+  state/samples/<folder>/     LAPTOP writes it. The layout samples (output/samples), shown as not for posting.
+  Never copied from any carousel folder: .env files, keys, anything with "secret" in its name, official.txt, images.txt.
 
 Only the cloud sends Slack alerts (run.py refuses a live check on the laptop while state/CLOUD-ON exists), so the
 same alert is never sent twice. The laptop builds the carousels (the fact check and the official image check need
@@ -39,8 +43,8 @@ CLOUD_FLAG = "CLOUD-ON"
 BUILD_COLUMNS = ["story_id", "built_at", "status", "folder", "message"]
 KEPT_BUILDS = ("ok", "failed")  # "needs_kint" rows are the cloud's and live in state/seen.sqlite
 CAROUSEL_SKIP_DIRS = {"candidates", "images", ".work"}
-CAROUSEL_SKIP_SUFFIXES = (".tmp",)
-
+CAROUSEL_SKIP_SUFFIXES = (".tmp", ".env", ".key", ".pem", ".pfx", ".token")
+CAROUSEL_SKIP_NAMES = {"official.txt", "images.txt"}  # working notes, never published
 
 def paths(root: Path | None = None) -> dict[str, Path]:
     root = Path(root) if root is not None else ROOT
@@ -52,6 +56,8 @@ def paths(root: Path | None = None) -> dict[str, Path]:
         "state_builds": state / "laptop-builds.csv",
         "state_posts": state / "post-log.csv", "local_posts": root / "output" / "post-log.csv",
         "state_carousels": state / "carousels", "local_carousels": root / "output" / "carousels",
+        "state_previews": state / "previews", "local_previews": root / "output" / "plan-previews",
+        "state_samples": state / "samples", "local_samples": root / "output" / "samples",
         "flag": state / CLOUD_FLAG,
     }
 
@@ -216,7 +222,11 @@ def _carousel_files(folder: Path):
         relative = path.relative_to(folder)
         if not path.is_file() or any(part in CAROUSEL_SKIP_DIRS for part in relative.parts[:-1]):
             continue
-        if path.suffix.lower() in CAROUSEL_SKIP_SUFFIXES or path.name == "preview.png":
+        name = path.name.lower()
+        if path.suffix.lower() in CAROUSEL_SKIP_SUFFIXES or name == "preview.png":
+            continue
+        if (name in CAROUSEL_SKIP_NAMES or name.endswith((".official.txt", ".images.txt")) or name.startswith(".env")
+                or "secret" in name or "credential" in name):
             continue
         yield path, relative
 
@@ -226,8 +236,9 @@ def _is_sample(folder: Path) -> bool:
     return downloads.is_sample(folder)
 
 
-def copy_carousels(source: Path, target: Path, mirror: bool, overwrite: bool = True) -> int:
-    """Copies every real carousel folder's files (no samples, no candidate images). mirror=True also removes folders
+def copy_carousels(source: Path, target: Path, mirror: bool, overwrite: bool = True, every_folder: bool = False) -> int:
+    """Copies every real carousel folder's files (no samples, no candidate images; with every_folder=True, previews
+    and samples are copied too, from their own folders). mirror=True also removes folders
     and files from the target that the source no longer has (used for state/, never for the laptop's own folders).
     overwrite=False only adds files the target does not have: the laptop is the only writer of the carousels, so its
     own files (an approval Kint made a minute ago) are always newer than state/ and are never replaced.
@@ -237,7 +248,7 @@ def copy_carousels(source: Path, target: Path, mirror: bool, overwrite: bool = T
     written = 0
     names = []
     for folder in sorted(p for p in source.iterdir() if p.is_dir()):
-        if not (folder / "captions.txt").exists() or _is_sample(folder):
+        if not (folder / "captions.txt").exists() or (_is_sample(folder) and not every_folder):
             continue
         names.append(folder.name)
         keep = set()
@@ -282,6 +293,9 @@ def pull(side: str, root: Path | None = None) -> list[str]:
             shutil.copyfile(p["state_posts"], p["local_posts"])
     written = copy_carousels(p["state_carousels"], p["local_carousels"], mirror=(side == "cloud"),
                              overwrite=(side == "cloud"))
+    for group in ("previews", "samples"):
+        written += copy_carousels(p[f"state_{group}"], p[f"local_{group}"], mirror=(side == "cloud"),
+                                  overwrite=(side == "cloud"), every_folder=True)
     notes.append(f"carousel files updated: {written}")
     return notes
 
@@ -302,6 +316,8 @@ def push(side: str, root: Path | None = None, first_time: bool = False) -> list[
         if p["local_posts"].exists():
             shutil.copyfile(p["local_posts"], p["state_posts"])
         written = copy_carousels(p["local_carousels"], p["state_carousels"], mirror=True)
+        for group in ("previews", "samples"):  # previews and layout samples show on the cloud dashboard too
+            written += copy_carousels(p[f"local_{group}"], p[f"state_{group}"], mirror=True, every_folder=True)
         notes.append(f"carousel files saved: {written}")
     return notes
 

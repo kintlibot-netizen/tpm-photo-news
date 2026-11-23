@@ -691,8 +691,14 @@ JS = r"""
   var kind = $('#carousel-kind');
   function applyKind() {
     if (!kind) { return; }
+    var seen = {};
     $$('#carousel-list .carousel-card').forEach(function (card) {
-      card.hidden = !(kind.value === 'all' || card.getAttribute('data-kind') === kind.value);
+      var show = kind.value === 'all' || card.getAttribute('data-chip') === kind.value;
+      card.hidden = !show;
+      if (show) { seen[card.getAttribute('data-kind')] = true; }
+    });
+    $$('#carousel-list .car-group').forEach(function (head) {
+      head.hidden = !seen[head.getAttribute('data-group')];
     });
   }
   if (kind) { kind.addEventListener('change', applyKind); applyKind(); }
