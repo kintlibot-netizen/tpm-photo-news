@@ -1,0 +1,49 @@
+{
+  "status": "draft",
+  "history": [
+    {
+      "event": "built",
+      "at": "2026-11-23T17:05:30+00:00"
+    }
+  ],
+  "build": {
+    "slides": 5,
+    "confirmed": 20,
+    "removed_count": 0,
+    "removed": [],
+    "missing": [
+      "01.jpg"
+    ],
+    "placed": [
+      "02.png",
+      "03.png",
+      "04.png"
+    ],
+    "design_summary": "Design check: passed, no findings.",
+    "design_fail": 0,
+    "design_warn": 0,
+    "captions_words": {
+      "david": 41,
+      "tpm": 46
+    },
+    "official_url": "https://community.adobe.com/announcements-561/adobe-camera-raw-19-0-is-here-motion-and-streak-glow-virtual-copies-and-batch-generative-remove-1653739",
+    "title": "All of Adobe Camera RAW’s Awesome Updates Adobe Didn’t Mention",
+    "fact_check_passed": true,
+    "lint_passed": true,
+    "sample": false,
+    "cover_collage": true,
+    "closing": true,
+    "timings": {
+      "official page": 0.1,
+      "official images (checked plan images)": 1.1,
+      "render slides (one browser for all)": 2.0,
+      "design check": 0.0,
+      "total": 3.2
+    }
+  },
+  "built_at": "2026-11-23T17:27:22+00:00",
+  "posts": [],
+  "made_by": "Grok Bot",
+  "made_without_claude": true,
+  "preview": true
+}

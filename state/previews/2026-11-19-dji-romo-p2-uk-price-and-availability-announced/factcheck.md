@@ -1,7 +1,7 @@
 # Fact-check: DJI ROMO P2 UK price and availability announced
 
 Official source: https://store.dji.com/uk/product/dji-romo-p-2-water-tank-version?set_region=GB
-Checked on: 2026-11-23
+Checked on: 2026-11-24
 
 Every claim on the slides and in the captions is listed below. A claim marked NOT CONFIRMED was removed from the slides and captions.
 
@@ -21,12 +21,12 @@ Every claim on the slides and in the captions is listed below. A claim marked NO
 | 12 | slide3 body | It can detect obstacles, even those it has never encountered before. | CONFIRMED | This helps it detect obstacles, even those it has never encountered before |
 | 13 | captions david hook | My favorite part is the robotic arm. | NOT A FACT | - |
 | 14 | captions david fact1 | Its arm has a 7.8 cm wider reach than the previous generation. | CONFIRMED | has a 7.8 cm wider reach than the previous generation |
-| 15 | captions david fact2 | It delivers up to 365 days of maintenance free operation. | CONFIRMED | it delivers up to 365 days of maintenance-free operation |
-| 16 | captions david closing | Would you let a robot clean while you edit? | NOT A FACT | - |
+| 15 | captions david fact2 | It delivers up to 365 days of maintenance-free operation. | CONFIRMED | it delivers up to 365 days of maintenance-free operation |
+| 16 | captions david closing | Would you let a robot clean while you edit? Tell me below. | NOT A FACT | - |
 | 17 | captions tpm hook | We think the robotic legs are the clever part. | NOT A FACT | - |
-| 18 | captions tpm fact1 | Robotic legs cross double step obstacles up to 8.5 cm. | CONFIRMED | double-step obstacles up to 8.5 cm |
+| 18 | captions tpm fact1 | Its robotic legs cross double-step obstacles up to 8.5 cm. | CONFIRMED | double-step obstacles up to 8.5 cm |
 | 19 | captions tpm fact2 | On carpet it pulls out dust with 36,000Pa suction. | CONFIRMED | allowing 36,000Pa suction |
-| 20 | captions tpm closing | Which feature would you want at home first? | NOT A FACT | - |
+| 20 | captions tpm closing | Which feature would you want at home first? Tell us in the comments. | NOT A FACT | - |
 
 Confirmed: 20. Removed (not confirmed): 0.
 

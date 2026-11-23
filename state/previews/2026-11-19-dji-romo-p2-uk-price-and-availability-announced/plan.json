@@ -4,7 +4,7 @@
     "quote": "DJI ROMO P2 (Water Tank Version)"
   },
   "cover": {
-    "label": "DJI ROMO P2",
+    "label": "NEW FROM DJI",
     "headline": {
       "text": "DJI ROMO P2",
       "quote": "DJI ROMO P2 (Water Tank Version)"
@@ -85,12 +85,12 @@
           "quote": "has a 7.8 cm wider reach than the previous generation"
         },
         {
-          "text": "It delivers up to 365 days of maintenance free operation.",
+          "text": "It delivers up to 365 days of maintenance-free operation.",
           "quote": "it delivers up to 365 days of maintenance-free operation"
         }
       ],
       "closing": {
-        "text": "Would you let a robot clean while you edit?",
+        "text": "Would you let a robot clean while you edit? Tell me below.",
         "quote": ""
       }
     },
@@ -101,7 +101,7 @@
       },
       "facts": [
         {
-          "text": "Robotic legs cross double step obstacles up to 8.5 cm.",
+          "text": "Its robotic legs cross double-step obstacles up to 8.5 cm.",
           "quote": "double-step obstacles up to 8.5 cm"
         },
         {
@@ -110,7 +110,7 @@
         }
       ],
       "closing": {
-        "text": "Which feature would you want at home first?",
+        "text": "Which feature would you want at home first? Tell us in the comments.",
         "quote": ""
       }
     }

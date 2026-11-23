@@ -1,7 +1,7 @@
 # Fact-check: Skylum Luminar has been updated, and it’s made photo editing so much easier than before!
 
 Official source: https://skylum.com/newsroom/luminar-upgrades-its-tools-to-deliver-photographs-worth-printing-in-its-biggest-update-so-far-
-Checked on: 2026-11-23
+Checked on: 2026-11-24
 
 Every claim on the slides and in the captions is listed below. A claim marked NOT CONFIRMED was removed from the slides and captions.
 
@@ -28,12 +28,12 @@ Every claim on the slides and in the captions is listed below. A claim marked NO
 | 19 | captions david hook | My favorite part: every tool examines the photo first. | CONFIRMED | every tool now examines the photograph before it changes anything |
 | 20 | captions david fact1 | Enhance adapts its processing to each specific shot. | CONFIRMED | adapts its processing to that specific shot |
 | 21 | captions david fact2 | Printing is now built right into Luminar. | CONFIRMED | by building printing directly into Luminar |
-| 22 | captions david closing | Would you print your next edit straight from Luminar? | NOT A FACT | - |
+| 22 | captions david closing | Would you print your next edit straight from Luminar? Tell me below. | NOT A FACT | - |
 | 23 | captions tpm hook | We think Atmosphere is the standout this fall. | NOT A FACT | - |
 | 24 | captions tpm fact1 | Atmosphere is built as real 3D volumetric fog. | CONFIRMED | built as real 3D volumetric fog |
 | 25 | captions tpm fact2 | Smart Compositions tests many crops against classic principles. | CONFIRMED | tests many crops against classic principles |
 | 26 | captions tpm fact3 | It is out now across desktop, web and mobile. | CONFIRMED | available starting October 28, 2026, across desktop, web, and mobile |
-| 27 | captions tpm closing | Which tool would you try first? | NOT A FACT | - |
+| 27 | captions tpm closing | Which tool would you try first? Tell us in the comments. | NOT A FACT | - |
 
 Confirmed: 27. Removed (not confirmed): 0.
 

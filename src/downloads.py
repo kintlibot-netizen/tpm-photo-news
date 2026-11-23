@@ -37,6 +37,8 @@ ACCOUNTS = (
     ("tpm-instagram", "TPM Instagram", "tpm"),
     ("david-facebook", "David Molnar Facebook", "david"),
 )
+# captions.txt may end with this block: hashtags for the TPM Instagram caption only (never Facebook, never David's).
+HASHTAG_HEADER = "TPM INSTAGRAM HASHTAGS (added to the TPM Instagram caption only)"
 FINISHED = ("waiting_for_david", "approved", "posted")
 APPROVED = ("approved", "posted")
 SLIDE_GLOB = "[0-9][0-9].png"
@@ -130,9 +132,15 @@ def account_captions(folder: Path) -> dict[str, str]:
         if line.startswith("TPM FACEBOOK AND INSTAGRAM"):
             current = "tpm"
             continue
+        if line.startswith("TPM INSTAGRAM HASHTAGS"):
+            current = "hashtags"
+            continue
         if current and line.strip():
             voices[current] = (voices.get(current, "") + " " + line.strip()).strip()
-    return {key: voices[voice] for key, _, voice in ACCOUNTS if voice in voices}
+    found = {key: voices[voice] for key, _, voice in ACCOUNTS if voice in voices}
+    if voices.get("hashtags") and "tpm-instagram" in found:
+        found["tpm-instagram"] += "\n\n" + voices["hashtags"]
+    return found
 
 
 def official_links(folder: Path) -> list[tuple[str, str]]:

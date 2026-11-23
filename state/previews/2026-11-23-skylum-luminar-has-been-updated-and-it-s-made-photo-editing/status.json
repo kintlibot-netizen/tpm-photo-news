@@ -25,8 +25,8 @@
     "design_fail": 0,
     "design_warn": 0,
     "captions_words": {
-      "david": 33,
-      "tpm": 39
+      "david": 36,
+      "tpm": 44
     },
     "official_url": "https://skylum.com/newsroom/luminar-upgrades-its-tools-to-deliver-photographs-worth-printing-in-its-biggest-update-so-far-",
     "title": "Skylum Luminar has been updated – and it’s made photo editing so much easier than before!",
@@ -37,13 +37,13 @@
     "closing": true,
     "timings": {
       "official page": 0.0,
-      "official images (checked plan images)": 10.1,
-      "render slides (one browser for all)": 5.6,
+      "official images (checked plan images)": 1.7,
+      "render slides (one browser for all)": 2.9,
       "design check": 0.0,
-      "total": 15.9
+      "total": 4.7
     }
   },
-  "built_at": "2026-11-23T15:58:42+00:00",
+  "built_at": "2026-11-23T17:27:27+00:00",
   "posts": [],
   "made_by": "Grok Bot",
   "made_without_claude": true,

@@ -79,6 +79,20 @@ def known_page_images(path: Path = OVERRIDES_PATH) -> dict[str, dict]:
     return found
 
 
+def known_page_image_list(path: Path = OVERRIDES_PATH) -> dict[str, list[dict]]:
+    """{official page URL: [{"image_url", "title"}, ...]}: every image saved by hand for that page (a page such as
+    helpx.adobe.com/camera-raw/.../whats-new.html can carry several feature images)."""
+    found: dict[str, list[dict]] = {}
+    for entries in load_overrides(path).values():
+        if not isinstance(entries, dict):
+            continue
+        for entry in entries.values():
+            if isinstance(entry, dict) and entry.get("page_url") and entry.get("image_url"):
+                found.setdefault(entry["page_url"], []).append(
+                    {"image_url": entry["image_url"], "title": entry.get("page_title", "")})
+    return found
+
+
 def problem_with(entry: dict, view: dict | None, domains: list[str], folder: Path) -> str:
     """Why an override cannot be used ("" when it can)."""
     missing = [key for key in REQUIRED if not entry.get(key)]

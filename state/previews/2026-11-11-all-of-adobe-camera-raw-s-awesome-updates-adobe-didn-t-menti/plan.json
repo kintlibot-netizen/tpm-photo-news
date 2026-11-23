@@ -1,0 +1,118 @@
+{
+  "product": {
+    "text": "Adobe Camera Raw 19.0",
+    "quote": "Adobe Camera Raw 19.0 is here"
+  },
+  "cover": {
+    "label": "WHAT'S NEW",
+    "headline": {
+      "text": "ADOBE CAMERA RAW 19.0",
+      "quote": "Adobe Camera Raw 19.0 is here"
+    },
+    "subline": {
+      "text": "EDIT MORE CREATIVELY AND FLEXIBLY",
+      "quote": "Edit more creatively and flexibly with new Motion and Streak Glow styles"
+    },
+    "subline_alt": {
+      "text": "REMOVE DISTRACTIONS IN A BATCH",
+      "quote": "the ability to mark distractions across photos and remove them in a batch"
+    }
+  },
+  "slides": [
+    {
+      "template": "left_body",
+      "label": "NEW STYLES",
+      "headline": {
+        "text": "MOTION AND STREAK GLOW",
+        "quote": "New Motion and Streak Glow styles"
+      },
+      "accent": {
+        "text": "DIRECTIONAL LIGHT STREAKS",
+        "quote": "Create directional light streaks"
+      },
+      "body": {
+        "text": "Motion extends highlights in one direction, while Streak extends them in opposite directions.",
+        "quote": "with Motion extending highlights in one direction and Streak extending them in opposite directions"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "BATCH CLEANUP",
+      "headline": {
+        "text": "MARK TO REMOVE",
+        "quote": "Batch cleanups with Mark to Remove"
+      },
+      "accent": {
+        "text": "GENERATIVE REMOVE IN ONE GO",
+        "quote": "apply Generative Remove to all the selected photos in one go"
+      },
+      "body": {
+        "text": "Mark unwanted areas across multiple images, then remove them all in one go.",
+        "quote": "Mark unwanted areas across multiple images, then apply Generative Remove to all the selected photos in one go"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "ORGANIZE",
+      "headline": {
+        "text": "STACKS",
+        "quote": "Group related photos into stacks"
+      },
+      "accent": {
+        "text": "AUTO-STACK BY CAPTURE METADATA",
+        "quote": "Auto-Stack by Capture Metadata"
+      },
+      "body": {
+        "text": "Group related photos under a single cover thumbnail to reduce workspace clutter.",
+        "quote": "Group related photos into stacks, automatically or manually, under a single cover thumbnail to reduce workspace clutter"
+      },
+      "specs": []
+    }
+  ],
+  "comparison": null,
+  "price": null,
+  "captions": {
+    "david": {
+      "hook": {
+        "text": "My favorite part is the new Glow styles.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "Motion stretches highlights in one direction and Streak in opposite directions.",
+          "quote": "with Motion extending highlights in one direction and Streak extending them in opposite directions"
+        },
+        {
+          "text": "Mark to Remove saves my selections even after I close the app.",
+          "quote": "The new Mark to Remove feature saves your selections even after you close the app"
+        }
+      ],
+      "closing": {
+        "text": "Which of these would you try first? Tell me below.",
+        "quote": ""
+      }
+    },
+    "tpm": {
+      "hook": {
+        "text": "We think batch removal is the real time saver.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "You can mark unwanted areas across multiple images and clean them up in one go.",
+          "quote": "Mark unwanted areas across multiple images, then apply Generative Remove to all the selected photos in one go"
+        },
+        {
+          "text": "Denoise now works on JPEG, HEIF, TIFF, PNG and more formats.",
+          "quote": "Clean up noise in more formats, including JPEG, HEIF/HEIC, TIFF, PNG"
+        }
+      ],
+      "closing": {
+        "text": "Which update would you try first? Tell us in the comments.",
+        "quote": ""
+      }
+    }
+  }
+}

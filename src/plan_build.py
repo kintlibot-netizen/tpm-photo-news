@@ -45,6 +45,7 @@ import carousel_plan
 import carousel_status
 import dashboard
 import dedupe
+import downloads
 import image_override
 import image_pick
 import images
@@ -54,7 +55,9 @@ import timing
 ROOT = Path(__file__).resolve().parent.parent
 PLAN_DIR = ROOT / "data" / "plans"  # local only (data/ is never committed)
 PREVIEW_ROOT = ROOT / "output" / "plan-previews"  # dry runs: never synced to state/, never on the dashboard
-BUILD_KEYS = ("story", "brand", "official_url", "images", "verdicts", "author", "notes")
+BUILD_KEYS = ("story", "brand", "official_url", "images", "verdicts", "author", "notes", "instagram_hashtags")
+HASHTAG = re.compile(r"[A-Za-z][A-Za-z0-9]{1,29}")
+HASHTAGS_MIN, HASHTAGS_MAX = 3, 8
 DEFAULT_AUTHOR = "Grok Bot"
 NUMBERED_IMAGE = re.compile(r"^\d\d(-old)?\.(jpg|jpeg|png|webp)$", re.I)
 
@@ -155,6 +158,36 @@ def slot_for_key(key: str, views: list[dict]) -> str | None:
     return image_override.slot_for_feature(key, views)
 
 
+def instagram_hashtags(value) -> list[str]:
+    """The plan's Instagram hashtags as ["#Photoshop", ...]. They go on the TPM Instagram caption only (Facebook and
+    David's caption never carry hashtags): letters and digits, 3 to 8 of them, no repeats."""
+    if not value:
+        return []
+    if not isinstance(value, list):
+        raise PlanInputError("instagram_hashtags must be a list of words, for example [\"Photoshop\", \"PhotoEditing\"]")
+    tags, seen = [], set()
+    for item in value:
+        word = str(item).strip().lstrip("#")
+        if not HASHTAG.fullmatch(word):
+            raise PlanInputError(f"instagram_hashtags: {item!r} must be one word of letters and digits")
+        if word.lower() in seen:
+            raise PlanInputError(f"instagram_hashtags: {item!r} is listed twice")
+        seen.add(word.lower())
+        tags.append("#" + word)
+    if not HASHTAGS_MIN <= len(tags) <= HASHTAGS_MAX:
+        raise PlanInputError(f"instagram_hashtags: use {HASHTAGS_MIN} to {HASHTAGS_MAX} hashtags, not {len(tags)}")
+    return tags
+
+
+def add_instagram_hashtags(out_dir: Path, tags: list[str]) -> None:
+    """Appends the hashtag block to captions.txt (read by downloads.account_captions for TPM Instagram only)."""
+    if not tags:
+        return
+    path = out_dir / "captions.txt"
+    text = path.read_text(encoding="utf-8").rstrip("\n")
+    path.write_text(text + "\n\n" + downloads.HASHTAG_HEADER + "\n" + " ".join(tags) + "\n", encoding="utf-8")
+
+
 def feature_slots(views: list[dict]) -> dict[str, str]:
     """{slot: headline} of every feature slide ("02": "RELIGHT")."""
     return {f"{number:02d}": view.get("headline", "") for number, view in enumerate(views, 1)
@@ -174,7 +207,8 @@ def require_feature_images(placed: dict, views: list[dict]) -> None:
 
 
 def place_images(entries: dict, checks: dict, views: list[dict], out_dir: Path, domains: list[str],
-                 fetch_page=None, fetch_image=None, trim=border_trim.trim_border) -> tuple[dict, list[str], str]:
+                 fetch_page=None, fetch_image=None, trim=border_trim.trim_border,
+                 known_images: dict | None = None) -> tuple[dict, list[str], str]:
     """Checks and places every image the plan names. Returns ({slot: entry}, log lines for sources.md, candidates.md).
 
     Strict: an image that fails any rule stops the build with the reason, so a wrong photo is never shown."""
@@ -188,6 +222,8 @@ def place_images(entries: dict, checks: dict, views: list[dict], out_dir: Path, 
         if stale.is_file() and NUMBERED_IMAGE.match(stale.name):
             stale.unlink()
     pages: dict[str, str] = {}
+    known_pages = image_override.known_page_image_list() if known_images is None else known_images
+    unreadable_notes: list[str] = []
     chosen: list[tuple[str, str, dict, bytes, str]] = []
     used_on_features: dict[str, str] = {}
     for key, entry in (entries or {}).items():
@@ -213,8 +249,16 @@ def place_images(entries: dict, checks: dict, views: list[dict], out_dir: Path, 
             try:
                 pages[page_url] = fetch_page(page_url)
             except Exception as exc:
-                raise PlanInputError(f"image {key!r}: the official page {page_url} could not be read "
-                                     f"({type(exc).__name__})") from exc
+                known = known_pages.get(page_url) or []
+                known = [known] if isinstance(known, dict) else known
+                if not any(_url_key(k["image_url"]) == _url_key(image_url) for k in known):
+                    raise PlanInputError(f"image {key!r}: the official page {page_url} could not be read "
+                                         f"({type(exc).__name__})") from exc
+                # helpx.adobe.com refuses scripts (403): the images a person saved by hand from the real page
+                # (assets/official/overrides.json) stand in for the page. Every other image rule still applies.
+                pages[page_url] = "".join(images.og_image_markup(k["image_url"], k.get("title", "")) for k in known)
+                unreadable_notes.append(f"image {key}: the page {page_url} refuses scripts, so its known official "
+                                        "og:image (assets/official/overrides.json) was matched instead")
         found, alt = image_on_page(image_url, pages[page_url], page_url)
         if not found:
             raise PlanInputError(f"image {key!r}: {image_url} does not appear on the official page {page_url}")
@@ -232,7 +276,7 @@ def place_images(entries: dict, checks: dict, views: list[dict], out_dir: Path, 
         if not ok:
             raise PlanInputError(f"image {key!r}: the image check did not pass ({why})")
         chosen.append((key, slot, entry, data, verdict.get("notes", "")))
-    log: list[str] = []
+    log: list[str] = list(unreadable_notes)
     placed: dict[str, dict] = {}
     trimmed = images.trim_all(trim, [data for _, _, _, data, _ in chosen])
     for (key, slot, entry, data, notes), result in zip(chosen, trimmed):
@@ -312,6 +356,7 @@ def build_story(key: str, plan_path: Path, verdicts_path: Path | None = None, *,
                                "to config/carousel.yaml.")
     if not meta.get("official_url"):
         raise PlanInputError("the plan needs official_url: the brand's own page every fact is quoted from")
+    hashtags = instagram_hashtags(meta.get("instagram_hashtags"))
     official.enable_page_cache(carousel.PAGE_CACHE_DIR, float(config.get("page_cache_hours", 6)))
     images.IMAGE_CACHE_DIR = carousel.IMAGE_CACHE_DIR
     try:
@@ -373,6 +418,7 @@ def build_story(key: str, plan_path: Path, verdicts_path: Path | None = None, *,
     finally:
         official.disable_page_cache()
         images.IMAGE_CACHE_DIR = None
+    add_instagram_hashtags(out_dir, hashtags)
     carousel_status.update_fields(out_dir, made_by=author, made_without_claude=True)
     if dry_run:
         # A preview is never sent for approval: it stays a draft until a real build, whatever the checks said.

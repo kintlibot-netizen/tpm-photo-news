@@ -339,9 +339,8 @@ def feature_lines(names: list[str]) -> list[str]:
     return [joiner.join(names[:half]), joiner.join(names[half:])]
 
 
-def cover_body(view: dict, slots: dict) -> str:
-    """Pill (the event, or the label), headline, the hook (the confirmed scroll stopping line), at most two lines of
-    light-blue feature names, then the hero: a whole, uncropped 16:9 frame at full content width when it fits."""
+def _cover_text(view: dict) -> tuple[list[str], int]:
+    """The cover's pill, headline, hook and feature lines, and the y where the hero space starts."""
     one_line = len(_split_lines(view["headline"], "split")) == 1
     head_top, head_h = (240, 164) if one_line else (226, 340)  # a one line name sits snug so the images get the room
     y = head_top + head_h + (0 if one_line else 10)
@@ -356,6 +355,24 @@ def cover_body(view: dict, slots: dict) -> str:
         parts.append(text_box("feat", line, y + number * 58, 54, 38))
     if lines:
         y += len(lines) * 58
+    return parts, y
+
+
+def cover_hero_images(view: dict, slots: dict) -> list[Path]:
+    """The official images the cover hero shows: the collage tiles, else its own image, else (when the collage does
+    not fit) the first feature's official image on its own. [] means the cover shows only the soft glow."""
+    _, y = _cover_text(view)
+    tiles = collage_tiles(slots.get("collage") or [], y + 20)
+    if tiles:
+        return [image for image, _ in tiles]
+    main = slots.get("main") or next(iter(slots.get("collage") or []), None)
+    return [main] if main else []
+
+
+def cover_body(view: dict, slots: dict) -> str:
+    """Pill (the event, or the label), headline, the hook (the confirmed scroll stopping line), at most two lines of
+    light-blue feature names, then the hero: a whole, uncropped 16:9 frame at full content width when it fits."""
+    parts, y = _cover_text(view)
     # With two or more official feature images the hero is a collage of them: the first (Relight) large on top, the
     # next two side by side under it across the full 952px content width. Otherwise it is one 16:9 box at full content
     # width, ending at HERO_BOTTOM. A tall text block makes it smaller (and centred); every image is still shown whole.
@@ -367,7 +384,9 @@ def cover_body(view: dict, slots: dict) -> str:
         top = max(HERO_BOTTOM - COVER_HERO_H, y + 30)
         height = HERO_BOTTOM - top
         width = min(952, round(height * 16 / 9))
-        parts.append(hero(slots.get("main"), 64 + (952 - width) // 2, top, width, height))
+        # No room for the collage and no cover image of its own: the first feature's official image, shown whole.
+        main = slots.get("main") or next(iter(slots.get("collage") or []), None)
+        parts.append(hero(main, 64 + (952 - width) // 2, top, width, height))
     parts.append(footer(view.get("product"), swipe=True))
     return "".join(parts)
 

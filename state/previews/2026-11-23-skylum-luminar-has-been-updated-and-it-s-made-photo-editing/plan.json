@@ -4,7 +4,7 @@
     "quote": "The Luminar Fall Update is available starting October 28, 2026"
   },
   "cover": {
-    "label": "LUMINAR FALL UPDATE",
+    "label": "SKYLUM",
     "headline": {
       "text": "LUMINAR\nFALL UPDATE",
       "quote": "The Luminar Fall Update is available starting October 28, 2026"
@@ -124,7 +124,7 @@
         }
       ],
       "closing": {
-        "text": "Would you print your next edit straight from Luminar?",
+        "text": "Would you print your next edit straight from Luminar? Tell me below.",
         "quote": ""
       }
     },
@@ -148,7 +148,7 @@
         }
       ],
       "closing": {
-        "text": "Which tool would you try first?",
+        "text": "Which tool would you try first? Tell us in the comments.",
         "quote": ""
       }
     }

@@ -74,6 +74,9 @@ def split_captions(text: str) -> dict[str, str]:
         if line.startswith("TPM FACEBOOK AND INSTAGRAM"):
             current = "tpm"
             continue
+        if line.startswith("TPM INSTAGRAM HASHTAGS"):
+            current = None  # the Instagram hashtags are not part of either caption
+            continue
         if current and line.strip():
             parts[current] = line.strip()
     return parts

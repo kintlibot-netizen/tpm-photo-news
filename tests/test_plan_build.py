@@ -20,8 +20,11 @@ import carousel_bot
 import carousel_plan
 import carousel_status
 import classify
+import downloads
+import official
 import pending_carousels
 import plan_build
+import review
 import run
 
 NOW = datetime(2026, 11, 23, 13, 0, tzinfo=timezone.utc)
@@ -361,3 +364,39 @@ def test_a_decimal_number_keeps_a_body_one_sentence():
     plan["slides"][0]["body"]["text"] = "Its arm is wider. It reaches more."
     with pytest.raises(carousel_plan.PlanError, match="one sentence"):
         carousel_plan.load_plan(plan)
+
+# ---- Instagram hashtags, and a known og:image for a page that refuses scripts ----
+
+def test_instagram_hashtags_are_checked_and_written_for_instagram_only(tmp_path):
+    assert plan_build.instagram_hashtags(["Photoshop", "#AdobeMAX", "PhotoEditing"]) == [
+        "#Photoshop", "#AdobeMAX", "#PhotoEditing"]
+    for bad in (["Photoshop"], ["Photo Editing", "a1", "b1"], ["Photoshop", "photoshop", "MAX"], "Photoshop"):
+        with pytest.raises(plan_build.PlanInputError):
+            plan_build.instagram_hashtags(bad)
+    folder = tmp_path / "c"
+    folder.mkdir()
+    (folder / "captions.txt").write_text(carousel.captions_text({"david": "My pick. Which?", "tpm": "We like it. Which?"}),
+                                         encoding="utf-8")
+    plan_build.add_instagram_hashtags(folder, ["#Photoshop", "#AdobeMAX", "#PhotoEditing"])
+    found = downloads.account_captions(folder)
+    assert found["tpm-instagram"] == "We like it. Which?\n\n#Photoshop #AdobeMAX #PhotoEditing"
+    assert found["tpm-facebook"] == "We like it. Which?" and "#" not in found["david-facebook"]
+    assert review.split_captions((folder / "captions.txt").read_text(encoding="utf-8"))["tpm"] == "We like it. Which?"
+
+
+def test_a_page_that_refuses_scripts_can_use_its_known_official_og_image(tmp_path):
+    help_page = "https://helpx.adobe.com/photoshop/camera-angles.html"
+    image = "https://helpx-prod.scene7.com/is/image/HelpxProd/camera-angles-3?$pjpeg$&wid=2000"
+
+    def refuse(url):
+        raise official.PageUnreadable("HTTP 403")
+    entries = {"RELIGHT IMAGES": {"image_url": image, "page_url": help_page, "check": PASS_CHECK}}
+    domains = ["adobe.com", "helpx.adobe.com", "helpx-prod.scene7.com"]
+    placed, log, _ = plan_build.place_images(
+        entries, {}, views(), tmp_path / "out", domains, fetch_page=refuse, fetch_image=lambda url: jpeg(),
+        trim=None, known_images={help_page: [{"image_url": image.replace("-3?", "-2?"), "title": "Other"},
+                                           {"image_url": image, "title": "Camera angles"}]})
+    assert list(placed) == ["02"] and "known official og:image" in log[0]
+    with pytest.raises(plan_build.PlanInputError, match="could not be read"):
+        plan_build.place_images(entries, {}, views(), tmp_path / "out2", domains, fetch_page=refuse,
+                                fetch_image=lambda url: jpeg(), trim=None, known_images={})

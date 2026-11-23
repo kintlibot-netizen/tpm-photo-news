@@ -601,13 +601,17 @@ def assemble(plan_data, *, title: str, official_text: str, verdicts: dict | None
             images_note.append(f"{slot['main'].name}: present, slide {number}")
         if slot["old"]:
             images_note.append(f"{slot['old'].name}: present, slide {number}")
-    collage = slots[0].get("collage") if slots else None
-    if collage and len(collage) >= 2:
-        images_note.append("slide 1 hero: a collage of the official feature images " + ", ".join(p.name for p in collage[:3])
+    cover_hero = (carousel_render.cover_hero_images(views[0], slots[0])
+                  if slots and views and views[0]["type"] == "cover" else [])
+    if len(cover_hero) >= 2:
+        images_note.append("slide 1 hero: a collage of the official feature images " + ", ".join(p.name for p in cover_hero)
                            + " (first one large, uncropped, same border and glow as the slides)")
+    elif cover_hero and not slots[0]["main"]:
+        images_note.append(f"slide 1 hero: the first feature's official image {cover_hero[0].name}, shown whole "
+                           "(a readable collage does not fit under the cover text)")
     images_note += [f"{name}: missing (a feature slide uses the text-led layout with no image box, the cover and "
                     "other slides show only the soft glow; another feature's image is never shown)"
-                    for name in missing]
+                    for name in missing if not (cover_hero and name.startswith("01."))]
     images_note += extra_notes or []
     (out_dir / "sources.md").write_text(
         sources_markdown(title, official_url, article_links, len(official_text), images_note, press_images),
@@ -646,7 +650,7 @@ def assemble(plan_data, *, title: str, official_text: str, verdicts: dict | None
         # Read by carousel_status.write_build: a draft that passes all three becomes Waiting for David.
         "fact_check_passed": True, "lint_passed": not overflow, "sample": is_sample,
         # The cover shows official images when it has its own or is a collage of the feature images.
-        "cover_collage": bool(collage and len(collage) >= 2),
+        "cover_collage": bool(cover_hero),
     }
     if closing_slide:
         build["closing"] = True  # downloads names the last slide NN-your-take.png

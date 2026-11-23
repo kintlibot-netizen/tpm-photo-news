@@ -6,5 +6,25 @@
       "page_url": "https://helpx.adobe.com/photoshop/desktop/crop-resize-transform/transform-manipulate-reshape/change-camera-angles.html",
       "page_title": "Change camera angles in Photoshop (beta) on desktop"
     }
+  },
+  "2026-11-11-all-of-adobe-camera-raw-s-awesome-updates-adobe-didn-t-menti": {
+    "MOTION AND STREAK GLOW": {
+      "file": "whats-new-acr-glow.jpg",
+      "image_url": "https://helpx-prod.scene7.com/is/image/HelpxProd/whats-new-acr-glow?$pjpeg$&jpegSize=400&wid=2000",
+      "page_url": "https://helpx.adobe.com/camera-raw/desktop/whats-new/whats-new.html",
+      "page_title": "What's new in Camera Raw"
+    },
+    "MARK TO REMOVE": {
+      "file": "whats-new-acr-mark-for-remove.jpg",
+      "image_url": "https://helpx-prod.scene7.com/is/image/HelpxProd/whats-new-acr-mark-for-remove?$pjpeg$&jpegSize=400&wid=2000",
+      "page_url": "https://helpx.adobe.com/camera-raw/desktop/whats-new/whats-new.html",
+      "page_title": "What's new in Camera Raw"
+    },
+    "STACKS": {
+      "file": "whats-new-acr-stacking.jpg",
+      "image_url": "https://helpx-prod.scene7.com/is/image/HelpxProd/whats-new-acr-stacking?$pjpeg$&jpegSize=400&wid=2000",
+      "page_url": "https://helpx.adobe.com/camera-raw/desktop/whats-new/whats-new.html",
+      "page_title": "What's new in Camera Raw"
+    }
   }
 }

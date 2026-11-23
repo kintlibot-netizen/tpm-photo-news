@@ -378,9 +378,9 @@ def read_carousels(carousels_dir: Path, samples_dir: Path | None = None,
                 continue
             same = next((c for c in cards if c["name"] == folder.name), None)
             if same is not None:
-                if not (base == "plan-previews" and same["status"] == "rejected"):
-                    continue  # a preview of a story that was then built for real is shown once, as the real carousel
-                cards.remove(same)  # a new preview of a rejected carousel replaces it on the page
+                if not (base == "plan-previews" and same["status"] in ("rejected", "draft")):
+                    continue  # a preview of a carousel sent for review is shown once, as the real carousel
+                cards.remove(same)  # a newer preview of a draft or rejected carousel replaces it on the page
             status = carousel_status.read_status(folder)
             if downloads.is_sample(folder, status):
                 continue  # a layout sample is a fixture, not a real carousel

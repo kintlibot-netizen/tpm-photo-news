@@ -1,0 +1,49 @@
+{
+  "status": "draft",
+  "history": [
+    {
+      "event": "built",
+      "at": "2026-11-23T16:55:14+00:00"
+    }
+  ],
+  "build": {
+    "slides": 5,
+    "confirmed": 20,
+    "removed_count": 0,
+    "removed": [],
+    "missing": [
+      "01.jpg"
+    ],
+    "placed": [
+      "02.png",
+      "03.jpg",
+      "04.png"
+    ],
+    "design_summary": "Design check: passed, no findings.",
+    "design_fail": 0,
+    "design_warn": 0,
+    "captions_words": {
+      "david": 45,
+      "tpm": 45
+    },
+    "official_url": "https://blog.adobe.com/en/publish/2026/11/10/explore-new-ways-create-across-creative-cloud-adobe-firefly-while-advancing-craft-precision-choice-control",
+    "title": "Photoshop can now relight photos – and adjusting the camera angle is coming next. These are the 6 biggest updates in Photoshop 2027",
+    "fact_check_passed": true,
+    "lint_passed": true,
+    "sample": false,
+    "cover_collage": true,
+    "closing": true,
+    "timings": {
+      "official page": 0.0,
+      "official images (checked plan images)": 1.0,
+      "render slides (one browser for all)": 1.9,
+      "design check": 0.0,
+      "total": 3.0
+    }
+  },
+  "built_at": "2026-11-23T17:27:18+00:00",
+  "posts": [],
+  "made_by": "Grok Bot",
+  "made_without_claude": true,
+  "preview": true
+}

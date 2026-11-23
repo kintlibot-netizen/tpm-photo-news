@@ -108,3 +108,25 @@ def test_a_new_preview_of_a_rejected_carousel_replaces_it_on_the_page(tmp_path):
     carousel(previews, name=DRAFT)  # DRAFT is rejected in the real folder
     cards = dashboard.read_carousels(real, samples, previews)
     assert [(c["name"], c["kind"]) for c in cards if c["name"] == DRAFT] == [(DRAFT, "preview")]
+
+
+def test_a_new_preview_of_a_plain_draft_replaces_it_but_never_one_sent_for_review(tmp_path):
+    real, samples, previews = folders(tmp_path)
+    plain = carousel(real, name="2026-11-13-plain-draft", build=dict(PASSING, lint_passed=False))  # stays Draft
+    carousel(previews, name=plain.name)
+    carousel(previews, name=REAL)  # REAL is Waiting for David: its preview is not shown
+    cards = {c["name"]: c["kind"] for c in dashboard.read_carousels(real, samples, previews)}
+    assert cards[plain.name] == "preview" and cards[REAL] == "draft"
+
+def test_a_cover_with_no_room_for_a_readable_collage_shows_the_first_feature_image_whole(tmp_path):
+    import carousel_render
+    from test_phase3_fix3c import cover_view, tiles_in, wide
+    view = cover_view(hook="2026 IFA INNOVATION AWARD WINNER", headline="DJI ROMO P2")
+    view["features"] = ["EDGE CLEANING", "8.5CM CROSSING", "SHARPER SENSING"]
+    images_ = [wide(tmp_path, f"0{n}.jpg", (1388, 960)) for n in (2, 3, 4)]
+    slot = {"main": None, "collage": images_}
+    assert carousel_render.collage_tiles(images_, 848) == []  # three 1.45 tiles would be under 300px wide
+    tiles = tiles_in(carousel_render.cover_body(view, slot))
+    assert len(tiles) == 1 and tiles[0][2] >= 600  # one large, whole image: never a cover with only the glow
+    assert carousel_render.cover_hero_images(view, slot) == [images_[0]]
+    assert carousel_render.cover_hero_images(cover_view(), {"main": None, "collage": []}) == []
