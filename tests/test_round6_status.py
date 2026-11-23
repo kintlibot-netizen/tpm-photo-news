@@ -107,7 +107,7 @@ def test_a_sample_cannot_be_logged_as_posted(tmp_path, monkeypatch):
         review.log_post(folder, "tpm-facebook", "https://example.com/post", NOW, tmp_path / "post-log.csv")
 
 
-def test_real_and_sample_folders_are_listed_apart_on_the_dashboard(tmp_path):
+def test_real_folders_are_listed_and_sample_folders_are_left_off_the_dashboard(tmp_path):
     real_base = tmp_path / "carousels"
     sample_base = tmp_path / "samples"
     folder_with(real_base)
@@ -115,23 +115,12 @@ def test_real_and_sample_folders_are_listed_apart_on_the_dashboard(tmp_path):
     folder_with(sample_base, name="2026-11-11-canon-eos-r8-mark-ii-sample")
     carousel_status.write_build(sample_base / "2026-11-11-canon-eos-r8-mark-ii-sample", dict(PASSING, sample=True))
     cards = dashboard.read_carousels(real_base, sample_base)
-    kinds = {card["name"]: card["kind"] for card in cards}
-    assert kinds == {"2026-11-11-photoshop-2027": "draft", "2026-11-11-canon-eos-r8-mark-ii-sample": "sample"}
+    assert {card["name"]: card["kind"] for card in cards} == {"2026-11-11-photoshop-2027": "draft"}
     page = dashboard.carousels_panel(cards)
-    assert 'value="sample"' in page and 'value="draft"' in page
-    assert "Samples are for checking the layout" in page
+    assert 'value="sample"' not in page and 'value="draft"' in page
+    assert "Samples are for checking the layout" not in page
 
 
-def test_an_old_sample_folder_in_the_real_folder_is_still_a_sample(tmp_path):
+def test_an_old_sample_folder_in_the_real_folder_is_not_shown(tmp_path):
     folder_with(tmp_path, name="2026-11-11-photoshop-2027-sample")
-    cards = dashboard.read_carousels(tmp_path)
-    assert cards[0]["kind"] == "sample"
-
-
-def test_each_review_button_has_a_matching_command_with_the_project_folder(tmp_path):
-    folder_with(tmp_path)
-    carousel_status.write_build(tmp_path / "2026-11-11-photoshop-2027", PASSING)
-    page = html.unescape(dashboard.carousels_panel(dashboard.read_carousels(tmp_path)))
-    assert f'cd "{dashboard.ROOT}"; .venv\\Scripts\\python.exe src\\review.py --approve' in page
-    assert 'data-action="approve"' in page and 'data-action="reject"' in page
-    assert "--by &quot;Name&quot;" in page or '--by "Name"' in page
+    assert dashboard.read_carousels(tmp_path) == []

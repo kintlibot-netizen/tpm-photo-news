@@ -32,7 +32,7 @@ A story with no plan is skipped. A plan that failed is tried again only after th
 | `story` | no | The story id. When given it must match `--story`. |
 | `official_url` | yes | The brand's own page. Every fact is quoted from this page. It must be on the brand's official domains in config/carousel.yaml. |
 | `brand` | no | Only when the story was filed under the wrong brand or none (for example a Thypoch lens filed under Fujifilm). Its official domains must be in config/carousel.yaml. |
-| `images` | no | The official image for each slide, see below. A feature slide with no image uses the text-led layout. |
+| `images` | yes | The official image for each feature slide, see below. A feature slide with no official image stops the build: find a real official image of that feature or drop the slide. |
 | `verdicts` | no | The fact and image check verdicts, see below. |
 | `author` | no | Who wrote the plan, shown in sources.md. Default: Grok Bot. |
 

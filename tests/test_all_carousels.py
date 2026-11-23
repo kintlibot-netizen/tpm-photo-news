@@ -1,5 +1,6 @@
-"""Round 7: the Carousels page shows every carousel (real, preview, sample) with a plain status chip, and the cloud
-publish step carries previews and samples without notes or secrets. Temporary data only."""
+"""Round 7: the Carousels page shows every real carousel and preview with a plain status chip, never the layout
+samples (fixtures with no official images), and flags any slide without an official image. The cloud publish step
+carries previews without notes or secrets and removes old sample copies. Temporary data only."""
 import dashboard
 import carousel_status
 import cloud_state
@@ -20,26 +21,43 @@ def folders(tmp_path):
     return tmp_path / "carousels", tmp_path / "samples", tmp_path / "previews"
 
 
-def test_every_carousel_is_listed_real_first_then_previews_then_samples(tmp_path):
+def test_every_real_carousel_is_listed_then_previews_and_never_samples(tmp_path):
     real, samples, previews = folders(tmp_path)
     cards = dashboard.read_carousels(real, samples, previews)
-    assert [(c["name"], c["kind"]) for c in cards] == [
-        (REAL, "draft"), (DRAFT, "draft"), (PREVIEW, "preview"), (SAMPLE, "sample")]
-    assert [dashboard.chip_key(c) for c in cards] == ["waiting_for_david", "rejected", "preview", "sample"]
-    assert not dashboard.is_real(cards[2]) and not dashboard.is_real(cards[3])
+    assert [(c["name"], c["kind"]) for c in cards] == [(REAL, "draft"), (DRAFT, "draft"), (PREVIEW, "preview")]
+    assert [dashboard.chip_key(c) for c in cards] == ["waiting_for_david", "rejected", "preview"]
+    assert not dashboard.is_real(cards[2])
+
+
+def test_an_old_sample_folder_among_the_real_carousels_is_not_shown(tmp_path):
+    carousel(tmp_path / "carousels", name=REAL)
+    carousel(tmp_path / "carousels", name="2026-11-11-photoshop-2027-sample")
+    assert [c["name"] for c in dashboard.read_carousels(tmp_path / "carousels")] == [REAL]
+
+
+def test_a_slide_without_an_official_image_is_flagged_on_its_card(tmp_path):
+    folder = carousel(tmp_path / "carousels", name=REAL, build=dict(PASSING, missing=["01.jpg", "03.jpg"]))
+    card = dashboard.read_carousels(tmp_path / "carousels")[0]
+    assert dashboard.slides_without_image(card) == [1, 3]
+    page = dashboard.carousels_panel([card])
+    assert "No official image on slides 1, 3" in page and page.count(">NO IMAGE<") == 2
+    carousel_status.write_build(folder, dict(PASSING, missing=["01.jpg"], cover_collage=True))
+    card = dashboard.read_carousels(tmp_path / "carousels")[0]
+    assert dashboard.slides_without_image(card) == []  # the cover is a collage of the official feature images
+    assert "NO IMAGE" not in dashboard.carousels_panel([card])
 
 
 def test_each_card_has_a_plain_chip_and_the_filter_offers_every_status(tmp_path):
     cards = dashboard.read_carousels(*folders(tmp_path))
     page = dashboard.carousels_panel(cards)
-    for chip in ("Waiting for David", "Rejected: Wrong product", "Preview, not sent for approval yet",
-                 "Layout sample not for posting"):
+    for chip in ("Waiting for David", "Rejected: Wrong product", "Preview, not sent for approval yet"):
         assert chip in page
-    for value in ("all", "waiting_for_david", "draft", "preview", "approved", "rejected", "posted", "sample"):
+    for value in ("all", "waiting_for_david", "draft", "preview", "approved", "rejected", "posted"):
         assert f'<option value="{value}"' in page
-    assert '<option value="all" selected>All carousels (4)</option>' in page
-    assert "Layout samples, not for posting" in page and "Previews, not sent for approval yet" in page
-    assert page.index(f'id="car-{REAL}"') < page.index(f'id="car-{PREVIEW}"') < page.index(f'id="car-{SAMPLE}"')
+    assert '<option value="sample"' not in page and SAMPLE not in page
+    assert '<option value="all" selected>All carousels (3)</option>' in page
+    assert "Previews, not sent for approval yet" in page
+    assert page.index(f'id="car-{REAL}"') < page.index(f'id="car-{PREVIEW}"')
     assert "—" not in page and "–" not in page
 
 
@@ -59,7 +77,7 @@ def test_a_preview_of_a_story_that_was_built_for_real_is_shown_once(tmp_path):
     assert names.count(REAL) == 1
 
 
-def test_publish_carries_previews_and_samples_and_never_notes_or_secrets(tmp_path):
+def test_publish_carries_previews_never_samples_notes_or_secrets(tmp_path):
     root = tmp_path / "laptop"
     preview = carousel(root / "output" / "plan-previews", name=PREVIEW)
     carousel(root / "output" / "samples", name=SAMPLE, build=dict(PASSING, sample=True))
@@ -71,10 +89,22 @@ def test_publish_carries_previews_and_samples_and_never_notes_or_secrets(tmp_pat
     assert sorted(p.name for p in saved.iterdir() if "." in p.name and p.name not in
                   {"01.png", "02.png", "03.png", "04.png", "captions.txt", "plan.json", "sources.md",
                    "status.json"}) == []
-    assert (root / "state" / "samples" / SAMPLE / "01.png").exists()
+    assert not (root / "state" / "samples").exists()
+    old = root / "state" / "samples" / SAMPLE  # a copy an older push left behind is removed
+    old.mkdir(parents=True)
+    (old / "captions.txt").write_text("x", encoding="utf-8")
+    cloud_state.push("laptop", root)
+    assert not (root / "state" / "samples").exists()
     cloud = tmp_path / "cloud"
     (cloud / "state").mkdir(parents=True)
     import shutil
     shutil.copytree(root / "state" / "previews", cloud / "state" / "previews")
     cloud_state.pull("cloud", cloud)
     assert (cloud / "output" / "plan-previews" / PREVIEW / "01.png").exists()
+
+
+def test_a_new_preview_of_a_rejected_carousel_replaces_it_on_the_page(tmp_path):
+    real, samples, previews = folders(tmp_path)
+    carousel(previews, name=DRAFT)  # DRAFT is rejected in the real folder
+    cards = dashboard.read_carousels(real, samples, previews)
+    assert [(c["name"], c["kind"]) for c in cards if c["name"] == DRAFT] == [(DRAFT, "preview")]

@@ -83,7 +83,8 @@ def build(tmp_path, offline_story, plan_path, **kwargs):
     kwargs.setdefault("dry_run", True)
     return plan_build.build_story(
         "72", plan_path, None, render=False, now=NOW, locate=offline_story["locate"],
-        place=lambda entries, checks, views, out_dir, domains: ({}, ["no images in this test"], "# Images\n"),
+        place=lambda entries, checks, views, out_dir, domains: (
+            {slot: {} for slot in plan_build.feature_slots(views)}, ["no images in this test"], "# Images\n"),
         preview_root=tmp_path / "previews", **kwargs)
 
 
@@ -178,7 +179,8 @@ def test_a_dry_run_builds_into_the_preview_folder_and_logs_nothing(tmp_path, off
     assert "made without Claude" in (folder / "sources.md").read_text(encoding="utf-8")
     assert "DRY RUN" in (folder / "sources.md").read_text(encoding="utf-8")
     status = carousel_status.read_status(folder)
-    assert status["status"] == "waiting_for_david" and status["made_without_claude"] is True
+    assert status["status"] == "draft" and status["preview"] is True  # a preview is never sent for approval
+    assert status["made_without_claude"] is True
     assert not isolated_activity_log.exists() or "fact_check" not in isolated_activity_log.read_text(encoding="utf-8")
 
 
@@ -326,3 +328,36 @@ def test_the_pending_list_saves_the_official_text_for_the_plan_writer(tmp_path):
     failed = pending_carousels.save_official(story, config, None, tmp_path,
                                              locate=lambda *a: (_ for _ in ()).throw(carousel.Refused("none found")))
     assert failed == {"official_url": None, "official_problem": "none found"}
+
+
+# ---- every feature slide has an official image; previews are never sent for approval ----
+
+def test_a_feature_slide_without_an_official_image_stops_the_build(tmp_path, offline_story):
+    path = write_plan(tmp_path)
+    with pytest.raises(plan_build.PlanInputError, match="no official image"):
+        plan_build.build_story(
+            "72", path, None, render=False, now=NOW, locate=offline_story["locate"],
+            place=lambda entries, checks, views, out_dir, domains: ({}, [], "# Images\n"),
+            preview_root=tmp_path / "previews", dry_run=True)
+
+
+def test_require_feature_images_names_each_bare_slide():
+    views = [{"type": "cover"}, {"type": "feature", "headline": "RELIGHT"}, {"type": "feature", "headline": "REMOVE"}]
+    plan_build.require_feature_images({"02": {}, "03": {}}, views)  # every feature slide has its image
+    with pytest.raises(plan_build.PlanInputError, match=r"slide 03 \(REMOVE\)"):
+        plan_build.require_feature_images({"02": {}}, views)
+
+
+def test_a_dry_run_preview_is_never_marked_waiting_for_david(tmp_path, offline_story, isolated_activity_log):
+    result = build(tmp_path, offline_story, write_plan(tmp_path))
+    status = carousel_status.read_status(Path(result["folder"]))
+    assert status["status"] == "draft" and status.get("preview") is True
+
+
+def test_a_decimal_number_keeps_a_body_one_sentence():
+    plan = json.loads(json.dumps(FIXTURE["plan"]))
+    plan["slides"][0]["body"]["text"] = "Its arm has a 7.8 cm wider reach than before."
+    carousel_plan.load_plan(plan)  # no "one sentence" error for the decimal point
+    plan["slides"][0]["body"]["text"] = "Its arm is wider. It reaches more."
+    with pytest.raises(carousel_plan.PlanError, match="one sentence"):
+        carousel_plan.load_plan(plan)

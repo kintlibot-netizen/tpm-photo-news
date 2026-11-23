@@ -645,6 +645,8 @@ def assemble(plan_data, *, title: str, official_text: str, verdicts: dict | None
         "official_url": official_url, "title": title,
         # Read by carousel_status.write_build: a draft that passes all three becomes Waiting for David.
         "fact_check_passed": True, "lint_passed": not overflow, "sample": is_sample,
+        # The cover shows official images when it has its own or is a collage of the feature images.
+        "cover_collage": bool(collage and len(collage) >= 2),
     }
     if closing_slide:
         build["closing"] = True  # downloads names the last slide NN-your-take.png

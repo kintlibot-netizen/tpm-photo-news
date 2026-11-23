@@ -155,6 +155,24 @@ def slot_for_key(key: str, views: list[dict]) -> str | None:
     return image_override.slot_for_feature(key, views)
 
 
+def feature_slots(views: list[dict]) -> dict[str, str]:
+    """{slot: headline} of every feature slide ("02": "RELIGHT")."""
+    return {f"{number:02d}": view.get("headline", "") for number, view in enumerate(views, 1)
+            if view.get("type") == "feature"}
+
+
+def require_feature_images(placed: dict, views: list[dict]) -> None:
+    """Every feature slide must show its own checked official image. A slide with none stops the build: find a real
+    official image of that feature, or leave the feature out. The cover may be a collage of the feature images, and
+    the YOUR TAKE closing slide states no product fact."""
+    bare = [f"slide {slot} ({' '.join(str(head).split())})" for slot, head in feature_slots(views).items()
+            if slot not in placed]
+    if bare:
+        raise PlanInputError(
+            f"{len(bare)} feature slide(s) have no official image: {', '.join(bare)}. Every feature slide needs its "
+            "own real official image (add it under images, keyed by the slide's headline), or drop that slide")
+
+
 def place_images(entries: dict, checks: dict, views: list[dict], out_dir: Path, domains: list[str],
                  fetch_page=None, fetch_image=None, trim=border_trim.trim_border) -> tuple[dict, list[str], str]:
     """Checks and places every image the plan names. Returns ({slot: entry}, log lines for sources.md, candidates.md).
@@ -332,7 +350,9 @@ def build_story(key: str, plan_path: Path, verdicts_path: Path | None = None, *,
         domains = config["official_domains"].get(brand, [])
         with clock.step("official images (checked plan images)"):
             placer = place or place_images
-            _, image_log, candidates_md = placer(meta.get("images") or {}, checks, views, out_dir, domains)
+            placed, image_log, candidates_md = placer(meta.get("images") or {}, checks, views, out_dir, domains)
+        if config.get("require_feature_images", True):
+            require_feature_images(placed or {}, views)
         author = meta.get("author") or DEFAULT_AUTHOR
         extra = [f"made without Claude: the plan was written by {author} from the official page and checked by code "
                  "(quotes word for word, official images, lint, design check)"]
@@ -354,6 +374,9 @@ def build_story(key: str, plan_path: Path, verdicts_path: Path | None = None, *,
         official.disable_page_cache()
         images.IMAGE_CACHE_DIR = None
     carousel_status.update_fields(out_dir, made_by=author, made_without_claude=True)
+    if dry_run:
+        # A preview is never sent for approval: it stays a draft until a real build, whatever the checks said.
+        carousel_status.update_fields(out_dir, status="draft", preview=True)
     result.update({"dry_run": dry_run, "story": story.id, "title": story.title})
     return result
 

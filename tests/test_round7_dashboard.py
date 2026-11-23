@@ -176,10 +176,11 @@ def test_without_a_prebuilt_zip_the_file_page_says_how_to_get_one(tmp_path):
     assert 'aria-disabled="true"' in page and "src\\downloads.py --all" in page
 
 
-def test_samples_are_marked_sample_and_kept_apart(tmp_path):
+def test_layout_samples_are_left_off_the_page(tmp_path):
     carousel(tmp_path / "samples", name="2026-11-11-x-sample", build=dict(PASSING, sample=True))
     page = build(tmp_path)
-    assert '<span class="tag tag-sample">SAMPLE</span>' in page and 'value="sample"' in page
+    assert '<span class="tag tag-sample">SAMPLE</span>' not in page and 'value="sample"' not in page
+    assert "2026-11-11-x-sample" not in page
 
 
 def test_the_all_approved_button_uses_the_server_and_the_prebuilt_zip(tmp_path):

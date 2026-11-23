@@ -1,0 +1,48 @@
+{
+  "status": "draft",
+  "history": [
+    {
+      "event": "built",
+      "at": "2026-11-23T16:00:01+00:00"
+    }
+  ],
+  "build": {
+    "slides": 5,
+    "confirmed": 20,
+    "removed_count": 0,
+    "removed": [],
+    "missing": [],
+    "placed": [
+      "01.jpg",
+      "02.jpg",
+      "03.jpg",
+      "04.png"
+    ],
+    "design_summary": "Design check: passed, no findings.",
+    "design_fail": 0,
+    "design_warn": 0,
+    "captions_words": {
+      "david": 38,
+      "tpm": 36
+    },
+    "official_url": "https://store.dji.com/uk/product/dji-romo-p-2-water-tank-version?set_region=GB",
+    "title": "DJI ROMO P2 UK price and availability announced",
+    "fact_check_passed": true,
+    "lint_passed": true,
+    "sample": false,
+    "cover_collage": true,
+    "closing": true,
+    "timings": {
+      "official page": 0.1,
+      "official images (checked plan images)": 15.7,
+      "render slides (one browser for all)": 4.0,
+      "design check": 0.0,
+      "total": 19.9
+    }
+  },
+  "built_at": "2026-11-23T16:00:01+00:00",
+  "posts": [],
+  "made_by": "Grok Bot",
+  "made_without_claude": true,
+  "preview": true
+}

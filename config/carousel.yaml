@@ -62,7 +62,9 @@ official_domains:
   OM System: [omsystem.com, om-digital.com]
   Leica: [leica-camera.com]
   Hasselblad: [hasselblad.com]
-  DJI: [dji.com]
+  # DJI Store pages (store.dji.com) serve their product images from DJI's image CDN se-cdn.djiits.com. An image is
+  # only accepted when it also appears on the dji.com page named in the plan.
+  DJI: [dji.com, djiits.com]
   Sigma: [sigma-global.com]
   Tamron: [tamron.com]
   Tokina: [tokina.co.jp]

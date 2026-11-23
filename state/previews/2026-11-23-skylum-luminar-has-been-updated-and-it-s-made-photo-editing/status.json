@@ -1,5 +1,5 @@
 {
-  "status": "waiting_for_david",
+  "status": "draft",
   "history": [
     {
       "event": "built",
@@ -16,8 +16,8 @@
     ],
     "placed": [
       "02.jpg",
-      "03.png",
-      "04.jpg",
+      "03.jpg",
+      "04.png",
       "05.png",
       "06.png"
     ],
@@ -33,17 +33,19 @@
     "fact_check_passed": true,
     "lint_passed": true,
     "sample": false,
+    "cover_collage": true,
     "closing": true,
     "timings": {
-      "official page": 2.2,
-      "official images (checked plan images)": 15.9,
-      "render slides (one browser for all)": 6.6,
+      "official page": 0.0,
+      "official images (checked plan images)": 10.1,
+      "render slides (one browser for all)": 5.6,
       "design check": 0.0,
-      "total": 24.8
+      "total": 15.9
     }
   },
-  "built_at": "2026-11-23T13:52:31+00:00",
+  "built_at": "2026-11-23T15:58:42+00:00",
   "posts": [],
   "made_by": "Grok Bot",
-  "made_without_claude": true
+  "made_without_claude": true,
+  "preview": true
 }

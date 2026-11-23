@@ -366,21 +366,26 @@ SAMPLE_NOTE = "Layout sample not for posting"
 
 def read_carousels(carousels_dir: Path, samples_dir: Path | None = None,
                    previews_dir: Path | None = None) -> list[dict]:
-    """Every carousel folder that has captions.txt: real carousels first (newest name first), then previews, then
-    samples. Nothing is left out; the dashboard filter decides what is shown."""
+    """Every real carousel folder that has captions.txt: real carousels first (newest name first), then previews.
+    Layout samples (fixtures with no official images) are never shown: samples_dir is accepted and ignored."""
     cards = []
-    sources = [(carousels_dir, "carousels"), (previews_dir, "plan-previews"), (samples_dir, "samples")]
+    sources = [(carousels_dir, "carousels"), (previews_dir, "plan-previews")]
     for root, base in sources:
         if root is None or not root.exists():
             continue
         for folder in sorted((p for p in root.iterdir() if p.is_dir()), reverse=True):
-            if not (folder / "captions.txt").exists() or any(c["name"] == folder.name for c in cards):
-                continue  # a preview of a story that was then built for real is shown once, as the real carousel
+            if not (folder / "captions.txt").exists():
+                continue
+            same = next((c for c in cards if c["name"] == folder.name), None)
+            if same is not None:
+                if not (base == "plan-previews" and same["status"] == "rejected"):
+                    continue  # a preview of a story that was then built for real is shown once, as the real carousel
+                cards.remove(same)  # a new preview of a rejected carousel replaces it on the page
             status = carousel_status.read_status(folder)
+            if downloads.is_sample(folder, status):
+                continue  # a layout sample is a fixture, not a real carousel
             if base == "plan-previews":
                 kind = "preview"
-            elif base == "samples" or downloads.is_sample(folder, status):
-                kind = "sample"
             else:
                 kind = "draft"
             prebuilt = downloads.prebuilt_zip(folder)
@@ -410,8 +415,23 @@ def read_carousels(carousels_dir: Path, samples_dir: Path | None = None,
 
 CAROUSEL_FILTERS = (("all", "All carousels"), ("waiting_for_david", "Waiting for David"), ("draft", "Draft"),
                     ("preview", "Preview"), ("approved", "Approved"), ("rejected", "Rejected"),
-                    ("posted", "Posted"), ("sample", "Layout samples"))
+                    ("posted", "Posted"))
 GROUP_TITLES = {"preview": "Previews, not sent for approval yet", "sample": "Layout samples, not for posting"}
+
+
+def slides_without_image(card: dict) -> list[int]:
+    """The slide numbers that show no official image. build["missing"] names the empty image slots ("03.jpg",
+    "05-old.jpg"); the cover counts as having images when it is a collage of the feature images."""
+    build = card.get("build") or {}
+    numbers = set()
+    for name in build.get("missing") or []:
+        head = str(name)[:2]
+        if head.isdigit():
+            numbers.add(int(head))
+    if build.get("cover_collage"):
+        numbers.discard(1)
+    total = len(card.get("slides") or [])
+    return sorted(n for n in numbers if not total or n <= total)
 
 
 def chip_key(card: dict) -> str:
@@ -783,6 +803,7 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
     slide_names = card.get("slide_names", {})
     views = card.get("views") or {}  # David's copy may show the same slide as a smaller JPEG; downloads stay full PNG
     thumbs = []
+    no_image = slides_without_image(card)
     for number, slide in enumerate(card["slides"], 1):
         src = f"{base}/{slide}"
         view = views.get(slide, src)
@@ -795,7 +816,9 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
             f'data-title="{esc(title)}" data-alt="Slide {number}: {esc(file_name)}" aria-label="Enlarge slide {number}">'
             f'<span class="thumb"><img src="{esc(view)}" alt="Slide {number}" loading="lazy" data-fb>'
             '<span class="fb">Image not found</span></span></button>'
-            f'<span class="slide-n">{number:02d} {single}</span></div>')
+            f'<span class="slide-n">{number:02d} {single}</span>'
+            + ('<span class="tag st-fail no-image">NO IMAGE</span>' if number in no_image else '')
+            + '</div>')
     strip = (f'<div class="thumbs">{"".join(thumbs)}</div>' if thumbs
              else '<p class="no-slides">No slides rendered yet.</p>')
     removed = build.get("removed") or []
@@ -853,12 +876,17 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
     sample_tag = ('<span class="tag tag-sample">SAMPLE</span>' if is_sample
                   else '<span class="tag tag-sample">PREVIEW</span>' if is_preview else "")
     cover = views.get(card["slides"][0], f"{base}/{card['slides'][0]}") if card["slides"] else ""
+    no_image_chip = ""
+    if no_image:
+        listed = ", ".join(str(n) for n in no_image)
+        no_image_chip = (f'<span class="tag st-fail no-image" title="These slides have no official image">'
+                         f'No official image on slide{"s" if len(no_image) > 1 else ""} {esc(listed)}</span>')
     return (
         f'<article class="carousel-card" id="car-{esc(name)}{esc(where)}" '
         f'data-kind="{esc(card.get("kind", "draft"))}" data-status="{esc(card["status"])}" '
         f'data-chip="{esc(chip_key(card))}">'
         f'<div class="card-head"><h2 class="story-title">{esc(title)}</h2>'
-        f'<div class="chips">{sample_tag}<span class="tag {state_class}">{esc(state)}</span></div></div>'
+        f'<div class="chips">{sample_tag}<span class="tag {state_class}">{esc(state)}</span>{no_image_chip}</div></div>'
         f'<p class="meta">{esc(kind_label)}: {esc(name)}</p>'
         f'<div class="car-body"><div><div class="strip-label">Cover</div>'
         + (f'<button type="button" class="slide" data-lb="{esc(group)}-c" data-src="{esc(cover)}" '

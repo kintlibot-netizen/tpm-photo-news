@@ -99,7 +99,7 @@ def _body_check(fact: dict | None, product: str | None, path: str, hyphens: bool
     text = fact["text"]
     if len(text) > BODY_MAX:
         raise PlanError(f"{path}: body is longer than {BODY_MAX} characters. Use one short sentence.")
-    sentences = [s for s in re.split(r"[.!?]+", text) if s.strip()]
+    sentences = [s for s in re.split(r"[.!?]+(?=\s|$)", text) if s.strip()]  # 7.8 cm is one sentence
     if len(sentences) > 1:
         raise PlanError(f"{path}: body must be one sentence")
     if product and product.lower() in text.lower():

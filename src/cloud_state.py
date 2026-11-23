@@ -12,7 +12,7 @@ The design is "each side writes only its own files", so a git pull never has a m
                               (approvals), the download zip. Never the candidate image folders.
   state/previews/<folder>/    LAPTOP writes it. Plan previews (output/plan-previews), shown as "Preview, not sent for
                               approval yet".
-  state/samples/<folder>/     LAPTOP writes it. The layout samples (output/samples), shown as not for posting.
+  (Layout samples in output/samples are fixtures with no official images: never copied to state/, never shown.)
   Never copied from any carousel folder: .env files, keys, anything with "secret" in its name, official.txt, images.txt.
 
 Only the cloud sends Slack alerts (run.py refuses a live check on the laptop while state/CLOUD-ON exists), so the
@@ -293,9 +293,8 @@ def pull(side: str, root: Path | None = None) -> list[str]:
             shutil.copyfile(p["state_posts"], p["local_posts"])
     written = copy_carousels(p["state_carousels"], p["local_carousels"], mirror=(side == "cloud"),
                              overwrite=(side == "cloud"))
-    for group in ("previews", "samples"):
-        written += copy_carousels(p[f"state_{group}"], p[f"local_{group}"], mirror=(side == "cloud"),
-                                  overwrite=(side == "cloud"), every_folder=True)
+    written += copy_carousels(p["state_previews"], p["local_previews"], mirror=(side == "cloud"),
+                              overwrite=(side == "cloud"), every_folder=True)
     notes.append(f"carousel files updated: {written}")
     return notes
 
@@ -316,8 +315,10 @@ def push(side: str, root: Path | None = None, first_time: bool = False) -> list[
         if p["local_posts"].exists():
             shutil.copyfile(p["local_posts"], p["state_posts"])
         written = copy_carousels(p["local_carousels"], p["state_carousels"], mirror=True)
-        for group in ("previews", "samples"):  # previews and layout samples show on the cloud dashboard too
-            written += copy_carousels(p[f"local_{group}"], p[f"state_{group}"], mirror=True, every_folder=True)
+        # previews show on the cloud dashboard too; layout samples never do, so any old copy is removed
+        written += copy_carousels(p["local_previews"], p["state_previews"], mirror=True, every_folder=True)
+        if p["state_samples"].exists():
+            shutil.rmtree(p["state_samples"])
         notes.append(f"carousel files saved: {written}")
     return notes
 

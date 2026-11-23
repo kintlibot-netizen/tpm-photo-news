@@ -1,0 +1,118 @@
+{
+  "product": {
+    "text": "DJI ROMO P2",
+    "quote": "DJI ROMO P2 (Water Tank Version)"
+  },
+  "cover": {
+    "label": "DJI ROMO P2",
+    "headline": {
+      "text": "DJI ROMO P2",
+      "quote": "DJI ROMO P2 (Water Tank Version)"
+    },
+    "subline": {
+      "text": "2026 IFA INNOVATION AWARD WINNER",
+      "quote": "2026 IFA Innovation Award Winner"
+    },
+    "subline_alt": {
+      "text": "36,000PA POWERFUL SUCTION",
+      "quote": "36,000Pa Powerful Suction"
+    }
+  },
+  "slides": [
+    {
+      "template": "left_body",
+      "label": "ROBOTIC ARM",
+      "headline": {
+        "text": "EDGE CLEANING",
+        "quote": "Precise Edge-Hugging Cleaning"
+      },
+      "accent": {
+        "text": "123° ULTRA WIDE SWING",
+        "quote": "a high-precision LiDAR and a 123° ultra-wide swing"
+      },
+      "body": {
+        "text": "Its arm has a 7.8 cm wider reach than the previous generation.",
+        "quote": "has a 7.8 cm wider reach than the previous generation"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "OBSTACLES",
+      "headline": {
+        "text": "8.5CM CROSSING",
+        "quote": "8.5cm Crossing, No Threshold Too Tough"
+      },
+      "accent": {
+        "text": "NO THRESHOLD TOO TOUGH",
+        "quote": "8.5cm Crossing, No Threshold Too Tough"
+      },
+      "body": {
+        "text": "Robotic legs cross single step obstacles up to 4 cm and double step obstacles up to 8.5 cm.",
+        "quote": "robotic legs that cross single-step obstacles up to 4 cm and double-step obstacles up to 8.5 cm"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "SENSING",
+      "headline": {
+        "text": "SHARPER SENSING",
+        "quote": "Sharper Sensing. Faster Response."
+      },
+      "accent": {
+        "text": "FASTER RESPONSE",
+        "quote": "Sharper Sensing. Faster Response."
+      },
+      "body": {
+        "text": "It can detect obstacles, even those it has never encountered before.",
+        "quote": "This helps it detect obstacles, even those it has never encountered before"
+      },
+      "specs": []
+    }
+  ],
+  "comparison": null,
+  "price": null,
+  "captions": {
+    "david": {
+      "hook": {
+        "text": "My favorite part is the robotic arm.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "Its arm has a 7.8 cm wider reach than the previous generation.",
+          "quote": "has a 7.8 cm wider reach than the previous generation"
+        },
+        {
+          "text": "It delivers up to 365 days of maintenance free operation.",
+          "quote": "it delivers up to 365 days of maintenance-free operation"
+        }
+      ],
+      "closing": {
+        "text": "Would you let a robot clean while you edit?",
+        "quote": ""
+      }
+    },
+    "tpm": {
+      "hook": {
+        "text": "We think the robotic legs are the clever part.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "Robotic legs cross double step obstacles up to 8.5 cm.",
+          "quote": "double-step obstacles up to 8.5 cm"
+        },
+        {
+          "text": "On carpet it pulls out dust with 36,000Pa suction.",
+          "quote": "allowing 36,000Pa suction"
+        }
+      ],
+      "closing": {
+        "text": "Which feature would you want at home first?",
+        "quote": ""
+      }
+    }
+  }
+}
