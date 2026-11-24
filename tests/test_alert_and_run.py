@@ -51,9 +51,9 @@ def test_rumor_alert_says_no_carousel():
     assert text.count("RUMOR") == 1 and "no carousel until the brand confirms" in text
 
 
-def test_unreviewed_alert_is_marked():
+def test_the_alert_never_mentions_claude():
     review = Review(True, "camera", "A summary.", False)
-    assert "Not reviewed by Claude" in alert.format_alert(no_claude_story(), OFFICIAL, review, "new")
+    assert "Claude" not in alert.format_alert(no_claude_story(), OFFICIAL, review, "new")
 
 
 def test_rumor_site_release_is_marked_like_news():

@@ -19,6 +19,9 @@ STATUS_LABELS = {
     "posted": "Posted",
 }
 STATUS_FILE = "status.json"
+# What the dashboard and Slack say about an official story that has no carousel yet.
+WAITING_WORDS = ("Waiting for a carousel. It is made by hand from the official page, then Kint reviews it. "
+                 "Nothing to do now.")
 
 
 def read_status(folder: Path) -> dict:

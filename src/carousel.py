@@ -609,9 +609,11 @@ def assemble(plan_data, *, title: str, official_text: str, verdicts: dict | None
     elif cover_hero and not slots[0]["main"]:
         images_note.append(f"slide 1 hero: the first feature's official image {cover_hero[0].name}, shown whole "
                            "(a readable collage does not fit under the cover text)")
+    # A cover that shows official images (its own, or a collage of the feature images) is not missing an image.
+    missing = [name for name in missing if not (cover_hero and name.startswith("01."))]
     images_note += [f"{name}: missing (a feature slide uses the text-led layout with no image box, the cover and "
                     "other slides show only the soft glow; another feature's image is never shown)"
-                    for name in missing if not (cover_hero and name.startswith("01."))]
+                    for name in missing]
     images_note += extra_notes or []
     (out_dir / "sources.md").write_text(
         sources_markdown(title, official_url, article_links, len(official_text), images_note, press_images),

@@ -49,8 +49,6 @@ def format_alert(story: Story, label: str, review: Review, reason: str) -> str:
         link = source.get("link") or source["url"]
         safe = link.replace("|", "%7C").replace("<", "%3C").replace(">", "%3E")
         lines.append(f"- {escape(source['source'])}: {safe}")
-    if not review.reviewed_by_claude:
-        lines.append("Not reviewed by Claude. Matched by the free rules only.")
     return "\n".join(lines)
 
 

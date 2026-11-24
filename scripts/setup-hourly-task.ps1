@@ -1,4 +1,5 @@
-# Creates the Windows task that runs the watcher every hour.
+# Creates the Windows task that runs the laptop backup every hour: run.py --nudge-cloud starts the cloud watcher
+# only when GitHub has skipped its hourly runs (it checks no news and sends no Slack message). Needs gh signed in.
 # Run this only after a real Slack test alert has worked.
 # Running it again replaces the task (-Force) and keeps these settings:
 #   run on battery, keep running on battery, run as soon as possible after a missed start,
@@ -9,7 +10,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $python = Join-Path $root ".venv\Scripts\python.exe"
 $script = Join-Path $root "src\run.py"
 
-$action = New-ScheduledTaskAction -Execute $python -Argument "`"$script`"" -WorkingDirectory $root
+$action = New-ScheduledTaskAction -Execute $python -Argument "`"$script`" --nudge-cloud" -WorkingDirectory $root
 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Hours 1)
 $settings = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries `

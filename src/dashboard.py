@@ -515,13 +515,11 @@ def coverage_reason(story: dict, now: datetime) -> tuple[str, str]:
     if row and row["status"] == "failed":
         return f"Not made: {row.get('message') or 'no reason recorded'}", "st-fail"
     if row and row["status"] == "needs_kint":
-        return ("Being made by the carousel bot. It runs every hour on the laptop and Slack says when it is ready "
-                "for approval. Nothing to do now."), "st-held"
+        return carousel_status.WAITING_WORDS, "st-held"
     first = story.get("first_seen")
     if first and now - first > timedelta(hours=72):
-        return ("Not made: older than 72 hours, so there is no automatic build. Kint can build it by hand.",
-                "st-rej")
-    return "Not made yet: waiting for the daily or weekly carousel limit, or the next live check.", "st-held"
+        return "Not made: older than 72 hours. It can still be made by hand from the official page.", "st-rej"
+    return "Not made yet: waiting for a carousel, made by hand from the official page.", "st-held"
 
 
 # ---------- rendering: pieces ----------
@@ -575,7 +573,7 @@ def story_drawer(story: dict, number: int, mode: str) -> str:
              f'<span class="tag stage {STAGE_CLASS[story["stage"]]}">{esc(STAGE_NAMES[story["stage"]])}</span></div>']
     if story["summary"]:
         parts.append(f'<div><h3>Summary</h3><p class="summary">{esc(display_text(story["summary"]))}</p></div>')
-    if story["reason"]:
+    if story["reason"] and not story["reason"].startswith("Matched by the free rules only"):  # old rows: noise
         prefix = "" if status == runlog.SKIPPED else "Label check: "
         parts.append(f'<div><h3>Why</h3><p class="why">{esc(prefix + story["reason"])}</p></div>')
     rows = [
@@ -1010,8 +1008,8 @@ def attention_items(cards: list[dict], stories: list[dict], latest_feeds: list[d
     for_kint = [s for s in stories if s.get("official_sent") and not s.get("carousel")
                 and s.get("build_row") and s["build_row"]["status"] == "needs_kint"]
     if for_kint:
-        items.append(("blue", f"{len(for_kint)} carousels being made by the carousel bot",
-                      "Nothing to do: the bot makes them on its next hourly run, and Slack says when each one is "
+        items.append(("blue", f"{len(for_kint)} official stories waiting for a carousel",
+                      "Nothing to do here: each one is made by hand from the official page, and Slack says when it is "
                       "ready for approval.", "carousels", ""))
     for feed in latest_feeds:
         if not feed["ok"]:
@@ -1131,23 +1129,24 @@ HOW_IT_WORKS = [
     "Once an hour, the watcher reads the photo news feeds listed under Sources.",
     "It keeps only stories published in the last 72 hours that name a known brand or editing software.",
     "Rumors are sent to Slack only after a second site reports them. Official launches are sent at once.",
-    "After an official alert, the TPM carousel bot makes the carousel by itself, every hour on the laptop, within 1 "
-    "a day and 3 a week. Nobody has to run anything.",
-    "Every carousel is fact-checked against the brand's own page. Claims that are not confirmed are removed. Every "
-    "image is a real official image of that feature.",
-    "A carousel that passes the checks waits for approval, and Slack says so. Kint approves or rejects it here; "
-    "David approves by telling Kint. A rejection with a note is rebuilt by the bot, following the note.",
+    "After an official alert, the carousel is made by hand from the brand's own page. It is first built as a preview "
+    "that nobody is asked to approve.",
+    "Every fact on it is checked against the brand's own page, word for word. Claims that are not confirmed are "
+    "removed. Every image is a real official image of that feature.",
+    "Kint reviews the carousel. It is sent to David only when Kint says so, and Slack says when one is ready for "
+    "approval. Kint approves or rejects it here; David approves by telling Kint.",
     "After approval, Kint posts by hand in Meta Business Suite, then logs it here with the account and link.",
     "If no feed works for two runs in a row, or none has worked for 6 hours, one health message is sent to Slack a day.",
 ]
 FLOW_NODES = [
-    ("clock", "Hourly check", "Reads the photo news and rumor sites every hour while the PC is on.", False),
+    ("clock", "Hourly check", "The cloud reads the photo news and rumor sites every hour.", False),
     ("send", "Slack alert", "Official launches at once. A rumor only after a second site reports it.", False),
-    ("image", "Carousel bot", "Makes the carousel by itself from the brand's own page, with real official product "
-     "images only.", False),
+    ("image", "Carousel", "Made by hand from the brand's own page, with real official product images only. "
+     "Built as a preview first.", False),
     ("check", "Fact check", "Every claim is checked against the official text. Anything unconfirmed is removed.",
      False),
-    ("user", "David approves", "Nothing moves without David's yes. Kint approves on his word.", True),
+    ("user", "Kint reviews, David approves", "Sent to David only when Kint says so. Nothing moves without a yes.",
+     True),
     ("share", "Posted by hand", "Kint posts in Meta Business Suite, then logs the link here.", True),
     ("activity", "Tracked", "Every step is written to the Activity page with its time.", False),
     ("lock", "Never automatic", "Nothing is ever posted by the system. David's personal Instagram is never used.",
@@ -1177,8 +1176,8 @@ def how_panel() -> str:
 def start_panel(mode: str, counts: dict) -> str:
     who = "David" if mode == "share" else "you"
     lines = [
-        ("What it is", "A watcher that reads the photo news every hour, sends the real launches to Slack, and turns "
-                       "each official launch into a ready to post carousel for TPM."),
+        ("What it is", "A cloud watcher that reads the photo news every hour and sends the real launches to Slack. "
+                       "Each official launch becomes a ready to post carousel for TPM, made from the official page."),
         ("What is checked", "Every fact on a carousel comes from the brand's own page and is checked before anyone sees "
                             "it. Images are real official product images. Nothing is AI generated."),
         ("What needs " + who, "Carousels marked Waiting for David. "
@@ -1203,12 +1202,13 @@ def intro_panel(items: list[tuple], mode: str) -> str:
     todo = len(items)
     return (
         '<div class="intro"><div><h2>Photo news in, ready to post carousels out</h2>'
-        '<p>Every hour this system reads the photo news, sends official launches to Slack, builds a fact checked '
-        'carousel from the brand\'s own page, and waits for David. Nothing is posted automatically.</p><ol>'
+        '<p>Every hour the cloud reads the photo news and sends official launches to Slack. Each carousel is made from '
+        'the brand\'s own page, fact checked, reviewed by Kint, and sent to David only when Kint says so. Nothing is '
+        'posted automatically.</p><ol>'
         '<li><b>1</b><span>Hourly check of the news and rumor sites</span></li>'
         '<li><b>2</b><span>Slack alert for official launches (rumors need 2 sites)</span></li>'
-        '<li><b>3</b><span>Carousel draft, fact checked against the official page</span></li>'
-        '<li><b>4</b><span>David approves, then Kint posts by hand</span></li></ol></div>'
+        '<li><b>3</b><span>Carousel made from the official page and fact checked</span></li>'
+        '<li><b>4</b><span>Kint reviews, David approves, then Kint posts by hand</span></li></ol></div>'
         f'<div class="todo"><h3>Needs attention now</h3><div class="big">{todo}</div>'
         f'<p class="muted">{"item" if todo == 1 else "items"} on the Needs your attention page.</p>'
         '<p><button type="button" class="btn primary" data-go="attention">Open the list</button></p></div></div>')

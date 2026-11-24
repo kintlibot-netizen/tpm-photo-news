@@ -31,6 +31,7 @@ TYPES = {
     "download": "Download",
     "export": "Export for David",
     "health": "Health message",
+    "cloud": "Cloud backup",
 }
 
 log = logging.getLogger("watcher")

@@ -34,7 +34,7 @@ from runlog import ALERTED, DRY_ONLY, FAILED, HELD, READY, REJECTED, SKIPPED
 ROOT = Path(__file__).resolve().parent.parent
 log = logging.getLogger("watcher")
 HELD_REASON = "Only one site has reported it so far."
-FREE_RULES_REASON = "Matched by the free rules only. Claude did not review it."
+FREE_RULES_REASON = ""  # the free rules are the only check now, so there is no line to show about it
 
 
 def load_yaml(name: str) -> dict:
@@ -262,6 +262,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="carousels only from written plans (data/plans, src/plan_build.py), never with Claude. "
                              "--carousels-only --no-claude means the same")
     parser.add_argument("--plan-dir", help="where the written carousel plans are (default data/plans)")
+    parser.add_argument("--nudge-cloud", action="store_true",
+                        help="laptop backup: start the cloud watcher once if GitHub has skipped its hourly runs. "
+                             "Checks no news, builds nothing, sends no Slack message")
     args = parser.parse_args(argv)
     plans_only = args.plans_only or (args.carousels_only and args.no_claude)
 
@@ -271,11 +274,19 @@ def main(argv: list[str] | None = None) -> int:
         handlers=[logging.FileHandler(ROOT / "data" / "watcher.log", encoding="utf-8"),
                   logging.StreamHandler()],
     )
+    if args.nudge_cloud:  # before .env is read: it needs no Slack address and no other secret
+        try:
+            import cloud_nudge
+            cloud_nudge.nudge(cwd=ROOT)
+        except Exception as exc:  # a backup must never fail the task
+            log.error("Cloud backup failed: %s", type(exc).__name__)
+        return 0
     load_dotenv(ROOT / ".env")
 
     if laptop_must_skip(args):
         log.info("The cloud watcher is on (state/CLOUD-ON), so this laptop check sends nothing. "
-                 "The cloud sends every Slack alert; use Sync with cloud.bat to build carousels and review.")
+                 "The cloud sends every Slack alert. Carousels are made by hand from the official page and "
+                 "reviewed with src\\review.py.")
         return 0
     if args.carousels_only:
         return carousels_only(no_claude=plans_only, plan_dir=args.plan_dir)

@@ -329,9 +329,9 @@ def test_the_ready_message_is_about_approval_with_the_dashboard_link(tmp_path):
 def test_how_it_works_says_the_bot_makes_the_carousels():
     import dashboard
     steps = " ".join(dashboard.HOW_IT_WORKS)
-    assert "carousel bot makes the carousel by itself" in steps and "Nobody has to run anything" in steps
-    assert "Kint posts by hand in Meta Business Suite" in steps
-    assert any(title == "Carousel bot" for _, title, _, _ in dashboard.FLOW_NODES)
+    assert "made by hand from the brand's own page" in steps and "carousel bot" not in steps.lower()
+    assert "Kint posts by hand in Meta Business Suite" in steps and "sent to david only when kint says so" in steps.lower()
+    assert any(title == "Carousel" for _, title, _, _ in dashboard.FLOW_NODES)
 
 
 # ---- the scheduled task and its launcher ----

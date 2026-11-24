@@ -131,7 +131,7 @@ DASHBOARD_URL = "https://kintlibot-netizen.github.io/tpm-photo-news/"
 
 
 def ready_message(title: str, result: dict) -> str:
-    """The Slack message when the carousel bot (or a manual build) has finished a carousel that passed every check."""
+    """The Slack message when a carousel has been built for real and passed every check."""
     design = result.get("design", [])
     fails = sum(f["level"] == "FAIL" for f in design)
     warns = sum(f["level"] == "WARN" for f in design)
@@ -140,7 +140,7 @@ def ready_message(title: str, result: dict) -> str:
     removed = len(result.get("removed", []))
     lines = [
         f"Carousel ready for approval: {title}",
-        "Made by the TPM carousel bot. Nothing is posted automatically.",
+        "Made from the official page and checked by code. Nothing is posted automatically.",
         f"Slides: {result['slides']}",
         f"Facts: {result['confirmed']} confirmed, {removed} removed as not confirmed.",
         f"Official images placed: {placed}",
@@ -207,10 +207,9 @@ def after_alerts(db_path: Path, stories: list[tuple[int, str]], now: datetime, w
     return outcomes
 
 
-NEEDS_KINT = "needs_kint"  # the stored status name; the words shown are "Being made by the carousel bot"
-BOT_OUTCOME = "being made by the carousel bot"
-NEEDS_KINT_REASON = ("Being made by the carousel bot on the laptop, where the fact check and the official image check "
-                     "run. Nobody has to do anything; Slack says when it is ready for approval.")
+NEEDS_KINT = "needs_kint"  # the stored status name; the words shown are "Waiting for a carousel"
+BOT_OUTCOME = "waiting for a carousel"
+NEEDS_KINT_REASON = "Waiting for a carousel. It is made by hand from the official page, then Kint reviews it."
 
 
 def needs_kint_marked(db_path: Path, story_id: int) -> bool:
@@ -224,9 +223,9 @@ def needs_kint_marked(db_path: Path, story_id: int) -> bool:
 
 
 def needs_kint_message(title: str) -> str:
-    return alert.escape(f"Carousel being made by the carousel bot: {title}\nThe cloud found an official story for a "
-                        "carousel. The TPM carousel bot on the laptop makes it on its next hourly run, and Slack says "
-                        "when it is ready for approval. Nothing to do now. Nothing is posted automatically.")
+    return alert.escape(f"Waiting for a carousel: {title}\nThe cloud found an official story for a carousel. It is "
+                        "made by hand from the official page, then Kint reviews it, and Slack says when it is ready "
+                        "for approval. Nothing to do now. Nothing is posted automatically.")
 
 
 def mark_needs_kint(db_path: Path, stories: list[tuple[int, str]], now: datetime, webhook: str,
