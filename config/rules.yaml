@@ -61,6 +61,9 @@ brands:
   Skylum: [skylum, luminar]
   # More lens makers.
   Thypoch: [thypoch]
+  # Phone makers, only when the headline is about the camera or photos (see name_guards).
+  Apple: [iphone, apple]
+  Google: [google pixel, pixel camera, google photos]
 
 # A name that is also an ordinary word only counts when one of these words is in the same text
 # (or a model number follows it, as in "Sigma 85mm"). Keys are brand or software names, lower case.
@@ -70,6 +73,9 @@ name_guards:
   luminar: [neo, photo, photos, editor, editing, skylum, update, release, ai]
   gimp: [photo, photos, editor, editing, software, image, version, update, release]
   on1: [photo, photos, raw, editor, software, update, release]
+  iphone: [camera, cameras, photo, photos, photography, proraw, lens, lenses, sensor]
+  apple: [camera, cameras, photo, photos, photography, proraw, lens, lenses, sensor]
+  google pixel: [camera, cameras, photo, photos, photography, lens, lenses, sensor]
 
 # Checked in order. The first match sets the category.
 categories:
@@ -309,3 +315,51 @@ skip_words:
   - watch live
   - where to watch
   - ways to watch
+
+# ---------- Kint's big brand and photographer gates (November 2026) ----------
+# Only stories about these big, well known photography brands become new stories, Slack alerts and rows on the
+# dashboard and David's page. Names are the brand names used in "brands" above (or an editing software name from
+# software_words, such as Capture One). Remove this list to turn the brand gate off.
+big_brands:
+  - Canon
+  - Nikon
+  - Sony
+  - Fujifilm
+  - Panasonic
+  - OM System
+  - Leica
+  - Hasselblad
+  - Sigma
+  - Tamron
+  - DJI
+  - GoPro
+  - Insta360
+  - Adobe
+  - Capture One
+  - Skylum
+  - Apple
+  - Google
+  - Blackmagic Design
+
+# Only news that is good for a marketing post and truly for photographers. Words match whole words, any case.
+photo_relevance:
+  # A product from one of these makers is not a big brand product, even when the headline names a big brand's mount
+  # ("Mitakon 45mm f/1.4 for Fujifilm GFX"). Makers in "brands" that are not in big_brands count too.
+  third_party_makers: [mitakon, zhongyi, zhong yi, zy optics, vistilen, owlkrown, calumet, mandler, cosina,
+                       viltrox, yongnuo, brightin star, astrhori, kipon, smallrig, tilta, ulanzi, neewer, pergear,
+                       artra lab, light lens lab, funleader, dulens, nisi, kase, haida]
+  # Not a photography product, in the headline or the excerpt.
+  off_topic_words: [robot vacuum, robot vacuums, robotic vacuum, vacuum cleaner, robovac, robot mower, lawn mower,
+                    power station, e-bike, ebike, projector, binoculars, toy drone, toy drones]
+  # Corporate, financial, political or unofficial (fan made firmware) news, in the headline.
+  off_topic_headline_words: [revenue, revenues, earnings, profit, profits, money, billion, financial results,
+                             quarterly, fiscal, shares, stock price, investors, merger, acquisition, acquires,
+                             lawsuit, sues, layoffs, ceo, president, tariff, tariffs, data leak, breach, auction,
+                             bestseller, market share, vibe coded, vibe coding, custom firmware, hacked]
+  # Minor bug fix updates, in the headline.
+  minor_update_words: [bug, bugs, bug fix, bug fixes, fixes, stability improvements, minor update]
+  # Brands that also make things that are not for photographers (vacuums, phones, toys): their stories need a photo
+  # word in the headline or the excerpt.
+  needs_photo_word: [DJI, Apple, Google, GoPro, Insta360]
+  photo_words: [camera, cameras, photo, photos, photography, photographer, photographers, lens, lenses, sensor,
+                megapixel, megapixels, raw, proraw, drone, drones, gimbal, mavic, osmo, image, images, editing]

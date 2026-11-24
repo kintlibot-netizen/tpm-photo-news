@@ -18,6 +18,13 @@ def rules():
 
 
 @pytest.fixture
+def open_rules(rules):
+    """The rules with Kint's big brand and photographer gates turned off (round 10), for tests about other rules
+    that use small brands or other editing software as examples."""
+    return dict(rules, big_brands=[], photo_relevance={key: [] for key in classify.RELEVANCE_KEYS})
+
+
+@pytest.fixture
 def now():
     return NOW
 

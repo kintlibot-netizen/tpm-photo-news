@@ -336,6 +336,28 @@ def build_stories(data: dict, rules: dict | None) -> list[dict]:
     return stories
 
 
+def split_hidden(stories: list[dict], rules: dict | None) -> tuple[list[dict], list[dict]]:
+    """Kint's big brand and photographer gates (rules.yaml big_brands and photo_relevance). A story that fails them is
+    left off the page and David's copy. Nothing is deleted: the story stays in the watcher's data, and it shows again
+    if the rules change. Returns (shown, hidden); each hidden story gets its reason in story["hidden"]."""
+    shown, hidden = [], []
+    for story in stories:
+        reason = classify.story_gate_problem(story.get("sources") or [], story.get("brand"), story.get("title") or "",
+                                             rules) if rules else None
+        if reason:
+            story["hidden"] = reason
+            hidden.append(story)
+        else:
+            shown.append(story)
+    return shown, hidden
+
+
+def hide_cards(cards: list[dict], hidden: list[dict]) -> list[dict]:
+    """Carousel and preview cards of hidden stories are left off the page too (their folders are kept)."""
+    slugs = {folder_slug(story["title"]) for story in hidden if story.get("title")}
+    return [c for c in cards if c.get("name", "")[11:] not in slugs]
+
+
 def summarize(stories: list[dict], now: datetime) -> dict:
     """Every card is counted from the same story list the page shows."""
     today = now.astimezone(MANILA).date()
@@ -1400,8 +1422,9 @@ def build_page(db_path=None, sources_path=None, rules_path=None, now=None, carou
 
     data = read_database(db_path)
     rules = load_rules(rules_path)
-    stories = build_stories(data, rules)
-    cards = read_carousels(carousels_dir, samples_dir, Path(previews_dir) if previews_dir is not None else None)
+    stories, hidden = split_hidden(build_stories(data, rules), rules)
+    cards = hide_cards(read_carousels(carousels_dir, samples_dir, Path(previews_dir) if previews_dir is not None
+                                      else None), hidden)
     if card_filter is not None:
         cards = [c for c in cards if card_filter(c)]
     if base_for is not None:

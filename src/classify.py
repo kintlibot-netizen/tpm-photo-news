@@ -32,6 +32,11 @@ WORD_LIST_KEYS = (
     "skip_words", "launch_words", "rumor_words", "hedge_words", "soft_rumor_words",
     "adobe_scope_words", "software_words",
 )
+# Kint's photographer gate (rules.yaml photo_relevance). Every list is optional.
+RELEVANCE_KEYS = (
+    "third_party_makers", "off_topic_words", "off_topic_headline_words", "minor_update_words",
+    "needs_photo_word", "photo_words",
+)
 # Read when present. A rules file from before these were added still loads.
 OPTIONAL_WORD_LIST_KEYS = ("rumor_site_release_words", "rumor_site_block_words", "firefly_photo_words")
 
@@ -77,6 +82,13 @@ def normalize_rules(rules: dict) -> dict:
         cleaned["words"] = _words(category.get("words"), f"categories.{category.get('id')}")
         categories.append(cleaned)
     fixed["categories"] = categories
+    fixed["big_brands"] = _words(rules.get("big_brands") or [], "big_brands")
+    relevance = rules.get("photo_relevance") or {}
+    if not isinstance(relevance, dict):
+        raise ValueError("rules.yaml: photo_relevance must be a group of word lists")
+    fixed["photo_relevance"] = {
+        key: _words(relevance.get(key) or [], f"photo_relevance.{key}") for key in RELEVANCE_KEYS
+    }
     return fixed
 
 
@@ -148,6 +160,71 @@ def official_headline(title: str, rules: dict) -> bool:
             and not has_word(title, rules.get("rumor_site_block_words", [])))
 
 
+def third_party_maker(title: str, rules: dict) -> str | None:
+    """A maker in the headline that is not a big brand: a brand in "brands" that is not on the big_brands list, or a
+    name on photo_relevance.third_party_makers. "Mitakon 45mm f/1.4 for Fujifilm GFX" is a Mitakon product."""
+    allowed = {name.lower() for name in rules.get("big_brands") or []}
+    guards = rules.get("name_guards", {})
+    for brand, aliases in (rules.get("brands") or {}).items():
+        if brand.lower() in allowed:
+            continue
+        for alias in aliases:
+            if re.search(rf"\b{re.escape(alias)}\b", title, re.I) and guard_ok(alias, title, guards):
+                return brand
+    word = first_match(title, (rules.get("photo_relevance") or {}).get("third_party_makers", []))
+    return word.title() if word else None
+
+
+def gate_problem(title: str, excerpt: str, brand: str | None, rules: dict) -> str | None:
+    """Kint's big brand and photographer gates, in plain words. None when the item passes both.
+
+    Big brand gate (rules.yaml big_brands): the story's brand, or its editing software name, must be on the list,
+    and the product must not be a third party maker's. Photographer gate (rules.yaml photo_relevance): no
+    off topic product (robot vacuum, projector), no corporate or financial news, no minor bug fix update, and a
+    brand that also makes things for non photographers needs a photo word. With neither list in the rules,
+    nothing is gated.
+    """
+    allowed = {name.lower() for name in rules.get("big_brands") or []}
+    if allowed:
+        software = software_hit(title, rules)
+        names = [n for n in (brand, software) if n]
+        if not any(n.lower() in allowed for n in names):
+            return f"Hidden: not a big photography brand ({names[0] if names else 'no brand'})."
+        maker = third_party_maker(title, rules)
+        if maker:
+            return f"Hidden: made by {maker}, not a big photography brand."
+    relevance = rules.get("photo_relevance") or {}
+    text = f"{title} {excerpt or ''}"
+    word = first_match(text, relevance.get("off_topic_words", []))
+    if word:
+        return f'Hidden: not for photographers ("{word}").'
+    word = first_match(title, relevance.get("off_topic_headline_words", []))
+    if word:
+        return f'Hidden: corporate, financial or unofficial news, not for photographers ("{word}").'
+    word = first_match(title, relevance.get("minor_update_words", []))
+    if word:
+        return f'Hidden: a minor bug fix update ("{word}").'
+    needs = {name.lower() for name in relevance.get("needs_photo_word", [])}
+    if brand and brand.lower() in needs and not has_word(text, relevance.get("photo_words", [])):
+        return f"Hidden: a {brand} story with no camera or photo angle."
+    return None
+
+
+def story_gate_problem(sources: list[dict], brand: str | None, title: str, rules: dict) -> str | None:
+    """The gate reason for a stored story, or None when any of its sources passes. Used to hide old stories from the
+    dashboard and David's page without deleting anything."""
+    if not rules:
+        return None
+    pairs = [(src.get("title") or "", src.get("summary") or "") for src in sources if src.get("title")]
+    if not pairs:
+        pairs = [(title or "", "")]
+    problems = []
+    for head, excerpt in pairs:
+        found = find_story_brand(head, excerpt, rules["brands"]) or brand
+        problems.append(gate_problem(head, excerpt, found, rules))
+    return problems[0] if all(problems) else None
+
+
 def candidate_problem(item: Item, rules: dict) -> str | None:
     """Why the free rules skip this item, in plain words. None when it passes."""
     title = item.title
@@ -160,6 +237,9 @@ def candidate_problem(item: Item, rules: dict) -> str | None:
     known = brand is not None or software_hit(title, rules) is not None
     if not known:
         return "No camera or Adobe brand in the headline."
+    gated = gate_problem(title, item.summary or "", brand, rules)
+    if gated:
+        return gated
     rumor_site = item.source_type == "rumor"
     if rumor_site and not official_headline(title, rules) and rumor_signal(title, "", rules):
         # A rumor with no model name can never be matched to a second source.

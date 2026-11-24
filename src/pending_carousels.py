@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import carousel
+import classify
 import carousel_auto
 import dashboard
 import dedupe
@@ -114,6 +115,11 @@ def main(argv: list[str] | None = None) -> int:
             stories = [by_id[sid] for sid in order if sid in by_id]
     finally:
         store.db.close()
+    if not args.story:
+        # Kint's big brand and photographer gates: a story that fails them is not offered for a carousel.
+        rules = carousel.load_rules()
+        stories = [s for s in stories
+                   if not classify.story_gate_problem(s.sources, s.brand, s.title, rules)]
     if args.story:
         stories = [s for s in stories if str(s.id) == str(args.story)]
         if not stories:

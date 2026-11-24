@@ -26,13 +26,15 @@ def test_hedge_words_are_a_separate_list_from_hard_rumor_words(rules):
 
 
 @pytest.mark.parametrize("title", [XT_FIRMWARE, MITAKON])
-def test_confirmed_release_with_soft_excerpt_is_official(rules, title):
+def test_confirmed_release_with_soft_excerpt_is_official(open_rules, title):
+    rules = open_rules  # Mitakon is not a big brand, so the round 10 gate is off here
     item = make_item(title, source="Fuji Rumors", source_type="rumor", summary=SOFT_EXCERPT)
     assert is_candidate(item, rules)
     assert item_label({"title": item.title, "summary": item.summary}, rules) == OFFICIAL
 
 
-def test_both_confirmed_releases_alert_at_once_not_held(rules, now):
+def test_both_confirmed_releases_alert_at_once_not_held(open_rules, now):
+    rules = open_rules  # Mitakon is not a big brand, so the round 10 gate is off here
     store = Store()
     items = [
         make_item(title, source="Fuji Rumors", source_type="rumor", summary=SOFT_EXCERPT)

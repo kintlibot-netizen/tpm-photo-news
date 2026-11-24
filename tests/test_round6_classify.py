@@ -82,7 +82,8 @@ def test_red_digital_cinema_names_are_the_brand(rules):
     assert find_story_brand("RED V-Raptor gets firmware update", "", rules["brands"]) == "RED"
 
 
-def test_affinity_is_only_affinity_photo_or_by_canva(rules):
+def test_affinity_is_only_affinity_photo_or_by_canva(open_rules):
+    rules = open_rules  # not big brands, so the round 10 gate is off here
     assert classify.software_hit("Affinity Photo 2.5 released", rules) == "affinity photo"
     assert classify.software_hit("Affinity by Canva gets AI tools released", rules) == "affinity by canva"
     assert classify.software_hit("Affinity Designer 2 released", rules) is None
@@ -97,7 +98,8 @@ def test_kodak_needs_a_camera_film_or_photo_word(rules):
     assert not classify.is_candidate(make_item("Kodak shares jump after earnings announced"), rules)
 
 
-def test_gimp_needs_a_context_word(rules):
+def test_gimp_needs_a_context_word(open_rules):
+    rules = open_rules  # not big brands, so the round 10 gate is off here
     assert classify.is_candidate(make_item("GIMP 3.0 update released"), rules)
     assert not classify.is_candidate(make_item("A gimp costume released in Japan"), rules)
 
@@ -125,7 +127,8 @@ def test_sigma_guard_is_in_the_loaded_rules(rules):
     ("Godox AD600 launches", "lighting"),
     ("SanDisk Extreme Pro CFexpress card launches", "storage"),
 ])
-def test_editing_software_and_gear_get_their_own_category(title, category, rules):
+def test_editing_software_and_gear_get_their_own_category(title, category, open_rules):
+    rules = open_rules  # not big brands, so the round 10 gate is off here
     assert classify.is_candidate(make_item(title), rules)
     assert classify.rule_category(title, rules) == category
 
