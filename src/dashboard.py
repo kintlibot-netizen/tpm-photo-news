@@ -358,6 +358,15 @@ def hide_cards(cards: list[dict], hidden: list[dict]) -> list[dict]:
     return [c for c in cards if c.get("name", "")[11:] not in slugs]
 
 
+def hide_events(events: list[dict], hidden: list[dict]) -> list[dict]:
+    """Activity rows about hidden stories (their Slack alert, their carousel attempts) are left off the page too.
+    The activity files are not changed."""
+    keys = [story["title"].lower()[:40] for story in hidden if len(story.get("title") or "") >= 12]
+    if not keys:
+        return list(events or [])
+    return [e for e in (events or []) if not any(k in " ".join(str(v) for v in e.values()).lower() for k in keys)]
+
+
 def summarize(stories: list[dict], now: datetime) -> dict:
     """Every card is counted from the same story list the page shows."""
     today = now.astimezone(MANILA).date()
@@ -1433,7 +1442,7 @@ def build_page(db_path=None, sources_path=None, rules_path=None, now=None, carou
     if approved_href == "auto":
         approved_zip = carousels_dir / downloads.APPROVED_ZIP_NAME
         approved_href = f"../output/carousels/{downloads.APPROVED_ZIP_NAME}" if approved_zip.exists() else None
-    events = activity.read_events(activity_path)
+    events = hide_events(activity.read_events(activity_path), hidden)
     try:
         next_run = read_next_run()
     except Exception:  # the next check time is a nice to have; the page is built without it

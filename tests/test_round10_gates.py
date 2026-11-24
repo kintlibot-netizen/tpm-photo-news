@@ -126,3 +126,12 @@ def test_no_gate_reason_uses_a_dash(rules):
         ("SIRUI lens announced", ""), ("DJI ROMO P2 announced", "robot vacuum"),
         ("Canon revenue up", ""), ("Sony firmware fixes bugs", ""))]
     assert all(r and "\u2013" not in r and "\u2014" not in r and " - " not in r for r in reasons)
+
+
+def test_activity_rows_about_hidden_stories_are_left_off_the_page(rules):
+    romo = story("DJI ROMO P2 UK price and availability announced", "DJI", summary="A robot vacuum.")
+    events = [{"type": "alert", "text": "OFFICIAL: DJI ROMO P2 UK price and availability announced"},
+              {"type": "alert", "text": "OFFICIAL: Leica announced M-A and M11-P Hammertone Special Edition cameras"}]
+    kept = dashboard.hide_events(events, [romo])
+    assert [e["text"] for e in kept] == [events[1]["text"]]
+    assert dashboard.hide_events(events, []) == events
