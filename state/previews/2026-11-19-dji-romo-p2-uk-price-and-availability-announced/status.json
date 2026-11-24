@@ -1,9 +1,15 @@
 {
-  "status": "draft",
+  "status": "rejected",
   "history": [
     {
       "event": "built",
       "at": "2026-11-23T16:00:01+00:00"
+    },
+    {
+      "event": "rejected",
+      "at": "2026-11-24T17:07:27+00:00",
+      "reason": "Not for photographers",
+      "rejected_at": "2026-11-24T17:07:27+00:00"
     }
   ],
   "build": {
@@ -45,5 +51,7 @@
   "posts": [],
   "made_by": "Grok Bot",
   "made_without_claude": true,
-  "preview": true
+  "preview": true,
+  "reason": "Not for photographers",
+  "rejected_at": "2026-11-24T17:07:27+00:00"
 }

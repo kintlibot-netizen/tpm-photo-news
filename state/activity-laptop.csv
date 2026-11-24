@@ -45,3 +45,6 @@ time,type,outcome,details,who
 2026-11-23T20:50:25+08:00,carousel,failed,"Story 72, Skylum Luminar has been updated – and it’s made photo editing so much easier than before!: No official domains are listed for this brand in config/carousel.yaml.",
 2026-11-23T21:25:04+08:00,carousel,failed,"Story 72, Skylum Luminar has been updated – and it’s made photo editing so much easier than before!: No official domains are listed for this brand in config/carousel.yaml.",
 2026-11-23T23:24:22+08:00,review,rejected,"DJI ROMO P2 UK price and availability announced (2026-11-19-dji-romo-p2-uk-price-and-availability-announced). Reason: Wrong content: the slides came from dji.com's home page (Avata 360, Osmo Pocket 4P and others), not the ROMO P2 page, and have no official images.",Kint
+2026-11-24T22:20:04+08:00,cloud,nudged,Nudged the cloud: no run for 660 minutes,
+2026-11-25T01:06:38+08:00,review,rejected,DJI ROMO P2 UK price and availability announced (2026-11-19-dji-romo-p2-uk-price-and-availability-announced). Reason: Not for photographers,Kint
+2026-11-25T01:07:27+08:00,review,rejected,DJI ROMO P2 UK price and availability announced (2026-11-19-dji-romo-p2-uk-price-and-availability-announced). Reason: Not for photographers,Kint
