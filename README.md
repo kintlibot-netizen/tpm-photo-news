@@ -10,7 +10,7 @@
 ## Daily use for Kint
 1. **Watch Slack.** Official launches arrive by themselves. A rumor arrives only when two sites report it.
 2. **Make the carousel** for an official story: write the plan, then `.venv\Scripts\python.exe scripts\build_from_plan.py --story 72 --plan data/plans/story-72.json --dry-run` for a preview. Without `--dry-run` it is a real build: Slack says **Carousel ready for approval**.
-3. **Review.** Double-click **Open Review Dashboard.bat**, type your name at the top, open **Needs your attention**, read the slides and `factcheck.md`, then press **Approve**, or type a reason and press **Reject**.
+3. **Review.** Double-click **Open Review Dashboard.bat**, type your name at the top, open **Needs your attention**, read the slides and `factcheck.md`, then press **Approve**, or type a reason and press **Reject**. A rejected carousel stays rejected; a new version is made by hand from the reason.
 4. **After you post by hand** (Meta Business Suite), choose the account, paste the link and press **Log as posted**. If Slack sends a health message, check `data\watcher.log` and the Sources tab.
 5. **Send to David.** Press **Export for David** in the top bar (or double-click **Export for David.bat**). Upload `output\share\latest\` to the web host, or send the zip. When he says yes, press **Approve** and type "David" as the name.
 6. **Need the files?** Every finished carousel has **Download all slides (ZIP)** and a button per slide.
@@ -82,10 +82,10 @@ The watcher runs in the cloud, on GitHub, so it keeps working while the laptop i
 - **Review on the laptop:** double-click **Sync with cloud.bat** to get the latest from the cloud, review in the dashboard, and save your approvals back to `state\`.
 - **The shared memory** is the small `state\` folder (`src/cloud_state.py`). Each side writes only its own files. The cloud writes `seen.sqlite` and `activity-cloud.csv`. The laptop writes `carousels\` (slides, captions, approvals), `previews\` (plan previews), `laptop-builds.csv`, `post-log.csv` and `activity-laptop.csv`. Never copied into `state\`: `.env` files, keys, `official.txt`, `images.txt`, candidate images.
 - **Safety check:** `python scripts\check_public_safe.py` fails if any file git would commit holds the Slack address, a token, a value from `.env`, your git email or a folder path from your PC. The cloud and **Sync with cloud.bat** run it before every commit.
-- **Setup (once):** double-click **Start cloud (first time).bat** and run the git commands it shows. On GitHub add the secret `SLACK_WEBHOOK_URL` (Settings, Secrets and variables, Actions), set **Pages** to **GitHub Actions**, then run the workflow once.
+- **Setup (done once, Nov 2026):** the laptop's memory was copied to `state/` and `state/CLOUD-ON` was created. On GitHub add the secret `SLACK_WEBHOOK_URL` (Settings, Secrets and variables, Actions), set **Pages** to **GitHub Actions**, then run the workflow once.
 
 ## Dashboard sections
-The page is an app with a sidebar. The sections, in this order: **Start here** (what the system does, in one minute), **Overview** (the counts, the pipeline, Last check and Next check at, the run history, and Export for David), **Needs your attention** (carousels to review, official stories with no carousel and why, feeds that failed), **Stories** (every story, with filters), **Carousels** (every carousel with its status, slides, captions, fact check, sources and downloads), **Activity** (every event, with filters), **Sources** (feeds, brands and software), and **How it works** (the steps in plain words).
+The page is an app with a sidebar. The sections, in this order: **Start here** (what the system does and how it works, with the steps and the rules), **Overview** (the counts, the pipeline, Last check and Next check at, the run history, and Export for David), **Needs your attention** (carousels to review, official stories with no carousel and why, feeds that failed), **Stories** (every story, with filters), **Carousels** (every carousel with its status, slides, captions, fact check, sources and downloads), **Activity** (every event, with filters), and **Sources** (feeds, brands and software).
 
 David's copy is the same page rendered with `read_only=True`. It opens on Start here. It needs no internet: fonts, icons, CSS and JS are inside the page (`src/dashboard_assets.py`).
 
@@ -115,4 +115,4 @@ python -m venv .venv
 | `docs/` | `plan-schema.md` and old round reports in `docs/history/` |
 | `.github/workflows/watch.yml` | The hourly cloud run and the GitHub Pages site for David |
 | `.env` | Your Slack address. Private, never committed |
-| `Open Review Dashboard.bat`, `Open TPM News Dashboard.bat`, `Export for David.bat`, `Sync with cloud.bat`, `Start cloud (first time).bat` | The double-click helpers |
+| `Open Review Dashboard.bat`, `Open TPM News Dashboard.bat`, `Export for David.bat`, `Sync with cloud.bat` | The double-click helpers |

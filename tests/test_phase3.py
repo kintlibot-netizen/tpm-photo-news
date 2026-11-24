@@ -544,9 +544,3 @@ def test_photoshop_sample_renders_with_no_design_failures(tmp_path):
     assert not design_check.has_failures(design_check.run_design_check(views, captions, measure_log))
 
 
-def test_sample_writes_status_and_review_readme(tmp_path, monkeypatch):
-    monkeypatch.setattr(carousel, "SAMPLE_ROOT", tmp_path)
-    carousel.run_sample("camera", render=False)
-    folder = tmp_path / "2026-11-11-canon-eos-r8-mark-ii-sample"
-    assert carousel_status.read_status(folder)["status"] == "draft"
-    assert (folder / "README-for-review.txt").exists()

@@ -39,7 +39,7 @@ def test_the_sidebar_lists_every_section_in_the_readme_order(tmp_path):
     page = build(tmp_path, sample_db(tmp_path / "seen.sqlite"))
     nav = re.findall(r'data-nav="([a-z]+)" data-label="([^"]+)"', page)
     assert [label for _, label in nav] == ["Start here", "Overview", "Needs your attention", "Stories", "Carousels",
-                                           "Activity", "Sources", "How it works"]
+                                           "Activity", "Sources"]
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     section = readme.split("## Dashboard sections", 1)[1].split("\n## ", 1)[0]
     missing = [label for _, label in nav if f"**{label}**" not in section]

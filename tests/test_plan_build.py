@@ -10,13 +10,13 @@ from types import SimpleNamespace
 
 import pytest
 from conftest import ROOT
-from test_carousel_bot import FakeGit, FakeSync, project
+from test_laptop_side import FakeGit, FakeSync, project
 from test_phase3 import stored_db
 
 import activity
 import carousel
 import carousel_auto
-import carousel_bot
+import laptop_sync
 import carousel_plan
 import carousel_status
 import classify
@@ -250,7 +250,7 @@ def test_publish_records_sends_the_ready_message_and_pushes_state(tmp_path, monk
     folder.mkdir(parents=True)
     carousel_status.write_build(folder, {"fact_check_passed": True, "lint_passed": True, "design_fail": 0,
                                          "title": "Photoshop 2027 is here"})
-    monkeypatch.setattr(carousel_bot, "_refresh_pages", lambda root: None)
+    monkeypatch.setattr(laptop_sync, "refresh_pages", lambda root: None)
     sent, git, sync = [], FakeGit(), FakeSync()
     result = {"dry_run": False, "folder": folder, "story": 72, "title": "Photoshop 2027 is here", "slides": 5,
               "confirmed": 12, "removed": [], "missing": [], "placed": ["02.jpg"], "design": []}
@@ -267,7 +267,7 @@ def test_publish_does_not_push_when_the_safety_check_fails(tmp_path, monkeypatch
     stored_db(root / "data")
     folder = root / "output" / "carousels" / "x"
     folder.mkdir(parents=True)
-    monkeypatch.setattr(carousel_bot, "_refresh_pages", lambda root: None)
+    monkeypatch.setattr(laptop_sync, "refresh_pages", lambda root: None)
     git = FakeGit()
     summary = plan_build.publish({"dry_run": False, "folder": folder, "story": 3, "title": "t", "slides": 4,
                                   "confirmed": 1, "removed": [], "missing": [], "placed": [], "design": []},
@@ -277,7 +277,7 @@ def test_publish_does_not_push_when_the_safety_check_fails(tmp_path, monkeypatch
     assert "not waiting" in summary["slack"]
 
 
-# ---- the bot and the watcher with Claude off ----
+# ---- the watcher with Claude off ----
 
 def test_only_stories_with_a_plan_are_built_and_a_failed_plan_waits_for_a_new_one(tmp_path):
     db = stored_db(tmp_path)
@@ -292,18 +292,6 @@ def test_only_stories_with_a_plan_are_built_and_a_failed_plan_waits_for_a_new_on
     later = time.time() + 3600
     os.utime(plans / "story-2.json", (later, later))
     assert plan_build.stories_with_plans(db, [(2, "b")], plans)[0] == [(2, "b")]
-
-
-def test_the_bot_with_claude_off_never_calls_claude(tmp_path, monkeypatch):
-    root = project(tmp_path)
-    monkeypatch.setattr(carousel_bot, "webhook_or_none", lambda: None)
-    monkeypatch.setattr(carousel_auto, "pending_stories", lambda db, now: [(5, "Story with no plan")])
-    monkeypatch.setattr(carousel, "run_story", lambda *a, **k: pytest.fail("Claude build must never run"))
-    monkeypatch.setattr(classify, "ask_claude", lambda *a, **k: pytest.fail("Claude must never be called"))
-    summary = carousel_bot.run_once(root, NOW, git=FakeGit(staged=False), sync=FakeSync(), safety=lambda r: [],
-                                    no_claude=True, plan_dir=tmp_path / "plans")
-    assert summary["built"] == ["5: skipped (no plan written yet; Claude is off)"]
-    assert summary["rebuilt"] == []
 
 
 def test_the_watcher_plans_only_mode_never_starts_a_claude_build(tmp_path, monkeypatch):

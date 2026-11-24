@@ -6,8 +6,6 @@ python src/carousel.py --story 12                      Build the carousel for st
 python src/carousel.py --story https://site/post       Same, found by one of the story's article links.
 python src/carousel.py --story 12 --official-url URL   Use this official page instead of searching.
 python src/carousel.py --story 12 --skip-render        Write the text files only (no Playwright needed).
-python src/carousel.py --sample                        Offline visual check: the Canon EOS R8 Mark II sample (every template).
-python src/carousel.py --sample photoshop              Offline visual check: the Photoshop 2027 sample.
 
 Facts always come from the brand's official page. Article sites are only used to find links to it.
 """
@@ -50,13 +48,7 @@ CONFIG_PATH = ROOT / "config" / "carousel.yaml"
 RULES_PATH = ROOT / "config" / "rules.yaml"
 DATA_PATH = ROOT / "data" / "seen.sqlite"
 OUTPUT_ROOT = ROOT / "output" / "carousels"
-SAMPLE_ROOT = ROOT / "output" / "samples"  # offline sample drafts; kept apart from real drafts
 FONT_DIR = ROOT / "assets" / "fonts"
-SAMPLES = {
-    "photoshop": ROOT / "fixtures" / "carousel" / "photoshop-2027.json",
-    "camera": ROOT / "fixtures" / "carousel" / "canon-eos-r8-mark-ii.json",
-}
-DEFAULT_SAMPLE = "camera"
 DEFAULT_MODEL = "sonnet"
 MIN_OFFICIAL_CHARS = official.MIN_OFFICIAL_CHARS
 STOP_ANCHORS = {"the", "and", "for"}
@@ -333,7 +325,7 @@ def plan_for_story(plan_path: Path, draft, redraft: bool = False) -> tuple[dict,
     When the story already has a plan.json, its slide list, order, features and copy are reused and Claude is not asked
     to draft again (edit plan.json to change the copy of a slide). If that plan no longer passes validation, a fresh draft
     is made but it keeps the earlier plan's features in the earlier order, so a fix never drops or reorders a feature.
-    redraft=True (the carousel bot, after a rejection with a note or a failed build) always makes a fresh draft.
+    redraft=True (a rebuild with a review note) always makes a fresh draft.
     Returns (plan data, a note for sources.md; "" when this is a first build)."""
     previous = read_previous_plan(plan_path)
     if redraft and previous is not None:
@@ -729,7 +721,7 @@ def run_story(key: str, official_url: str | None, render: bool, review_note: str
     """One real build, timed step by step (Timing lines in the run log, totals in status.json). Fetched official pages,
     downloaded official images and Claude's answers are reused from data/ for a rebuild, so only what changed is asked
     again. The caches are switched off again when the build ends.
-    review_note: the carousel bot's rebuild after a rejection with a note (or a failed build): a fresh draft that
+    review_note: a rebuild by hand with a review note: a fresh draft that
     follows the note. The fact check and the official image check run exactly as on any build."""
     config = load_config()
     clock = timing.Clock(f"story {key}")
@@ -931,27 +923,11 @@ def _record_settle(key: str, now: datetime, status: str, folder: str | None, mes
         print(f"The build record was not saved ({type(exc).__name__}).")
 
 
-def run_sample(name: str = DEFAULT_SAMPLE, render: bool = True) -> dict:
-    """Offline. The fixture's official_text is a stand-in, marked SAMPLE in every output file."""
-    fixture = json.loads(SAMPLES[name].read_text(encoding="utf-8"))
-    out_dir = SAMPLE_ROOT / f"{fixture['date']}-{fixture['slug']}"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "images").mkdir(parents=True, exist_ok=True)
-    return assemble(
-        fixture["plan"], title=fixture["title"], official_text=fixture["official_text"], verdicts=None,
-        out_dir=out_dir, official_url=fixture["official_url"], article_links=[],
-        press_images=False, render=render, checked_on=fixture["date"], extra_notes=[fixture["note"]],
-        is_sample=True,
-    )
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Carousel drafts with a fact-check pass. Posts nothing.")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--list", action="store_true", help="list sent official stories that can make a carousel")
     group.add_argument("--story", help="stored story id, or one of its article links")
-    group.add_argument("--sample", nargs="?", const=DEFAULT_SAMPLE, choices=sorted(SAMPLES),
-                       help="offline visual check from a saved fixture (default: camera)")
     group.add_argument("--settle", metavar="STORY",
                        help="rebuild an older story if its facts and images still check out, otherwise reject it "
                             "with the reason")
@@ -976,12 +952,9 @@ def main(argv: list[str] | None = None) -> int:
             outcome, message = settle_story(args.settle, args.official_url, render)
             print(f"Story {args.settle}: {outcome}. {message}")
             return 0 if outcome != "not settled" else 1
-        if args.sample:
-            result = run_sample(args.sample, render)
-        else:
-            result = run_story(args.story, args.official_url, render)
-            activity.log_event("carousel", "built", f"Story {args.story} built by hand: {result['folder'].name}, "
-                               f"{result['slides']} slides")
+        result = run_story(args.story, args.official_url, render)
+        activity.log_event("carousel", "built", f"Story {args.story} built by hand: {result['folder'].name}, "
+                           f"{result['slides']} slides")
         print_summary(result)
         return 0
     except Refused as exc:

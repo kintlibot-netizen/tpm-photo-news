@@ -12,7 +12,7 @@ The design is "each side writes only its own files", so a git pull never has a m
                               (approvals), the download zip. Never the candidate image folders.
   state/previews/<folder>/    LAPTOP writes it. Plan previews (output/plan-previews), shown as "Preview, not sent for
                               approval yet".
-  (Layout samples in output/samples are fixtures with no official images: never copied to state/, never shown.)
+  (Old layout samples are never copied to state/ and never shown.)
   Never copied from any carousel folder: .env files, keys, anything with "secret" in its name, official.txt, images.txt.
 
 Only the cloud sends Slack alerts (run.py refuses a live check on the laptop while state/CLOUD-ON exists), so the

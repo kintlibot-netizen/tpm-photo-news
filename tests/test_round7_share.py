@@ -157,7 +157,7 @@ def test_the_pack_holds_no_secret_no_path_from_this_pc_and_no_review_command(pro
 def test_the_pack_page_is_the_read_only_twin_with_no_command_wording(project):
     folder = share_pack.export_pack(now=NOW, root=project)["folder"]
     page = (folder / "index.html").read_text(encoding="utf-8")
-    for kept in ('data-nav="overview"', 'data-nav="attention"', 'data-nav="how"', "Run history", "Feed health",
+    for kept in ('data-nav="overview"', 'data-nav="attention"', "Run history", "Feed health",
                  '<div class="review-area"><div class="review"><span class="tag'):
         assert kept in page, kept
     for gone in ("powershell", 'data-kind="command"', "data-base=", "python.exe", "export_share_pack", ".bat"):

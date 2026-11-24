@@ -432,9 +432,9 @@ def build_story(key: str, plan_path: Path, verdicts_path: Path | None = None, *,
 def publish(result: dict, now: datetime | None = None, *, root: Path = ROOT, git=None, sync=None, safety=None,
             notify=None, webhook=None) -> dict:
     """Records the build, sends the existing "Carousel ready for approval" Slack message and pushes state/ after the
-    public safety check (the carousel bot's own steps). Never called for a dry run."""
+    public safety check (src/laptop_sync.py). Never called for a dry run."""
     import carousel_auto
-    import carousel_bot
+    import laptop_sync
     import cloud_state
     if result.get("dry_run"):
         raise ValueError("a dry run is never published")
@@ -447,7 +447,7 @@ def publish(result: dict, now: datetime | None = None, *, root: Path = ROOT, git
     activity.log_event("carousel", "built", f"Story {result['story']}, {result['title']}: draft ready in "
                        f"{folder.name}, {result.get('slides', '?')} slides (plan written without Claude)", now=now)
     if status["status"] == "waiting_for_david":
-        url = webhook if webhook is not None else carousel_bot.webhook_or_none()
+        url = webhook if webhook is not None else laptop_sync.webhook_or_none()
         if url:
             carousel_auto._notify_safely(notify or carousel_auto.alert.send_to_slack,
                                          carousel_auto.ready_message(result["title"], result), url,
@@ -457,26 +457,26 @@ def publish(result: dict, now: datetime | None = None, *, root: Path = ROOT, git
             summary["slack"] = "not sent (no Slack address in .env)"
     else:
         summary["slack"] = f"not sent (status is {status['status']}, not waiting for approval)"
-    carousel_bot._refresh_pages(root)
+    laptop_sync.refresh_pages(root)
     (sync or cloud_state).push("laptop", root)
-    problems = (safety or carousel_bot._safety)(root)
+    problems = (safety or laptop_sync.safety_problems)(root)
     if problems:
         summary["push"] = "not pushed: the safety check found " + "; ".join(problems[:3])
         return summary
-    summary["push"] = carousel_bot.commit_and_push(git or carousel_bot.run_git, root)
+    summary["push"] = laptop_sync.commit_and_push(git or laptop_sync.run_git, root)
     return summary
 
 
 def sync_first(root: Path = ROOT, git=None, sync=None) -> bool:
     """git pull and state/ into data/ and output/, so the build sees the cloud's latest stories."""
-    import carousel_bot
+    import laptop_sync
     import cloud_state
-    pulled = carousel_bot.pull(git or carousel_bot.run_git, root)
+    pulled = laptop_sync.pull(git or laptop_sync.run_git, root)
     (sync or cloud_state).pull("laptop", root)
     return pulled
 
 
-# ---------- the carousel bot and the watcher with Claude off ----------
+# ---------- the watcher with Claude off ----------
 
 def last_failure_at(db_path: Path, story_id: int) -> datetime | None:
     if not Path(db_path).exists():

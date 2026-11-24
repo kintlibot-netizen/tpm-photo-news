@@ -357,8 +357,8 @@ def ask_claude_read(prompt: str, model: str, folder: Path, timeout: int = 240) -
 
 
 class ClaudeUsageLimit(RuntimeError):
-    """The signed-in Claude plan has reached its usage limit. Nothing is wrong with the story: the carousel bot stops
-    this run without counting a failed build, and tries again on its next hourly run."""
+    """The signed-in Claude plan has reached its usage limit. Nothing is wrong with the story: the build stops
+    without counting a failed build, so it can be tried again later."""
 
 
 USAGE_LIMIT = re.compile(r"usage limit|rate limit|limit reached|limit will reset|out of (?:extra )?usage|"

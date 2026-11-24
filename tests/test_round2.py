@@ -318,32 +318,4 @@ def test_article_site_is_never_the_fact_source(monkeypatch):
 
 # ---- sample modes ----
 
-def test_camera_sample_shows_every_template(tmp_path, monkeypatch):
-    monkeypatch.setattr(carousel, "SAMPLE_ROOT", tmp_path)
-    result = carousel.run_sample("camera", render=False)
-    templates = [v["type"] if v["type"] != "feature" else v["template"] for v in _verified_views(CAMERA)]
-    assert templates == ["cover", "left_body", "comparison", "stat_specs", "stat_hero", "price"]
-    assert result["slides"] == 6
-    assert not design_check.has_failures(result["design"])
-    folder = tmp_path / "2026-11-11-canon-eos-r8-mark-ii-sample"
-    assert "SAMPLE" in (folder / "sources.md").read_text(encoding="utf-8")
 
-
-def test_sample_command_runs_without_network_or_claude(tmp_path, monkeypatch, capsys):
-    monkeypatch.setattr(carousel, "SAMPLE_ROOT", tmp_path)
-    assert carousel.main(["--sample", "photoshop", "--skip-render"]) == 0
-    out = capsys.readouterr().out
-    assert "Slides: 4" in out and "Design check:" in out
-
-
-def test_default_sample_is_the_camera_one(tmp_path, monkeypatch, capsys):
-    monkeypatch.setattr(carousel, "SAMPLE_ROOT", tmp_path)
-    assert carousel.main(["--sample", "--skip-render"]) == 0
-    assert (tmp_path / "2026-11-11-canon-eos-r8-mark-ii-sample" / "factcheck.md").exists()
-
-
-def test_factcheck_file_contains_the_design_section(tmp_path, monkeypatch):
-    monkeypatch.setattr(carousel, "SAMPLE_ROOT", tmp_path)
-    carousel.run_sample("photoshop", render=False)
-    text = (tmp_path / "2026-11-11-photoshop-2027-sample" / "factcheck.md").read_text(encoding="utf-8")
-    assert "## Design check" in text

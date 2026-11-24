@@ -77,7 +77,7 @@ def write_build(folder: Path, build: dict) -> dict:
 
 
 def update_fields(folder: Path, **fields) -> dict:
-    """Saves extra fields (for example the carousel bot's rebuild marker) without changing the status or the history."""
+    """Saves extra fields (for example a timing record) without changing the status or the history."""
     data = read_status(folder)
     data.update(fields)
     _write(folder, data)

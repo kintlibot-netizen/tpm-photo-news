@@ -6,7 +6,7 @@ To rebuild it alone:  python src\\dashboard.py
 
 It is laid out like an app: a sidebar with the sections, a top bar that says when the last check ran, when the next one
 is due and whether the watcher is healthy, and one page per section, in the same order as the README:
-Start here, Overview, Needs your attention, Stories, Carousels, Activity, Sources, How it works.
+Start here (what the system does and how it works), Overview, Needs your attention, Stories, Carousels, Activity, Sources.
 
 Two modes:
   local  Kint's page. Opened through the review server (Open Review Dashboard.bat) the review buttons and downloads
@@ -71,7 +71,7 @@ REVIEW_ACCOUNTS = [("tpm-facebook", "TPM Facebook"), ("tpm-instagram", "TPM Inst
 PAGES = [("start", "Start here", "start"), ("overview", "Overview", "overview"),
          ("attention", "Needs your attention", "attention"), ("stories", "Stories", "stories"),
          ("carousels", "Carousels", "carousels"), ("activity", "Activity", "activity"),
-         ("sources", "Sources", "sources"), ("how", "How it works", "how")]
+         ("sources", "Sources", "sources")]
 # Where each story is in the flow, from news found to posted by hand. Every story is in one stage at a time.
 STAGES = [
     ("found", "News found", "Seen on a site, waiting for a 2nd source or to be sent"),
@@ -505,6 +505,16 @@ def story_stage(story: dict) -> str:
     return carousel_stage(card) if card else "verified"
 
 
+LEGACY_NOISE = ("being made by the carousel bot", "claude code exited", "claude's usage limit", "claude usage limit")
+
+
+def is_legacy_noise(text: str) -> bool:
+    """Old rows from the automatic builder that was removed (it ran Claude on the laptop). They are history that no
+    longer means anything, so the page leaves them out."""
+    low = (text or "").lower()
+    return any(words in low for words in LEGACY_NOISE)
+
+
 def coverage_reason(story: dict, now: datetime) -> tuple[str, str]:
     """Why a sent official story has no finished carousel (or what it has), as (words, chip class)."""
     card = story.get("carousel")
@@ -512,7 +522,7 @@ def coverage_reason(story: dict, now: datetime) -> tuple[str, str]:
         state, cls = _carousel_state(card)
         return f"{state} ({card['name']})", cls
     row = story.get("build_row")
-    if row and row["status"] == "failed":
+    if row and row["status"] == "failed" and not is_legacy_noise(row.get("message") or ""):
         return f"Not made: {row.get('message') or 'no reason recorded'}", "st-fail"
     if row and row["status"] == "needs_kint":
         return carousel_status.WAITING_WORDS, "st-held"
@@ -1189,7 +1199,7 @@ def start_panel(mode: str, counts: dict) -> str:
     blocks = "".join(f'<div class="node"><h3>{esc(t)}</h3><p>{esc(p)}</p></div>' for t, p in lines)
     waiting = counts.get("waiting_david", 0)
     head = ("Start here: the TPM photo news system in one minute" if mode == "share"
-            else "Start here: what this system does")
+            else "Start here: what this system does and how it works")
     note = (f"{SHARE_NOTE} " if mode == "share" else "") + (
         f"Right now {waiting} carousel{'s are' if waiting != 1 else ' is'} waiting for David.")
     return (f'<div class="start-hero"><h1>{esc(head)}</h1><p>{esc(note)}</p>'
@@ -1232,7 +1242,7 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
         last_text = "no check recorded yet"
         run_note, feed_value, articles = "No check recorded yet", "n/a", "n/a"
     all_cards = carousels or []
-    events = events or []
+    events = [e for e in (events or []) if not is_legacy_noise(" ".join(str(v) for v in e.values()))]
     link_carousels(stories, all_cards, data.get("builds", []))
     for story in stories:
         story["stage"] = story_stage(story)
@@ -1291,7 +1301,6 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
                                "export, with its time in Manila.") + activity_panel(events, now)),
         "sources": (page_head("Sources", "The feeds the watcher reads, how each did in the last check, and the "
                               "brands and software it knows.") + sources_panel(feeds_cfg, data["feeds"], rules)),
-        "how": (page_head("How it works", "The whole system on one page.") + how_panel()),
     }
     home = "start" if mode == "share" else "overview"
     badges = {"attention": len(items), "carousels": counts["waiting_david"]}

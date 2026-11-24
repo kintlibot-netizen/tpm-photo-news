@@ -164,8 +164,8 @@ def after_alerts(db_path: Path, stories: list[tuple[int, str]], now: datetime, w
     """stories: (story id, title), in the order to try them. Returns what happened, per story.
 
     build(story_id) returns the assemble result (a dict) or raises. notify(text, webhook) posts to Slack.
-    max_failed: how many failed builds a story may have before it is no longer tried (the carousel bot allows one
-    more, a fresh draft that follows the failure reason). When Claude's usage limit is reached, nothing is recorded
+    max_failed: how many failed builds a story may have before it is no longer tried (one more try is allowed when
+    a caller asks for it). When Claude's usage limit is reached, nothing is recorded
     (it is not the story's fault) and the remaining stories wait for the next run.
     """
     outcomes = []

@@ -412,24 +412,6 @@ def test_a_build_no_longer_renders_the_slow_contact_sheet(tmp_path, monkeypatch)
     assert not (tmp_path / "preview.png").exists()  # an outdated sheet is removed, never shown
 
 
-def test_sample_mode_builds_offline_into_its_own_folder(tmp_path, monkeypatch):
-    monkeypatch.setattr(carousel, "SAMPLE_ROOT", tmp_path)
-    result = carousel.run_sample("photoshop", render=False)
-    folder = tmp_path / "2026-11-11-photoshop-2027-sample"
-    assert result["folder"] == folder and folder.is_dir()
-    sources = (folder / "sources.md").read_text(encoding="utf-8")
-    assert "SAMPLE" in sources
-    assert (folder / "captions.txt").exists() and (folder / "factcheck.md").exists()
-
-
-def test_sample_refuses_hashtags_and_dashes_in_its_own_text(tmp_path, monkeypatch):
-    monkeypatch.setattr(carousel, "SAMPLE_ROOT", tmp_path)
-    carousel.run_sample("photoshop", render=False)
-    for name in ("captions.txt",):
-        text = (tmp_path / "2026-11-11-photoshop-2027-sample" / name).read_text(encoding="utf-8")
-        assert lint_text(name, text) == []
-
-
 def test_item_folder_uses_the_date_and_a_slug(tmp_path, monkeypatch):
     monkeypatch.setattr(carousel, "OUTPUT_ROOT", tmp_path)
     folder = carousel.item_folder("Adobe Releases Photoshop 27.1!", datetime(2026, 11, 11, 12, tzinfo=timezone.utc))
