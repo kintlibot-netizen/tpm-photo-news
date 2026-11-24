@@ -1,0 +1,118 @@
+{
+  "product": {
+    "text": "Lightroom",
+    "quote": "Lightroom 10.0: Fix blinks"
+  },
+  "cover": {
+    "label": "ADOBE",
+    "headline": {
+      "text": "LIGHTROOM 10.0",
+      "quote": "Lightroom 10.0: Fix blinks"
+    },
+    "subline": {
+      "text": "NEW CINEMATIC GLOW",
+      "quote": "and add cinematic glow"
+    },
+    "subline_alt": {
+      "text": "SHOOT TETHERED",
+      "quote": "Fix blinks, shoot tethered"
+    }
+  },
+  "slides": [
+    {
+      "template": "left_body",
+      "label": "NEW",
+      "headline": {
+        "text": "GLOW",
+        "quote": "and add cinematic glow"
+      },
+      "accent": {
+        "text": "BLOOM, HALATION, DIFFUSION",
+        "quote": "Pick from six styles, including Bloom, Halation, and Diffusion"
+      },
+      "body": {
+        "text": "Apply it to the whole photo or limit it to a mask.",
+        "quote": "Apply it to the whole photo or limit it to a mask"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "NEW",
+      "headline": {
+        "text": "TETHER CAPTURE",
+        "quote": "shoot right into Lightroom"
+      },
+      "accent": {
+        "text": "SHOOT RIGHT INTO LIGHTROOM",
+        "quote": "Plug in a supported camera and shoot right into Lightroom"
+      },
+      "body": {
+        "text": "Preview in Live View, use overlays and work with multiple cameras.",
+        "quote": "Preview in Live View and use overlays"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "NEW",
+      "headline": {
+        "text": "DEPTH BASED MASKS",
+        "quote": "Depth-based masks"
+      },
+      "accent": {
+        "text": "NO DEPTH INFO NEEDED",
+        "quote": "even if your photo has no depth info"
+      },
+      "body": {
+        "text": "Pick the foreground, middle ground or background of any photo.",
+        "quote": "Pick the foreground, middle ground, or background, even if your photo has no depth info"
+      },
+      "specs": []
+    }
+  ],
+  "comparison": null,
+  "price": null,
+  "captions": {
+    "david": {
+      "hook": {
+        "text": "I have wanted a tool like Glow for ages.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "Pick from six styles, including Bloom, Halation and Diffusion.",
+          "quote": "Pick from six styles, including Bloom, Halation, and Diffusion"
+        },
+        {
+          "text": "Now I can plug in a supported camera and shoot right into Lightroom.",
+          "quote": "Plug in a supported camera and shoot right into Lightroom"
+        }
+      ],
+      "closing": {
+        "text": "Which glow style would you try first?",
+        "quote": ""
+      }
+    },
+    "tpm": {
+      "hook": {
+        "text": "We think Lightroom 10.0 is a big one.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "Survey view lets you line up similar shots and pick a winner.",
+          "quote": "Line up similar shots and pick a winner"
+        },
+        {
+          "text": "Color Grading now works in masks, so you can tint just the sky.",
+          "quote": "Color Grading in masks: Tint just the sky"
+        }
+      ],
+      "closing": {
+        "text": "Will you shoot tethered into Lightroom now?",
+        "quote": ""
+      }
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "status": "draft",
+  "history": [
+    {
+      "event": "built",
+      "at": "2026-11-24T17:28:33+00:00"
+    }
+  ],
+  "build": {
+    "slides": 5,
+    "confirmed": 20,
+    "removed_count": 0,
+    "removed": [],
+    "missing": [],
+    "placed": [
+      "02.png",
+      "03.png",
+      "04.png"
+    ],
+    "design_summary": "Design check: passed, no findings.",
+    "design_fail": 0,
+    "design_warn": 0,
+    "captions_words": {
+      "david": 38,
+      "tpm": 40
+    },
+    "official_url": "https://community.adobe.com/announcements-678/lightroom-10-0-fix-blinks-shoot-tethered-and-add-cinematic-glow-1654101",
+    "title": "A new cinematic glow tool is coming to Lightroom – and no, it’s not GenAI. These are the 4 biggest updates to Adobe Lightroom 2027",
+    "fact_check_passed": true,
+    "lint_passed": true,
+    "sample": false,
+    "cover_collage": true,
+    "closing": true,
+    "timings": {
+      "official page": 0.2,
+      "official images (checked plan images)": 2.7,
+      "render slides (one browser for all)": 3.5,
+      "design check": 0.0,
+      "total": 6.4
+    }
+  },
+  "built_at": "2026-11-24T17:29:07+00:00",
+  "posts": [],
+  "made_by": "Grok Bot",
+  "made_without_claude": true,
+  "preview": true
+}

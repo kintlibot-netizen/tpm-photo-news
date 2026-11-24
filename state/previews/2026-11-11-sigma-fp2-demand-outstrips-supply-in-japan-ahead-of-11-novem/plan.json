@@ -1,0 +1,152 @@
+{
+  "product": {
+    "text": "Sigma FP2",
+    "quote": "The Sigma FP2 is a camera fully designed"
+  },
+  "cover": {
+    "label": "SIGMA",
+    "headline": {
+      "text": "SIGMA FP2",
+      "quote": "The Sigma FP2 is a camera fully designed"
+    },
+    "subline": {
+      "text": "SMALL, POWERFUL, ADAPTABLE",
+      "quote": "SMALL, POWERFUL, ADAPTABLE"
+    },
+    "subline_alt": {
+      "text": "FULL FRAME, LIGHT AND POCKETABLE",
+      "quote": "Equipped with a full-frame sensor, it remains light and pocketable"
+    }
+  },
+  "slides": [
+    {
+      "template": "left_body",
+      "label": "SENSOR",
+      "headline": {
+        "text": "24.5MP PARTIALLY STACKED",
+        "quote": "24.5-megapixel partially stacked CMOS sensor"
+      },
+      "accent": {
+        "text": "FULL FRAME CMOS SENSOR",
+        "quote": "partially stacked CMOS sensor"
+      },
+      "body": {
+        "text": "Its fast readout greatly reduces rolling shutter distortion.",
+        "quote": "significantly reduces rolling shutter distortion"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "COLOR",
+      "headline": {
+        "text": "13 COLOR MODES",
+        "quote": "Thirteen color modes, selectable with the dedicated"
+      },
+      "accent": {
+        "text": "ONE DEDICATED BUTTON",
+        "quote": "selectable with the dedicated"
+      },
+      "body": {
+        "text": "Includes Teal and Orange, Sunset Red, Forest Green and Monochrome looks.",
+        "quote": "Teal and Orange"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "FRAMING",
+      "headline": {
+        "text": "TILTING LCD",
+        "quote": "Tilting LCD for broader perspectives"
+      },
+      "accent": {
+        "text": "LOW ANGLES TO HIGH ANGLES",
+        "quote": "low angles to high angles"
+      },
+      "body": {
+        "text": "Shoot from new angles while keeping the body compact.",
+        "quote": "keeping its compact body"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "STORAGE",
+      "headline": {
+        "text": "70GB INTERNAL STORAGE",
+        "quote": "70GB of internal storage"
+      },
+      "accent": {
+        "text": "PLUS AN SD CARD SLOT",
+        "quote": "SD card slot"
+      },
+      "body": {
+        "text": "Record straight to the camera, with an SD card slot as well.",
+        "quote": "70GB of internal storage"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "STILL + CINE",
+      "headline": {
+        "text": "STILL AND CINE MODES",
+        "quote": "toggles between STILL mode and CINE mode"
+      },
+      "accent": {
+        "text": "6K OPENGATE RECORDING",
+        "quote": "6K OpenGate recording"
+      },
+      "body": {
+        "text": "One switch on top toggles between dedicated still and cine modes.",
+        "quote": "A single dedicated switch on the top of the body instantly toggles between STILL mode and CINE mode"
+      },
+      "specs": []
+    }
+  ],
+  "comparison": null,
+  "price": null,
+  "captions": {
+    "david": {
+      "hook": {
+        "text": "I want this tiny full frame camera.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "It shoots at up to about 20fps, for up to 200 frames in one burst.",
+          "quote": "shoot continuously at up to approx. 20fps, for up to 200 frames in a single burst"
+        },
+        {
+          "text": "Subject detection now recognizes birds too.",
+          "quote": "now also recognizes birds"
+        }
+      ],
+      "closing": {
+        "text": "Would you carry a full frame camera this small every day?",
+        "quote": ""
+      }
+    },
+    "tpm": {
+      "hook": {
+        "text": "We love how light the Sigma FP2 is.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "It has a new 24.5MP partially stacked full frame sensor.",
+          "quote": "24.5-megapixel partially stacked CMOS sensor"
+        },
+        {
+          "text": "Battery life is about 30% longer than the original fp.",
+          "quote": "approximately 30% longer battery life than the original fp"
+        }
+      ],
+      "closing": {
+        "text": "Still or cine, which mode would you use most?",
+        "quote": ""
+      }
+    }
+  }
+}

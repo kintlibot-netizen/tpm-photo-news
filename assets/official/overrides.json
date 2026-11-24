@@ -26,5 +26,25 @@
       "page_url": "https://helpx.adobe.com/camera-raw/desktop/whats-new/whats-new.html",
       "page_title": "What's new in Camera Raw"
     }
+  },
+  "2026-11-11-a-new-cinematic-glow-tool-is-coming-to-lightroom-and-no-it-s": {
+    "GLOW": {
+      "file": "whats-new-lrd-glow.jpg",
+      "image_url": "https://helpx-prod.scene7.com/is/image/HelpxProdLoc/whats-new-lrd-glow?$pjpeg$&jpegSize=400&wid=2000",
+      "page_url": "https://helpx.adobe.com/lightroom/desktop/introduction/whats-new.html",
+      "page_title": "What's new in Lightroom"
+    },
+    "TETHER CAPTURE": {
+      "file": "whats-new-lrd-tethering.jpg",
+      "image_url": "https://helpx-prod.scene7.com/is/image/HelpxProdLoc/whats-new-lrd-tethering?$pjpeg$&jpegSize=400&wid=2000",
+      "page_url": "https://helpx.adobe.com/lightroom/desktop/introduction/whats-new.html",
+      "page_title": "What's new in Lightroom"
+    },
+    "DEPTH BASED MASKS": {
+      "file": "whats-new-lrd-depth-range.jpg",
+      "image_url": "https://helpx-prod.scene7.com/is/image/HelpxProdLoc/whats-new-lrd-depth-range?$pjpeg$&jpegSize=400&wid=2000",
+      "page_url": "https://helpx.adobe.com/lightroom/desktop/introduction/whats-new.html",
+      "page_title": "What's new in Lightroom"
+    }
   }
 }

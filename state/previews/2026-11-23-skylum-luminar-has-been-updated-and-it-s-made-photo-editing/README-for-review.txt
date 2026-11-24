@@ -12,7 +12,7 @@ What is here:
 
 Slides: 7
 Facts confirmed: 27. Removed as not confirmed: 0.
-Missing images (placeholder shown): 01.jpg
+Missing images (placeholder shown): none
 Design check: Design check: passed, no findings.
 
 To approve:  .venv\Scripts\python.exe src\review.py --approve <this folder> --by "Name"

@@ -1,0 +1,48 @@
+{
+  "status": "draft",
+  "history": [
+    {
+      "event": "built",
+      "at": "2026-11-24T17:20:02+00:00"
+    }
+  ],
+  "build": {
+    "slides": 5,
+    "confirmed": 27,
+    "removed_count": 0,
+    "removed": [],
+    "missing": [],
+    "placed": [
+      "01.webp",
+      "02.webp",
+      "03.png",
+      "04.png",
+      "05.png"
+    ],
+    "design_summary": "Design check: 0 fail, 1 warn.",
+    "design_fail": 0,
+    "design_warn": 1,
+    "captions_words": {
+      "david": 42,
+      "tpm": 37
+    },
+    "official_url": "https://leica-camera.com/en-int/press/leica-m-hammertone-and-leica-m11-p-hammertone",
+    "title": "Leica announced M-A and M11-P Hammertone Special Edition cameras",
+    "fact_check_passed": true,
+    "lint_passed": true,
+    "sample": false,
+    "cover_collage": true,
+    "timings": {
+      "official page": 0.3,
+      "official images (checked plan images)": 4.1,
+      "render slides (one browser for all)": 3.1,
+      "design check": 0.0,
+      "total": 7.6
+    }
+  },
+  "built_at": "2026-11-24T17:27:39+00:00",
+  "posts": [],
+  "made_by": "Grok Bot",
+  "made_without_claude": true,
+  "preview": true
+}

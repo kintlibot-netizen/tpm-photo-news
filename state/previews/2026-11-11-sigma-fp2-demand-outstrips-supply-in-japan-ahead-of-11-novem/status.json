@@ -1,0 +1,50 @@
+{
+  "status": "draft",
+  "history": [
+    {
+      "event": "built",
+      "at": "2026-11-24T17:18:39+00:00"
+    }
+  ],
+  "build": {
+    "slides": 7,
+    "confirmed": 26,
+    "removed_count": 0,
+    "removed": [],
+    "missing": [],
+    "placed": [
+      "01.png",
+      "02.png",
+      "03.png",
+      "04.jpg",
+      "05.jpg",
+      "06.png"
+    ],
+    "design_summary": "Design check: passed, no findings.",
+    "design_fail": 0,
+    "design_warn": 0,
+    "captions_words": {
+      "david": 39,
+      "tpm": 37
+    },
+    "official_url": "https://www.sigma-global.com/en/cameras/fp2/",
+    "title": "Sigma fp2 demand outstrips supply in Japan ahead of 11 November launch",
+    "fact_check_passed": true,
+    "lint_passed": true,
+    "sample": false,
+    "cover_collage": true,
+    "closing": true,
+    "timings": {
+      "official page": 0.1,
+      "official images (checked plan images)": 5.2,
+      "render slides (one browser for all)": 5.6,
+      "design check": 0.0,
+      "total": 11.1
+    }
+  },
+  "built_at": "2026-11-24T17:19:44+00:00",
+  "posts": [],
+  "made_by": "Grok Bot",
+  "made_without_claude": true,
+  "preview": true
+}

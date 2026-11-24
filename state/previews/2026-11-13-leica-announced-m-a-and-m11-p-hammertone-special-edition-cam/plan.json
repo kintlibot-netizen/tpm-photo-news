@@ -1,0 +1,156 @@
+{
+  "product": {
+    "text": "Leica M11-P Hammertone",
+    "quote": "Leica M11-P Hammertone"
+  },
+  "cover": {
+    "label": "LEICA",
+    "headline": {
+      "text": "LEICA M11-P\nHAMMERTONE",
+      "quote": "Leica M-A Hammertone and Leica M11-P Hammertone"
+    },
+    "subline": {
+      "text": "EACH CAMERA IS UNIQUE",
+      "quote": "Each camera is unique due to its distinct surface finish"
+    },
+    "subline_alt": {
+      "text": "PLUS THE LEICA M-A HAMMERTONE",
+      "quote": "the Leica M-A Hammertone and the Leica M11-P Hammertone"
+    }
+  },
+  "slides": [
+    {
+      "template": "left_body",
+      "label": "THE FINISH",
+      "headline": {
+        "text": "HAMMERTONE FINISH",
+        "quote": "their striking hammertone finish"
+      },
+      "accent": {
+        "text": "EACH ONE IS UNIQUE",
+        "quote": "Each camera is unique due to its distinct surface finish"
+      },
+      "body": {
+        "text": "Formed as it dries, when metal pigments create subtle variations in surface tension.",
+        "quote": "formed during the drying process when metal pigments and special additives create subtle variations in surface tension"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "DIGITAL",
+      "headline": {
+        "text": "TRIPLE RESOLUTION",
+        "quote": "Triple Resolution Technology offering"
+      },
+      "accent": {
+        "text": "60, 36 OR 18 MEGAPIXELS",
+        "quote": "Triple Resolution Technology offering 60, 36 or 18 megapixels"
+      },
+      "body": {
+        "text": "Same specifications as the standard model, with 256 GB of internal memory.",
+        "quote": "256 GB of internal memory"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "AUTHENTICITY",
+      "headline": {
+        "text": "CONTENT CREDENTIALS",
+        "quote": "Leica Content Credentials"
+      },
+      "accent": {
+        "text": "VERIFIABLE PROOF OF AUTHORSHIP",
+        "quote": "provides images with verifiable proof of authorship"
+      },
+      "body": {
+        "text": "Images can carry verifiable proof of who made them.",
+        "quote": "provides images with verifiable proof of authorship"
+      },
+      "specs": []
+    }
+  ],
+  "comparison": null,
+  "price": {
+    "label": "PRICE + AVAILABILITY",
+    "prices": [
+      {
+        "value": {
+          "text": "€6,650",
+          "quote": "6,650.00 including VAT"
+        },
+        "caption": {
+          "text": "M-A HAMMERTONE",
+          "quote": "The recommended retail price for the Leica M-A Hammertone"
+        }
+      },
+      {
+        "value": {
+          "text": "€9,950",
+          "quote": "9,950.00 including VAT"
+        },
+        "caption": {
+          "text": "M11-P HAMMERTONE",
+          "quote": "Leica M11-P Hammertone"
+        }
+      }
+    ],
+    "availability": {
+      "text": "WORLDWIDE FROM 12 NOVEMBER 2026",
+      "quote": "available worldwide from 12 November 2026"
+    },
+    "quick_take": {
+      "sentence": {
+        "text": "The M-A is a completely mechanical camera for manual shooting.",
+        "quote": "As a completely mechanical M-Camera, it is entirely dedicated to manual operation"
+      },
+      "question": {
+        "text": "Which one would you pick?",
+        "quote": ""
+      }
+    }
+  },
+  "captions": {
+    "david": {
+      "hook": {
+        "text": "I can not stop staring at this hammertone finish.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "Each camera is unique, since the texture forms during the drying process.",
+          "quote": "formed during the drying process"
+        },
+        {
+          "text": "Its digital twin, the M11-P, shoots at 60, 36 or 18 megapixels.",
+          "quote": "Triple Resolution Technology offering 60, 36 or 18 megapixels"
+        }
+      ],
+      "closing": {
+        "text": "Mechanical M-A or digital M11-P, which would you choose?",
+        "quote": ""
+      }
+    },
+    "tpm": {
+      "hook": {
+        "text": "We think these are the best looking Leicas yet.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "Both arrive worldwide from 12 November 2026.",
+          "quote": "available worldwide from 12 November 2026"
+        },
+        {
+          "text": "The M11-P Hammertone adds verifiable proof of authorship to images.",
+          "quote": "provides images with verifiable proof of authorship"
+        }
+      ],
+      "closing": {
+        "text": "Would you shoot with one or keep it on the shelf?",
+        "quote": ""
+      }
+    }
+  }
+}
