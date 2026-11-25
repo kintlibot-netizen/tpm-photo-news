@@ -268,3 +268,4 @@ time,type,outcome,details,who
 2026-11-25T13:18:51+08:00,check,ok,"Live check: 276 articles read, 166 in the time window, 11 passed the free rules, 0 alerts sent, 21 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-25T15:03:10+08:00,check,ok,"Live check: 276 articles read, 167 in the time window, 11 passed the free rules, 0 alerts sent, 21 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-25T16:20:33+08:00,check,ok,"Live check: 276 articles read, 169 in the time window, 11 passed the free rules, 0 alerts sent, 21 rumors waiting for a 2nd source, 0 feeds failed",
+2026-11-25T18:03:36+08:00,check,some feeds failed,"Live check: 266 articles read, 170 in the time window, 10 passed the free rules, 0 alerts sent, 21 rumors waiting for a 2nd source, 1 feeds failed (Camera Jabber)",
