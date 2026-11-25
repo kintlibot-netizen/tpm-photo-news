@@ -39,6 +39,4 @@ Confirmed: 27. Removed (not confirmed): 0.
 
 ## Design check
 
-| Level | Rule | Where | Finding |
-|---|---|---|---|
-| WARN | widow | slide 01 | one word alone on the last line: 'HAMMERTONE' |
+Passed. No findings.
