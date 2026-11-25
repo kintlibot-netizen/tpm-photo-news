@@ -14,7 +14,10 @@ name: TPM photo news watcher
 
 on:
   schedule:
-    - cron: "7 * * * *"  # every hour at minute 7 (UTC)
+    # GitHub often skips scheduled runs, so the hourly check is asked for twice an hour (the laptop also nudges it,
+    # see src/cloud_nudge.py). Runs never overlap and an alert is never sent twice.
+    - cron: "7 * * * *"
+    - cron: "37 * * * *"
   workflow_dispatch:
 
 # Two runs never overlap: a new run waits until the one before it has finished.
@@ -31,12 +34,12 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: Get the code and the shared state
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Python 3.12 (the same as the laptop's .venv)
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -84,7 +87,7 @@ jobs:
         run: python scripts/export_share_pack.py --cloud
 
       - name: Package the website for GitHub Pages
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: output/share/latest
 
@@ -100,4 +103,4 @@ jobs:
     steps:
       - name: Publish to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

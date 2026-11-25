@@ -137,7 +137,7 @@ def test_the_whole_live_pipeline_runs_offline_and_the_page_shows_it(project, fak
     # Dashboard: the story, its status and the carousel status are on the page. No secret is.
     page = (root / "dashboard" / "index.html").read_text(encoding="utf-8")
     for text in [OFFICIAL_TITLE, "Sent to Slack", "Waiting for David", "Waiting for a 2nd source",
-                 "PetaPixel", "Fuji Rumors", "Zeiss", "capture one", "connect-src 'self'", "Run history"]:
+                 "PetaPixel", "Fuji Rumors", "Hasselblad", "capture one", "connect-src 'self'", "Run history"]:
         assert text in page, text
     assert SECRET not in page
     assert "hooks.slack.com" not in page

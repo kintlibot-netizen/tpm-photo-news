@@ -37,7 +37,7 @@ def test_the_allowlist_and_the_gate_live_in_the_rules_file(rules):
     "Capture One 17 released with new AI masking",
     "Skylum Luminar has been updated with new tools",
     "DJI launches the Mavic 5 Pro drone with a Hasselblad camera",
-    "Apple announces iPhone 18 Pro with a new 48MP telephoto camera",
+    "Apple announces the iPhone 18 Pro with a new 48MP telephoto camera",
 ])
 def test_big_brand_photo_news_still_gets_through(rules, title):
     assert classify.candidate_problem(item(title), rules) is None

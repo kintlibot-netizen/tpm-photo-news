@@ -216,11 +216,17 @@ def story_gate_problem(sources: list[dict], brand: str | None, title: str, rules
     if not rules:
         return None
     pairs = [(src.get("title") or "", src.get("summary") or "") for src in sources if src.get("title")]
+    from_sources = bool(pairs)
     if not pairs:
         pairs = [(title or "", "")]
     problems = []
     for head, excerpt in pairs:
-        found = find_story_brand(head, excerpt, rules["brands"]) or brand
+        # The brand is read again under the current rules. The stored brand still counts when one of its current
+        # names is in the headline (a guarded name such as "Sigma fp2"), or when there is no source text. A brand an
+        # older rule gave by mistake ("editor for iPhone" once read as Apple) no longer counts.
+        found = find_story_brand(head, excerpt, rules["brands"])
+        if not found and brand and (not from_sources or has_word(head, rules["brands"].get(brand, []))):
+            found = brand
         problems.append(gate_problem(head, excerpt, found, rules))
     return problems[0] if all(problems) else None
 

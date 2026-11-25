@@ -1153,14 +1153,23 @@ def activity_panel(events: list[dict], now: datetime) -> str:
 
 
 def sources_panel(feeds_cfg: list[tuple[str, str]], latest_feeds: list[dict], rules: dict | None) -> str:
-    brands = sorted((rules or {}).get("brands", {}).keys())
-    software = (rules or {}).get("software_words", [])
+    rules = rules or {}
+    brands = sorted(rules.get("brands", {}).keys())
+    software = rules.get("software_words", [])
+    big = rules.get("big_brands") or []
+    if big:
+        # Kint's allowlist: only the big brands (and their editing software) are shown, the brands the watcher follows.
+        allowed = {name.lower() for name in big}
+        aliases = {alias.lower() for brand, names in rules.get("brands", {}).items() if brand.lower() in allowed
+                   for alias in names}
+        brands = list(big)
+        software = [word for word in software if word.lower() in allowed or word.lower() in aliases]
     brand_text = ", ".join(esc(b) for b in brands) or "none configured"
     software_text = ", ".join(esc(s) for s in software) or "none configured"
     return (
         panel("Feed health", feeds_panel(feeds_cfg, latest_feeds), f"{len(feeds_cfg)} feeds")
-        + panel("Brands the watcher knows", f'<div class="panel-body"><p>{brand_text}</p></div>')
-        + panel("Editing software the watcher knows", f'<div class="panel-body"><p>{software_text}</p>'
+        + panel("Big photography brands the watcher follows", f'<div class="panel-body"><p>{brand_text}</p></div>')
+        + panel("Editing software the watcher follows", f'<div class="panel-body"><p>{software_text}</p>'
                 '<p class="muted">Adobe Photoshop, Lightroom, Camera Raw, Bridge and Firefly (photo editing) are '
                 'checked too.</p></div>')
     )
@@ -1168,7 +1177,8 @@ def sources_panel(feeds_cfg: list[tuple[str, str]], latest_feeds: list[dict], ru
 
 HOW_IT_WORKS = [
     "Once an hour, the watcher reads the photo news feeds listed under Sources.",
-    "It keeps only stories published in the last 72 hours that name a known brand or editing software.",
+    "It keeps only stories published in the last 72 hours about a big photography brand that are truly for "
+    "photographers (config/rules.yaml: big_brands and photo_relevance).",
     "Rumors are sent to Slack only after a second site reports them. Official launches are sent at once.",
     "After an official alert, the carousel is made by hand from the brand's own page. It is first built as a preview "
     "that nobody is asked to approve.",

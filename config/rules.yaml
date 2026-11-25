@@ -61,8 +61,9 @@ brands:
   Skylum: [skylum, luminar]
   # More lens makers.
   Thypoch: [thypoch]
-  # Phone makers, only when the headline is about the camera or photos (see name_guards).
-  Apple: [iphone, apple]
+  # Phone makers, only when the headline is about the camera or photos (see name_guards). "iPhone" alone is not
+  # Apple: "RAW photo editor for iPhone" is another maker's app.
+  Apple: [apple]
   Google: [google pixel, pixel camera, google photos]
 
 # A name that is also an ordinary word only counts when one of these words is in the same text
@@ -73,7 +74,6 @@ name_guards:
   luminar: [neo, photo, photos, editor, editing, skylum, update, release, ai]
   gimp: [photo, photos, editor, editing, software, image, version, update, release]
   on1: [photo, photos, raw, editor, software, update, release]
-  iphone: [camera, cameras, photo, photos, photography, proraw, lens, lenses, sensor]
   apple: [camera, cameras, photo, photos, photography, proraw, lens, lenses, sensor]
   google pixel: [camera, cameras, photo, photos, photography, lens, lenses, sensor]
 
