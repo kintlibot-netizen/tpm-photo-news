@@ -137,7 +137,7 @@ def test_the_whole_live_pipeline_runs_offline_and_the_page_shows_it(project, fak
     # Dashboard: the story, its status and the carousel status are on the page. No secret is.
     page = (root / "dashboard" / "index.html").read_text(encoding="utf-8")
     for text in [OFFICIAL_TITLE, "Sent to Slack", "Waiting for David", "Waiting for a 2nd source",
-                 "PetaPixel", "Fuji Rumors", "Hasselblad", "capture one", "connect-src 'self'", "Run history"]:
+                 "PetaPixel", "Fuji Rumors", "Hasselblad", "capture one", "connect-src 'self'", "Feed health"]:
         assert text in page, text
     assert SECRET not in page
     assert "hooks.slack.com" not in page
@@ -208,7 +208,7 @@ def test_check_alert_build_zip_approve_download_activity_and_share_pack(project,
     assert f"carousels/{fake_build.name}/view/01.jpg" in page and (latest / "carousels" / fake_build.name / "01.png").exists()
     assert share_pack.scan_pack(latest, root) == []
     # David's copy is the read only twin of Kint's page: the same sections, no command and no PowerShell wording
-    for kept in ("Feed health", "Run history", "Needs your attention", "The steps in plain words"):
+    for kept in ("Feed health", "Carousels to review", "Photo news", "The rules that never change"):
         assert kept in page, kept
     assert "powershell" not in page.lower() and 'data-kind="command"' not in page and "data-base=" not in page
 

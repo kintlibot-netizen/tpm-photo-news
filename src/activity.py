@@ -1,4 +1,4 @@
-"""The activity log: one row per event, in data/activity-log.csv, for the dashboard's Activity page.
+"""The activity log: one row per event, in data/activity-log.csv, kept as the record of every step (no longer shown on the dashboard).
 
 Every hourly check, Slack alert, carousel build, fact check, review action, download, export and health message is
 written here with its time in Manila, its type, its outcome and a short plain description.
@@ -21,7 +21,7 @@ MANILA = timezone(timedelta(hours=8), "Asia/Manila")  # Manila has no daylight s
 COLUMNS = ["time", "type", "outcome", "details", "who"]
 DETAILS_LIMIT = 400
 
-# Event types, in the order the Activity page lists them in its filter, with their plain names.
+# Event types, with their plain names.
 TYPES = {
     "check": "Hourly check",
     "alert": "Slack alert",

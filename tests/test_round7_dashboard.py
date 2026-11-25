@@ -38,8 +38,8 @@ def text_of(page: str) -> str:
 def test_the_sidebar_lists_every_section_in_the_readme_order(tmp_path):
     page = build(tmp_path, sample_db(tmp_path / "seen.sqlite"))
     nav = re.findall(r'data-nav="([a-z]+)" data-label="([^"]+)"', page)
-    assert [label for _, label in nav] == ["Start here", "Overview", "Needs your attention", "Stories", "Carousels",
-                                           "Activity", "Sources"]
+    # Round 12 redesign: four sections, the carousels first.
+    assert [label for _, label in nav] == ["Carousels", "Photo news", "System", "How it works"]
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     section = readme.split("## Dashboard sections", 1)[1].split("\n## ", 1)[0]
     missing = [label for _, label in nav if f"**{label}**" not in section]
@@ -50,23 +50,27 @@ def test_the_sidebar_lists_every_section_in_the_readme_order(tmp_path):
         assert f'data-page="{key}"' in page
 
 
-def test_kints_page_is_the_restored_pre_g_layout(tmp_path):
-    """Restore round: no Advanced area, no "To review" or "News" labels; Kint's page opens on the Overview."""
+def test_kints_page_opens_on_the_carousels_with_no_old_sections(tmp_path):
+    """Round 12: the page opens on the carousels to review. The Overview counts, the pipeline, the run history, the
+    activity log, the coverage table and the long explainers are gone from the page (their data is kept)."""
     page = build(tmp_path, sample_db(tmp_path / "seen.sqlite"))
-    assert 'data-home="overview"' in page and 'class="adv"' not in page and "start-steps" not in page
-    assert "Photo news in, ready to post carousels out" in page and "Needs attention now" in page
-    assert "The steps in plain words" in page and "The rules that never change" in page
+    assert 'data-home="review"' in page and "Carousels to review" in page and 'class="tiles"' in page
+    for gone in ("Run history", "Pipeline: where every story is now", "Every official story and its carousel",
+                 "Needs attention now", "Photo news in, ready to post carousels out", "The steps in plain words",
+                 'id="activity-list"', 'id="story-list"', "This week", "Start here"):
+        assert gone not in page, gone
+    assert "The rules that never change" in page
 
 
-def test_the_top_bar_says_when_the_last_and_next_check_are_and_if_the_watcher_is_well(tmp_path, monkeypatch):
+def test_the_top_bar_has_one_short_health_line(tmp_path, monkeypatch):
     db = sample_db(tmp_path / "seen.sqlite")
     page = build(tmp_path, db)
-    assert "Last check" in page and "Nov 11, 2026, 07:10 PM (Asia/Manila), live run" in page
-    assert "Next check at" in page and "(estimated)" in page and "Next check: hourly while this PC is on" in page
-    assert "Running, some feeds failed" in page  # the sample run has one failed feed
+    # 11:10 UTC is 7:10 PM in Manila; the sample run has one failed feed.
+    assert 'class="health"' in page and "Last check 7:10 PM" in page and "feeds OK" in page
+    assert "(Asia/Manila)" in page and "Running, some feeds failed" in page
     monkeypatch.setattr(dashboard, "read_next_run", lambda: datetime(2026, 11, 11, 13, 0, tzinfo=timezone.utc))
     page = build(tmp_path, db)
-    assert "Nov 11, 2026, 09:00 PM (Asia/Manila)" in page and "(estimated)" not in page
+    assert "next 9:00 PM (Asia/Manila)" in page
 
 
 def test_a_watcher_that_stopped_is_shown_as_late():
@@ -96,26 +100,22 @@ def test_the_page_has_no_em_or_en_dash_and_no_secret(tmp_path, monkeypatch):
 
 def test_someone_new_sees_what_the_system_does_and_what_needs_doing(tmp_path):
     page = text_of(build(tmp_path, sample_db(tmp_path / "seen.sqlite")))
-    assert "Photo news in, ready to post carousels out" in page
-    assert "Needs attention now" in page and "Nothing is posted automatically" in page
-    assert "David's personal Instagram is never used" in page
+    assert "Carousels to review" in page and "How it works" in page
+    assert "Nothing is posted automatically" in page and "David's personal Instagram is blocked" in page
 
 
-# ---- pipeline and carousel coverage ----
+# ---- photo news ----
 
-def test_the_pipeline_counts_each_story_once_and_shows_a_carousel_stage(tmp_path):
+def test_a_sent_official_story_shows_its_carousel_status(tmp_path):
     db = sample_db(tmp_path / "seen.sqlite")
     base = tmp_path / "carousels"
     carousel(base, name="2026-11-11-canon-announces-r6-mark-iii")  # waiting for David, matched by its title
     page = build(tmp_path, db, base)
-    stages = dict(re.findall(r'data-stage="([a-z]+)"><span class="stage-num">\d</span><span class="stage-name">'
-                             r'[^<]+</span><span class="stage-count">(\d+)</span>', page))
-    # the held rumor and the practice-run story are found; the dismissed one is not taken forward
-    assert stages["waiting"] == "1" and stages["found"] == "2" and stages["verified"] == "0"
-    assert 'data-stage="waiting" data-stagei="4"' in page
+    assert "Carousel: Waiting for David" in page and 'class="news-list"' in page
+    assert 'data-stage=' not in page  # the pipeline is gone
 
 
-def test_an_official_story_without_a_carousel_shows_the_reason(tmp_path):
+def test_an_official_story_without_a_carousel_has_no_red_not_made_chip(tmp_path):
     db = sample_db(tmp_path / "seen.sqlite")
     conn = runlog.connect(db)
     with conn:
@@ -124,31 +124,19 @@ def test_an_official_story_without_a_carousel_shows_the_reason(tmp_path):
                      (story_id, NOW.isoformat(), "failed", None, "No official page for this story was found."))
     conn.close()
     page = build(tmp_path, db)
-    assert "Every official story and its carousel" in page
-    assert "Not made: No official page for this story was found." in page
-    assert "official stories have no carousel" in page  # also listed under Needs your attention
+    assert "Canon Announces R6 Mark III" in page and "Not made" not in page
+    assert "Every official story and its carousel" not in page
 
 
 # ---- activity ----
 
-def test_the_activity_page_lists_events_with_filters_and_weekly_counts(tmp_path):
-    activity.log_event("check", "ok", "Live check: 40 articles read", now=NOW - timedelta(hours=1))
+def test_the_activity_log_is_kept_but_not_shown_on_the_page(tmp_path):
+    # Round 12: the activity page is gone from the dashboard. Events are still written to the activity file.
     activity.log_event("alert", "sent", "OFFICIAL: Canon Announces R6 Mark III", now=NOW - timedelta(minutes=50))
-    activity.log_event("review", "approved", "Photoshop 2027", who="Kint", now=NOW - timedelta(minutes=10))
     activity.log_event("export", "made", "TPM-News-Dashboard-2026-11-11.zip, 12.5 MB", now=NOW)
+    assert len(activity.read_events()) == 2
     page = build(tmp_path)
-    for element in ('id="a-type"', 'id="a-search"', 'id="a-range"', 'id="activity-list"'):
-        assert element in page
-    assert page.count('<tr class="ev"') == 4
-    assert '<div class="k">Alerts sent</div><div class="v">1</div>' in page
-    assert '<div class="k">Approved</div><div class="v">1</div>' in page
-    assert "TPM-News-Dashboard-2026-11-11.zip, 12.5 MB" in page and ">Kint<" in page
-    for kind, name in activity.TYPES.items():
-        assert f'<option value="{kind}">{name}</option>' in page
-
-
-def test_no_activity_yet_shows_an_empty_state(tmp_path):
-    assert "No activity recorded yet" in build(tmp_path)
+    assert 'id="activity-list"' not in page and "TPM-News-Dashboard-2026-11-11.zip" not in page
 
 
 # ---- the carousel gallery ----
@@ -202,7 +190,7 @@ def test_the_share_page_is_read_only_with_relative_paths_and_no_commands(tmp_pat
     page = build(tmp_path, sample_db(tmp_path / "seen.sqlite"), base, mode="share",
                  base_for=lambda c: f"carousels/{c['name']}")
     assert "Read only copy. To approve a carousel, tell Kint." in page
-    assert 'data-home="start"' in page and "Start here: the TPM photo news system in one minute" in page
+    assert 'data-home="review"' in page and "Carousels to review" in page and 'class="banner"' in page
     assert f'src="carousels/{folder.name}/01.png"' in page and "../output" not in page
     for forbidden in ("review.py", "data-action=", "--approve", "carousel.py --story", 'id="reviewer"',
                       "export_share_pack", 'data-live-href="', str(dashboard.ROOT), str(tmp_path), "file:///"):
@@ -221,10 +209,9 @@ def test_davids_copy_is_a_read_only_twin_of_kints_page(tmp_path):
     nav = r'data-nav="([a-z]+)" data-label="([^"]+)"'
     assert re.findall(nav, share) == re.findall(nav, local)  # the same sidebar
     assert re.findall(r'data-page="([a-z]+)"', share) == re.findall(r'data-page="([a-z]+)"', local)
-    for section in ("Run history", "Feed health", "Pipeline: where every story is now", "The steps in plain words",
-                    "Every official story and its carousel", "Carousel drafts to review", "Canon Dry Story",
-                    "Sources and image credits", "Design check", "Running, some feeds failed",
-                    folder.name, 'id="carousel-list"', 'id="activity-list"' if 'id="activity-list"' in local else ""):
+    for section in ("Feed health", "Carousels to review", "Photo news", "The rules that never change",
+                    "Canon Announces R6 Mark III", "Sources and image credits", "Design check",
+                    "Running, some feeds failed", folder.name, 'id="carousel-list"', 'class="tiles"'):
         assert section in share, section  # the same content as Kint's page
     assert local.count('class="carousel-card"') == share.count('class="carousel-card"')
     assert "Read only copy. To approve a carousel, tell Kint." in share and 'data-mode="share"' in share
@@ -246,7 +233,7 @@ def test_the_read_only_script_has_no_review_export_or_command_code():
     assert local == dashboard_assets.JS and "PowerShell" in local and "/api/review" in local
     for gone in ("PowerShell", "/api/review", "/api/export", "export-david", "[data-action]", ".bat", "LOCAL-ONLY"):
         assert gone not in share, gone
-    for kept in ("Caption copied.", "openLightbox", "applyStories", "applyActivity", "show(location.hash"):
+    for kept in ("Caption copied.", "openLightbox", "show(location.hash"):
         assert kept in share, kept
 
 

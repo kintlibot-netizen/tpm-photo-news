@@ -64,9 +64,9 @@ def test_every_status_chip_renders_in_both_copies(tmp_path):
     assert waiting.exists()
     for mode in ("local", "share"):
         page = build(tmp_path, carousels_dir=base, mode=mode)
-        for chip in ("Waiting for David", "Approved by David", "Rejected: Wrong product", "Posted to tpm-facebook",
-                     "Draft, waiting for review"):
+        for chip in ("Waiting for David", "Approved by David", "Posted to tpm-facebook", "Draft, waiting for review"):
             assert chip in page, (mode, chip)
+        assert "Rejected: Wrong product" not in page  # round 12: rejected carousels are no longer on the page
 
 
 def test_david_instagram_is_refused_and_posted_needs_approval(tmp_path):

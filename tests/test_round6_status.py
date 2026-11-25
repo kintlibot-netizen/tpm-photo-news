@@ -117,7 +117,7 @@ def test_real_folders_are_listed_and_sample_folders_are_left_off_the_dashboard(t
     cards = dashboard.read_carousels(real_base, sample_base)
     assert {card["name"]: card["kind"] for card in cards} == {"2026-11-11-photoshop-2027": "draft"}
     page = dashboard.carousels_panel(cards)
-    assert 'value="sample"' not in page and 'value="draft"' in page
+    assert 'data-kind="sample"' not in page and 'data-kind="draft"' in page
     assert "Samples are for checking the layout" not in page
 
 

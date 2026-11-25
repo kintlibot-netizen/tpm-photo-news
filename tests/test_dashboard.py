@@ -95,15 +95,16 @@ def build(tmp_path, db, now=NOW):
 
 def test_dashboard_renders_sample_stories_and_required_sections(tmp_path):
     page = build(tmp_path, sample_db(tmp_path / "seen.sqlite"))
+    # Round 12 redesign: the page shows the news worth seeing (sent, or waiting for a 2nd source). Rejected and
+    # practice run stories, the run history and the story filters are no longer on the page (their data is kept).
     for text in [
-        "TPM Photo News", "Next check: hourly while this PC is on",
-        "Sent to Slack", "Waiting for a 2nd source", "Rejected: not relevant", "Practice run only",
-        "Canon Announces R6 Mark III", "Canon R6 Mark IV rumored specs", "Canon Dry Story",
-        "Run history", "Feed health", "Carousels",
-        "Coming in Phase 2: ready-to-post slides and captions will appear here.",
-        'id="search"', 'id="f-label"', 'id="f-brand"', 'id="f-status"', 'id="f-range"',
+        "TPM Photo News", "Sent to Slack", "Waiting for a 2nd source",
+        "Canon Announces R6 Mark III", "Canon R6 Mark IV rumored specs",
+        "Feed health", "Carousels", "Photo news", "No carousels to review right now",
     ]:
         assert text in page, text
+    for text in ["Rejected: not relevant", "Practice run only", "Canon Dry Story", "Run history", 'id="f-status"']:
+        assert text not in page, text
     for name in feed_names():
         assert name in page, name
 
@@ -115,8 +116,8 @@ def test_stories_keep_all_sources_as_links(tmp_path):
 
 def test_last_check_is_shown_in_asia_manila_time(tmp_path):
     page = build(tmp_path, sample_db(tmp_path / "seen.sqlite"))
-    # 11:10 UTC is 19:10 in Manila (UTC+8).
-    assert "Nov 11, 2026, 07:10 PM (Asia/Manila), live run" in page
+    # 11:10 UTC is 19:10 in Manila (UTC+8). The health line gives the time alone when the check was today.
+    assert "Last check 7:10 PM" in page and "(Asia/Manila)" in page
 
 
 def test_summary_numbers_are_correct(tmp_path):
@@ -170,8 +171,8 @@ def test_page_needs_no_network_or_server(tmp_path):
 
 def test_missing_database_still_builds_an_empty_page(tmp_path):
     page = build(tmp_path, tmp_path / "none.sqlite")
-    assert "no check recorded yet" in page
-    assert "No stories recorded yet" in page and "No runs recorded yet" in page
+    assert "No check recorded yet." in page
+    assert "No carousels to review right now" in page and "No big brand news in the last two weeks" in page
 
 
 def test_existing_data_survives_the_new_tables(tmp_path):
@@ -206,8 +207,7 @@ def test_stories_from_before_run_history_are_still_shown(tmp_path):
     store.db.close()
     page = build(tmp_path, db)
     assert "Adobe Releases Photoshop 27.1" in page
-    assert "Recorded before run history began" not in page
-    assert "1 sent before run history began (no date)" in page
+    assert "Recorded before run history began" not in page and "Sent to Slack" in page
 
 
 def test_repeated_status_is_not_saved_again(tmp_path):
@@ -225,12 +225,14 @@ def test_repeated_status_is_not_saved_again(tmp_path):
     conn.close()
 
 
-def test_run_history_keeps_the_latest_20(tmp_path):
+def test_the_page_reads_only_the_latest_check_and_shows_no_run_history(tmp_path):
+    # Round 12: the 20 row run history table is gone; the health line uses the latest check only.
     db = tmp_path / "seen.sqlite"
     for hour in range(25):
         runlog.record_run(db, "live", NOW + timedelta(hours=hour), NOW, COUNTS, FEEDS, [])
+    assert len(dashboard.read_database(db)["runs"]) == 1
     page = build(tmp_path, db)
-    assert page.count("<tr><td>") == 20
+    assert "Run history" not in page and "<tr><td>" not in page
 
 
 @pytest.mark.parametrize(
@@ -260,9 +262,10 @@ def test_dry_run_saves_history_and_rebuilds_the_page(monkeypatch, tmp_path):
     monkeypatch.setattr(requests, "post", forbidden)
     assert run.main(["--dry-run", "--no-claude"]) == 0
     page = (tmp_path / "dashboard" / "index.html").read_text(encoding="utf-8")
-    assert "Practice run only" in page and "Canon Announces R6 Mark III" in page
+    # A practice run story is not news, so it is not on the page; the feed health still shows the failed feed.
+    assert "Practice run only" not in page
     assert "Broken Feed" in page and "The site took too long to answer." in page
-    assert "Dry run" in page and SECRET_TOKEN not in page
+    assert "feeds OK" in page and SECRET_TOKEN not in page
 
 
 def test_live_run_marks_the_alert_and_rebuilds_the_page(monkeypatch, tmp_path):

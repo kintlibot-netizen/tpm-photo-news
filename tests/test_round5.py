@@ -87,8 +87,10 @@ def test_dashboard_shows_the_corrected_brand_for_a_stored_story(tmp_path, rules,
         db_path=db, out_path=tmp_path / "index.html", sources_path=ROOT / "config" / "sources.yaml",
         rules_path=ROOT / "config" / "rules.yaml", now=now,
     )
-    page = out.read_text(encoding="utf-8")
-    assert 'data-brand="Canon"' in page and 'data-brand="Sony"' not in page
+    # Round 12: the story table is gone, so the corrected brand is read from the stories the page is built from.
+    assert out.exists()
+    stories = dashboard.build_stories(dashboard.read_database(db), dashboard.load_rules(ROOT / "config" / "rules.yaml"))
+    assert [s["brand"] for s in stories] == ["Canon"]
 
 
 # ---- stored stories are judged again under the current rules ----
@@ -200,11 +202,11 @@ def test_cards_and_list_come_from_the_same_stories(tmp_path, now):
     store.mark_skipped(skipped, 'Skipped by the free rules: contains "i took".')
     store.db.close()
     page = build(tmp_path, db)
-    assert '<div class="k">Waiting for a 2nd source</div><div class="v">1</div>' in page
-    assert '<div class="k">Skipped</div><div class="v">1</div>' in page
+    # Round 12: a rumor waiting for a 2nd source is listed under Photo news; a skipped story is not news and is
+    # left off the page (it stays in the watcher's data).
     assert '<span class="tag st-held">Waiting for a 2nd source</span>' in page
-    assert '<span class="tag st-rej">Skipped</span>' in page
-    assert "Skipped by the free rules: contains &quot;i took&quot;." in page
+    assert "Canon R6 Mark IV rumored specs" in page and SONY_KIT not in page
+    assert "Skipped by the free rules" not in page
     assert waiting.id and skipped.id
 
 
@@ -214,9 +216,15 @@ def test_stories_are_cards_not_a_cramped_table(tmp_path, now):
     save(store, JAPAN, "Sony", source_type="news", source="Digital Camera World", summary=JAPAN_SUMMARY, now=now)
     store.db.close()
     page = build(tmp_path, db)
-    assert 'id="story-list"' in page and 'class="story"' in page
     assert "<th>Claude's label reason</th>" not in page and "<th>Headline</th>" not in page
-    assert "max-width:1100px" in page and "overflow-wrap:anywhere" in page
+    assert 'class="news-list"' not in page  # not sent yet, so not news yet
+    db2 = tmp_path / "two.sqlite"
+    store = Store(db2)
+    story = save(store, JAPAN, "Sony", source_type="news", source="Digital Camera World", summary=JAPAN_SUMMARY, now=now)
+    store.mark_alerted(story, OFFICIAL)
+    store.db.close()
+    page = build(tmp_path, db2)
+    assert 'class="news-list"' in page and 'class="news-item"' in page and "overflow-wrap:anywhere" in page
 
 
 def test_page_shows_current_rules_before_the_next_run(tmp_path, now):
@@ -226,10 +234,11 @@ def test_page_shows_current_rules_before_the_next_run(tmp_path, now):
     firmware = save(store, XT_FIRMWARE, "Fujifilm", summary=SOFT, now=now)
     store.set_claude_label(firmware, RUMOR)  # an old label, made under no rules version
     store.db.close()
+    stories = dashboard.build_stories(dashboard.read_database(db), dashboard.load_rules(ROOT / "config" / "rules.yaml"))
+    status = {s["title"]: s["status"] for s in stories}
+    assert status[SONY_KIT] == runlog.SKIPPED and status[XT_FIRMWARE] == runlog.WAITING_SEND
     page = build(tmp_path, db)
-    assert '<span class="tag st-rej">Skipped</span>' in page
     assert '<span class="tag st-held">Waiting for a 2nd source</span>' not in page
-    assert '<span class="tag st-held">Waiting to send</span>' in page
 
 
 def test_no_placeholder_reason_when_there_is_none(tmp_path, now):
@@ -258,7 +267,7 @@ def test_status_words_on_the_page_are_plain(tmp_path, now):
           "first_seen": now.isoformat(), "sources": "[]"}],
     )
     page = build(tmp_path, db)
-    assert "Sent to Slack" in page and "Practice run only" in page
+    assert "Sent to Slack" in page and "Practice run only" not in page  # practice runs are not on the page
     for old in ("Alerted to Slack", "Held - waiting", "Dry run only"):
         assert old not in page
 

@@ -278,8 +278,10 @@ def test_dashboard_offers_the_command_only_for_sent_official_stories(tmp_path):
         rules_path=ROOT / "config" / "rules.yaml", now=NOW,
     )
     page = out.read_text(encoding="utf-8")
-    assert f"carousel.py --story {official_story.id}" in page
-    assert f"carousel.py --story {rumor_story.id}" not in page
+    # Round 12: the story drawer with its carousel.py command is gone (carousels are made by hand from a written
+    # plan), so the page offers no carousel command for any story. The sent official story is listed as news.
+    assert "carousel.py --story" not in page
+    assert official_story.title in page and rumor_story.id
 
 
 # ---- placeholders and images ----

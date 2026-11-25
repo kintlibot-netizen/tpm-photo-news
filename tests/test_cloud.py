@@ -206,12 +206,16 @@ def test_needs_kint_is_marked_once_and_is_not_a_failed_build(tmp_path):
     assert FAKE_WEBHOOK not in sent[0] and "Nothing is posted" in sent[0]
 
 
-def test_the_dashboard_says_needs_kint_with_the_reason():
-    story = {"carousel": None, "build_row": {"status": "needs_kint", "message": carousel_auto.NEEDS_KINT_REASON},
-             "first_seen": NOW}
-    words, cls = dashboard.coverage_reason(story, NOW)
-    assert words.startswith("Waiting for a carousel.") and cls == "st-held"
-    assert "carousel bot" not in words and "Nothing to do now" in words
+def test_the_page_never_shows_old_carousel_bot_wording():
+    # Round 12: the per story "Not made" coverage table is gone. An official story with no carousel yet simply has
+    # no carousel chip on Photo news; the old carousel bot wording can never come back on the page.
+    now = NOW
+    story = {"story_id": 1, "title": "Canon EOS R9 announced", "brand": "Canon", "label": "OFFICIAL",
+             "status": "ALERTED", "summary": "", "sources": [], "first_seen": now, "sent_at": now,
+             "carousel": None, "official_sent": True,
+             "build_row": {"status": "needs_kint", "message": carousel_auto.NEEDS_KINT_REASON}}
+    html = dashboard.news_item(story, now)
+    assert "Sent to Slack" in html and "carousel bot" not in html and "Not made" not in html
 
 
 # ---- public repo safety ----

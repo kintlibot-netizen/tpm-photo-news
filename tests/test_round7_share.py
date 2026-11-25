@@ -60,26 +60,28 @@ def test_the_pack_is_a_folder_and_a_zip_with_the_dashboard_slides_and_zips(proje
         names = archive.namelist()
     assert "TPM-News-Dashboard-2026-11-13/index.html" in names
     assert "TPM-News-Dashboard-2026-11-13/carousels/2026-11-11-photoshop-2027/02.png" in names
-    assert result["carousels"] == 3 and result["size_mb"] < 100  # the layout sample is never included
+    # the layout sample and the rejected carousel are never included (round 12: they are not on the page)
+    assert result["carousels"] == 2 and result["size_mb"] < 100
 
 
-def test_every_carousel_is_in_davids_copy_with_its_status(project):
+def test_davids_copy_has_the_carousels_worth_reviewing_and_no_rejected_or_samples(project):
+    # Round 12: rejected carousels and layout samples are no longer shown, so they are not in the pack either.
     folder = share_pack.export_pack(now=NOW, root=project)["folder"]
     page = (folder / "index.html").read_text(encoding="utf-8")
+    assert 'id="car-2026-11-11-photoshop-2027"' in page
     name = "2026-11-10-old-camera-raw"
-    assert f'id="car-{name}"' in page and (folder / "carousels" / name / "01.png").exists()
-    assert "Rejected: Facts came from a 2024 post" in page
+    assert f'id="car-{name}"' not in page and not (folder / "carousels" / name).exists()
+    assert "Rejected: Facts came from a 2024 post" not in page
     sample = "2026-11-11-canon-eos-r8-mark-ii-sample"  # a layout fixture with no official images: never shown
     assert sample not in page and not (folder / "carousels" / sample).exists()
     assert "Layout sample not for posting" not in page and 'data-kind="sample"' not in page
-    assert 'value="all" selected' in page  # the default view is All carousels
 
 
 def test_the_page_opens_from_the_pack_with_relative_paths_and_the_read_only_note(project):
     folder = share_pack.export_pack(now=NOW, root=project)["folder"]
     page = (folder / "index.html").read_text(encoding="utf-8")
     assert "Read only copy. To approve a carousel, tell Kint." in page
-    assert "Start here" in page and 'data-home="start"' in page
+    assert "Carousels to review" in page and 'data-home="review"' in page
     assert 'src="carousels/2026-11-11-photoshop-2027/view/01.jpg"' in page  # the small preview
     assert 'href="carousels/2026-11-11-photoshop-2027/01.png" download' in page  # the full slide
     assert 'href="carousels/2026-11-11-photoshop-2027/2026-11-11-photoshop-2027.zip"' in page
@@ -124,9 +126,9 @@ def test_previews_for_the_page_and_full_slides_for_the_downloads(project):
     assert (slide_dir / "01.png").read_bytes() == b"png 1"  # the full slide, unchanged
     with zipfile.ZipFile(slide_dir / "2026-11-11-photoshop-2027.zip") as archive:
         assert archive.read("01-cover.png") == b"png 1" and not any(n.endswith(".jpg") for n in archive.namelist())
-    assert result["previews"] == 12
+    assert result["previews"] == 8  # round 12: the rejected carousel (4 slides) is no longer copied
     event = next(e for e in activity.read_events() if e["type"] == "export")
-    assert "12 previews" in event["details"] and "latest folder refreshed" in event["details"]
+    assert "8 previews" in event["details"] and "latest folder refreshed" in event["details"]
 
 
 def test_without_chromium_the_page_shows_the_full_slides(project, monkeypatch):
@@ -157,7 +159,7 @@ def test_the_pack_holds_no_secret_no_path_from_this_pc_and_no_review_command(pro
 def test_the_pack_page_is_the_read_only_twin_with_no_command_wording(project):
     folder = share_pack.export_pack(now=NOW, root=project)["folder"]
     page = (folder / "index.html").read_text(encoding="utf-8")
-    for kept in ('data-nav="overview"', 'data-nav="attention"', "Run history", "Feed health",
+    for kept in ('data-nav="review"', 'data-nav="news"', 'data-nav="system"', "Feed health",
                  '<div class="review-area"><div class="review"><span class="tag'):
         assert kept in page, kept
     for gone in ("powershell", 'data-kind="command"', "data-base=", "python.exe", "export_share_pack", ".bat"):
@@ -191,7 +193,7 @@ def test_the_export_and_its_size_are_logged(project):
     result = share_pack.export_pack(now=NOW, root=project)
     event = next(e for e in activity.read_events() if e["type"] == "export")
     assert event["outcome"] == "made" and result["zip"].name in event["details"] and " MB" in event["details"]
-    assert "3 carousels" in event["details"] and "left out (no slides)" in event["details"]
+    assert "2 carousels" in event["details"] and "left out (no slides, rejected or layout samples)" in event["details"]
 
 
 def test_a_second_export_the_same_day_replaces_the_first(project):

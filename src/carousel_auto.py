@@ -146,7 +146,7 @@ def ready_message(title: str, result: dict) -> str:
         f"Official images placed: {placed}",
         f"Text only slides (no official image of that feature): {missing}",
         f"Design check: {fails} fail, {warns} warn.",
-        "Approve or reject it in your dashboard (Needs your attention).",
+        "Approve or reject it in your dashboard (Carousels).",
         f"Dashboard: {DASHBOARD_URL}",
     ]
     return alert.escape("\n".join(lines))

@@ -4,9 +4,10 @@ The page is one static file with inline CSS, JS, icons and fonts (dashboard_asse
 and it never contains the Slack webhook or any other secret. run.py rebuilds it at the end of every run.
 To rebuild it alone:  python src\\dashboard.py
 
-It is laid out like an app: a sidebar with the sections, a top bar that says when the last check ran, when the next one
-is due and whether the watcher is healthy, and one page per section, in the same order as the README:
-Start here (what the system does and how it works), Overview, Needs your attention, Stories, Carousels, Activity, Sources.
+It is laid out like an app: a sidebar with the sections, a top bar with one short health line (last check, feeds,
+next check), and one page per section, in the same order as the README: Carousels (the home page: the carousels to
+review), Photo news (big brand stories of the last two weeks), System (watcher and feed health) and How it works.
+Run history, the activity log and hidden, rejected, skipped or practice run stories are not shown (their data is kept).
 
 Two modes:
   local  Kint's page. Opened through the review server (Open Review Dashboard.bat) the review buttons and downloads
@@ -43,48 +44,16 @@ from dashboard_assets import icon
 
 ROOT = Path(__file__).resolve().parent.parent
 MANILA = timezone(timedelta(hours=8), "Asia/Manila")  # Manila has no daylight saving time.
-HISTORY_ROWS = 20
-ACTIVITY_ROWS = 500
-MODE_NAMES = {"live": "Live", "dry": "Dry run"}
+RUNS_READ = 1  # only the latest check is shown (the health line); run history is not on the page
 STORY_COLUMNS = (
     "id", "title", "brand", "first_seen", "last_alert_label", "dismissed",
     "claude_label", "skipped", "review_version",
 )
-STATUS_CLASS = {
-    runlog.ALERTED: "st-alert",
-    runlog.HELD: "st-held",
-    runlog.WAITING_SEND: "st-held",
-    runlog.REJECTED: "st-rej",
-    runlog.SKIPPED: "st-rej",
-    runlog.DRY_ONLY: "st-dry",
-    runlog.FAILED: "st-fail",
-}
-PILL_CLASS = {classify.OFFICIAL: "pill-official", classify.RUMOR: "pill-rumor", "REJECTED": "pill-rejected",
-              "SKIPPED": "pill-rejected"}
-ALL_STATUSES = [
-    runlog.ALERTED, runlog.HELD, runlog.REJECTED, runlog.SKIPPED,
-    runlog.DRY_ONLY, runlog.FAILED, runlog.WAITING_SEND,
-]
 REVIEW_ACCOUNTS = [("tpm-facebook", "TPM Facebook"), ("tpm-instagram", "TPM Instagram"),
                    ("david-facebook", "David Facebook")]
-# The sidebar, in the README's order. "start" is the one page explainer, the home page of David's copy.
-PAGES = [("start", "Start here", "start"), ("overview", "Overview", "overview"),
-         ("attention", "Needs your attention", "attention"), ("stories", "Stories", "stories"),
-         ("carousels", "Carousels", "carousels"), ("activity", "Activity", "activity"),
-         ("sources", "Sources", "sources")]
-# Where each story is in the flow, from news found to posted by hand. Every story is in one stage at a time.
-STAGES = [
-    ("found", "News found", "Seen on a site, waiting for a 2nd source or to be sent"),
-    ("verified", "Verified, sent", "Official, or 2 sites. Sent to Slack"),
-    ("drafted", "Carousel drafted", "Built from the official page"),
-    ("checked", "Fact checked", "Facts confirmed, a design fix is needed"),
-    ("waiting", "Waiting for David", "Passed every check"),
-    ("approved", "Approved", "Ready to post by hand"),
-    ("posted", "Posted", "Posted by hand in Meta Business Suite"),
-]
-STAGE_NAMES = dict((key, name) for key, name, _ in STAGES) | {"out": "Not taken forward"}
-STAGE_CLASS = {"found": "st-held", "verified": "st-alert", "drafted": "st-held", "checked": "st-held",
-               "waiting": "st-accent", "approved": "st-ok", "posted": "st-ok", "out": "st-rej"}
+# The sidebar. The carousels to review come first: that is the home page of Kint's page and David's copy.
+PAGES = [("review", "Carousels", "carousels"), ("news", "Photo news", "stories"),
+         ("system", "System", "activity"), ("how", "How it works", "how")]
 SHARE_NOTE = "Read only copy. To approve a carousel, tell Kint."
 HEALTHY_HOURS = 2
 
@@ -187,7 +156,7 @@ def read_database(db_path: Path) -> dict:
         tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         if "runs" in tables:
             data["runs"] = [dict(r) for r in db.execute(
-                "SELECT * FROM runs ORDER BY id DESC LIMIT ?", (HISTORY_ROWS,))]
+                "SELECT * FROM runs ORDER BY id DESC LIMIT ?", (RUNS_READ,))]
             if data["runs"] and "feed_results" in tables:
                 data["feeds"] = [dict(r) for r in db.execute(
                     "SELECT feed, ok, items, error FROM feed_results WHERE run_id=?",
@@ -341,7 +310,12 @@ def split_hidden(stories: list[dict], rules: dict | None) -> tuple[list[dict], l
     left off the page and David's copy. Nothing is deleted: the story stays in the watcher's data, and it shows again
     if the rules change. Returns (shown, hidden); each hidden story gets its reason in story["hidden"]."""
     shown, hidden = [], []
+    by_hand = {int(n) for n in ((rules or {}).get("hidden_story_ids") or [])}
     for story in stories:
+        if story.get("story_id") in by_hand:
+            story["hidden"] = "Hidden by Kint (rules.yaml hidden_story_ids)"
+            hidden.append(story)
+            continue
         reason = classify.story_gate_problem(story.get("sources") or [], story.get("brand"), story.get("title") or "",
                                              rules) if rules else None
         if reason:
@@ -444,12 +418,6 @@ def read_carousels(carousels_dir: Path, samples_dir: Path | None = None,
     return cards
 
 
-CAROUSEL_FILTERS = (("all", "All carousels"), ("waiting_for_david", "Waiting for David"), ("draft", "Draft"),
-                    ("preview", "Preview"), ("approved", "Approved"), ("rejected", "Rejected"),
-                    ("posted", "Posted"))
-GROUP_TITLES = {"preview": "Previews, not sent for approval yet", "sample": "Layout samples, not for posting"}
-
-
 def slides_without_image(card: dict) -> list[int]:
     """The slide numbers that show no official image. build["missing"] names the empty image slots ("03.jpg",
     "05-old.jpg"); the cover counts as having images when it is a collage of the feature images."""
@@ -491,19 +459,6 @@ def _carousel_state(card: dict) -> tuple[str, str]:
     return "Draft, waiting for review", "st-held"
 
 
-def carousel_stage(card: dict) -> str:
-    status = card["status"]
-    if status == "posted":
-        return "posted"
-    if status == "approved":
-        return "approved"
-    if status == "waiting_for_david":
-        return "waiting"
-    if status == "rejected":
-        return "out"
-    return "checked" if card["build"].get("fact_check_passed") else "drafted"
-
-
 def link_carousels(stories: list[dict], cards: list[dict], builds: list[dict]) -> None:
     """Gives each story its carousel card (story["carousel"]) and last build attempt (story["build_row"]).
     A carousel belongs to a story through the build record, or else through the folder name made from its title."""
@@ -526,60 +481,7 @@ def link_carousels(stories: list[dict], cards: list[dict], builds: list[dict]) -
             story["carousel"] = next((c for c in real if c["name"][11:] == slug), None)
 
 
-def story_stage(story: dict) -> str:
-    status = story["status"]
-    if status in (runlog.REJECTED, runlog.SKIPPED):
-        return "out"
-    if status != runlog.ALERTED:
-        return "found"
-    card = story.get("carousel")
-    return carousel_stage(card) if card else "verified"
-
-
-LEGACY_NOISE = ("being made by the carousel bot", "claude code exited", "claude's usage limit", "claude usage limit")
-
-
-def is_legacy_noise(text: str) -> bool:
-    """Old rows from the automatic builder that was removed (it ran Claude on the laptop). They are history that no
-    longer means anything, so the page leaves them out."""
-    low = (text or "").lower()
-    return any(words in low for words in LEGACY_NOISE)
-
-
-def coverage_reason(story: dict, now: datetime) -> tuple[str, str]:
-    """Why a sent official story has no finished carousel (or what it has), as (words, chip class)."""
-    card = story.get("carousel")
-    if card:
-        state, cls = _carousel_state(card)
-        return f"{state} ({card['name']})", cls
-    row = story.get("build_row")
-    if row and row["status"] == "failed" and not is_legacy_noise(row.get("message") or ""):
-        return f"Not made: {row.get('message') or 'no reason recorded'}", "st-fail"
-    if row and row["status"] == "needs_kint":
-        return carousel_status.WAITING_WORDS, "st-held"
-    first = story.get("first_seen")
-    if first and now - first > timedelta(hours=72):
-        return "Not made: older than 72 hours. It can still be made by hand from the official page.", "st-rej"
-    return "Not made yet: waiting for a carousel, made by hand from the official page.", "st-held"
-
-
 # ---------- rendering: pieces ----------
-
-def card(label: str, value, note: str) -> str:
-    return (
-        '<div class="card">'
-        f'<div class="k">{esc(label)}</div>'
-        f'<div class="v">{esc(value)}</div>'
-        f'<div class="n">{esc(note)}</div>'
-        "</div>"
-    )
-
-
-def options(values, first: str, first_value: str = "") -> str:
-    items = [f'<option value="{esc(first_value)}">{esc(first)}</option>']
-    items += [f'<option value="{esc(v)}">{esc(v)}</option>' for v in values]
-    return "".join(items)
-
 
 def panel(title: str, body: str, count: str = "", extra: str = "") -> str:
     count_html = f'<span class="count">{esc(count)}</span>' if count else ""
@@ -601,117 +503,6 @@ def source_links(story: dict) -> str:
         else:
             links.append(f"<span>{name}</span>")
     return links
-
-
-def story_drawer(story: dict, number: int, mode: str) -> str:
-    """The detail drawer of one story: summary, why, sources, its carousel and fact check."""
-    status = story["status"]
-    parts = [f'<template id="d-{number}">',
-             f'<h2>{esc(display_text(story["title"]))}</h2>',
-             '<div class="chips">'
-             f'<span class="pill {PILL_CLASS.get(story["pill"], "pill-rumor")}">{esc(story["pill"])}</span>'
-             f'<span class="tag {STATUS_CLASS.get(status, "st-dry")}">{esc(status)}</span>'
-             f'<span class="tag stage {STAGE_CLASS[story["stage"]]}">{esc(STAGE_NAMES[story["stage"]])}</span></div>']
-    if story["summary"]:
-        parts.append(f'<div><h3>Summary</h3><p class="summary">{esc(display_text(story["summary"]))}</p></div>')
-    if story["reason"] and not story["reason"].startswith("Matched by the free rules only"):  # old rows: noise
-        prefix = "" if status == runlog.SKIPPED else "Label check: "
-        parts.append(f'<div><h3>Why</h3><p class="why">{esc(prefix + story["reason"])}</p></div>')
-    rows = [
-        ("Brand", story["brand"] or "Unbranded"),
-        ("Category", category_name(story["category"]) if story["category"] else "Not set"),
-        ("First seen", f"{show_time(story['first_seen'])} (Asia/Manila)"),
-        ("Sent to Slack", f"{show_time(story['sent_at'])} (Asia/Manila)" if story.get("sent_at") else "Not sent"),
-    ]
-    parts.append('<dl class="kv">' + "".join(f"<dt>{esc(k)}</dt><dd>{esc(v)}</dd>" for k, v in rows) + "</dl>")
-    links = source_links(story)
-    items = "".join(f"<li>{link}</li>" for link in links) or "<li>None recorded.</li>"
-    parts.append(f'<div><h3>Sources</h3><ul class="src-list">{items}</ul></div>')
-    card_ = story.get("carousel")
-    if card_:
-        build = card_["build"]
-        state, cls = _carousel_state(card_)
-        parts.append(
-            '<div><h3>Carousel and fact check</h3>'
-            f'<p><span class="tag {cls}">{esc(state)}</span></p>'
-            f'<p class="summary">Facts: {esc(build.get("confirmed", "n/a"))} confirmed against the official page, '
-            f'{esc(build.get("removed_count", "n/a"))} removed as not confirmed. '
-            f'{esc(build.get("design_summary", ""))}</p>'
-            f'<p><button type="button" class="btn small" data-go="carousels" data-target="car-{esc(card_["name"])}">'
-            'Open the carousel</button></p></div>')
-    elif story.get("official_sent"):
-        reason, cls = coverage_reason(story, story["now"])
-        parts.append(f'<div><h3>Carousel</h3><p><span class="tag {cls}">{esc(reason)}</span></p></div>')
-    if mode == "local" and status == runlog.ALERTED and story["label"] == classify.OFFICIAL and story.get("story_id"):
-        command = f"python src\\carousel.py --story {int(story['story_id'])}"
-        parts.append(f'<div><h3>Make a carousel by hand</h3><p class="make">Copy and run: <code>{esc(command)}</code>'
-                     f'</p></div>')
-    parts.append("</template>")
-    return "".join(parts)
-
-
-def story_row(story: dict, number: int) -> str:
-    status = story["status"]
-    pill = story["pill"]
-    brand = story["brand"] or "Unbranded"
-    search = display_text(" ".join([
-        story["title"], brand, story["category"], status, pill, story["reason"], story["summary"],
-        STAGE_NAMES[story["stage"]], " ".join(s.get("source") or "" for s in story["sources"]),
-    ])).lower()
-    stamp = int(story["first_seen"].timestamp() * 1000) if story["first_seen"] else 0
-    stage_index = [key for key, _, _ in STAGES].index(story["stage"]) if story["stage"] != "out" else -1
-    tags = [f'<span class="tag {STATUS_CLASS.get(status, "st-dry")}">{esc(status)}</span>']
-    if story["category"]:
-        tags.append(f'<span class="tag tag-plain">{esc(category_name(story["category"]))}</span>')
-    links = " ".join(source_links(story)[:3]) or '<span class="muted">none recorded</span>'
-    return (
-        f'<tr class="story" data-label="{esc(pill)}" data-brand="{esc(brand)}" data-status="{esc(status)}" '
-        f'data-stage="{esc(story["stage"])}" data-stagei="{stage_index}" data-ts="{stamp}" '
-        f'data-title="{esc(title_key(display_text(story["title"])))}" data-text="{esc(search)}">'
-        f'<td><button type="button" class="row-title" data-drawer="d-{number}">{esc(display_text(story["title"]))}'
-        f'</button><div class="row-tags">{"".join(tags)}</div></td>'
-        f'<td>{esc(brand)}</td>'
-        f'<td><span class="pill {PILL_CLASS.get(pill, "pill-rumor")}">{esc(pill)}</span></td>'
-        f'<td><span class="tag stage {STAGE_CLASS[story["stage"]]}">{esc(STAGE_NAMES[story["stage"]])}</span></td>'
-        f'<td class="when">{esc(show_time(story["first_seen"]))}</td>'
-        f"<td>{links}</td></tr>"
-    )
-
-
-def stories_panel(stories: list[dict], mode: str = "local") -> str:
-    brands = sorted({s["brand"] or "Unbranded" for s in stories})
-    labels = [classify.OFFICIAL, classify.RUMOR, "REJECTED", "SKIPPED"]
-    stage_options = '<option value="">All stages</option>' + "".join(
-        f'<option value="{esc(key)}">{esc(name)}</option>' for key, name, _ in STAGES
-    ) + '<option value="out">Not taken forward</option>'
-    toolbar = (
-        '<div class="toolbar">'
-        '<input id="search" type="search" placeholder="Search headlines, brands, sources" aria-label="Search stories">'
-        f'<select id="f-label" aria-label="Label">{options(labels, "All labels")}</select>'
-        f'<select id="f-brand" aria-label="Brand">{options(brands, "All brands")}</select>'
-        f'<select id="f-stage" aria-label="Stage">{stage_options}</select>'
-        f'<select id="f-status" aria-label="Status">{options(ALL_STATUSES, "All statuses")}</select>'
-        '<select id="f-range" aria-label="Date range">'
-        '<option value="all">All time</option><option value="7d">Last 7 days</option>'
-        '<option value="24h">Last 24 hours</option></select>'
-        '<span id="count" class="count-note"></span>'
-        "</div>"
-    )
-
-    def sortable(label: str, key: str, col: str) -> str:
-        return (f'<th data-col="{col}" aria-sort="none"><button type="button" class="sort" data-sort="{key}">'
-                f'{esc(label)}<span class="arr"></span></button></th>')
-
-    head = ("<thead><tr>" + sortable("Story", "title", "title") + sortable("Brand", "brand", "brand")
-            + sortable("Type", "label", "label") + sortable("Stage", "stagei", "stagei")
-            + sortable("First seen", "ts", "ts") + "<th>Sources</th></tr></thead>")
-    rows = "".join(story_row(s, n) for n, s in enumerate(stories, 1))
-    drawers = "".join(story_drawer(s, n, mode) for n, s in enumerate(stories, 1))
-    if not rows:
-        empty = '<div class="empty">No stories recorded yet. The next run will fill this in.</div>'
-        return f'<div class="panel">{toolbar}{empty}<table id="story-table"><tbody id="story-list"></tbody></table></div>'
-    return (f'<div class="panel">{toolbar}<div class="table-wrap"><table id="story-table">{head}'
-            f'<tbody id="story-list">{rows}</tbody></table></div></div>{drawers}')
 
 
 def feeds_panel(feeds_cfg: list[tuple[str, str]], latest_feeds: list[dict]) -> str:
@@ -738,28 +529,6 @@ def feeds_panel(feeds_cfg: list[tuple[str, str]], latest_feeds: list[dict]) -> s
     return (
         '<div class="table-wrap"><table><thead><tr>'
         "<th>Feed</th><th>Type</th><th>Last run</th><th>Items</th><th>Last error</th>"
-        f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
-    )
-
-
-def history_panel(runs: list[dict]) -> str:
-    rows = []
-    for run in runs:
-        when = show_time(parse_time(run["started_at"]))
-        mode = MODE_NAMES.get(run["mode"], run["mode"])
-        cells = [
-            esc(when), esc(mode), esc(run["articles"]), esc(run["in_window"]), esc(run["passed_rules"]),
-            esc(run["alerts_ready"]), esc(run["alerts_sent"]), esc(run["held"]),
-            esc(run["rejected"]), esc(run["feeds_failed"]),
-        ]
-        rows.append("<tr>" + "".join(f"<td>{cell}</td>" for cell in cells) + "</tr>")
-    if not rows:
-        rows = ['<tr class="none"><td colspan="10" class="empty-cell">No runs recorded yet.</td></tr>']
-    return (
-        '<div class="table-wrap"><table><thead><tr>'
-        "<th>When (Asia/Manila)</th><th>Mode</th><th>Articles read</th><th>In time window</th>"
-        "<th>Passed free rules</th><th>Alerts ready</th><th>Sent to Slack</th><th>Waiting</th>"
-        "<th>Rejected</th><th>Feeds failed</th>"
         f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
     )
 
@@ -829,15 +598,15 @@ def caption_boxes(card_: dict) -> str:
 
 
 def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
-    """One carousel. `where` keeps the element id and the slide viewer group apart when the same carousel is also
-    shown on the Needs your attention page. In David's read only copy the review area shows the status badge only."""
+    """One carousel as a gallery card: a big cover, the slide strip (click any slide to enlarge), the downloads,
+    the captions with a copy button, and the fact check and sources folded away. In David's read only copy the
+    review area shows the status badge only."""
     name = card["name"]
     group = f"lb-{name}{where}"
     base = card.get("base") or f"../output/carousels/{name}"
     build = card["build"]
     title = display_text(build.get("title") or name)
     state, state_class = _carousel_state(card)
-    is_sample = card.get("kind") == "sample"
     is_preview = card.get("kind") == "preview"
     slide_names = card.get("slide_names", {})
     views = card.get("views") or {}  # David's copy may show the same slide as a smaller JPEG; downloads stay full PNG
@@ -850,7 +619,7 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
         single = download_link(
             "PNG", src, f"/api/download/slide/{name}/{slide}", mode, "This slide is not saved yet.")
         thumbs.append(
-            '<div>'
+            '<div class="tcell">'
             f'<button type="button" class="slide" data-lb="{esc(group)}" data-src="{esc(view)}" '
             f'data-title="{esc(title)}" data-alt="Slide {number}: {esc(file_name)}" aria-label="Enlarge slide {number}">'
             f'<span class="thumb"><img src="{esc(view)}" alt="Slide {number}" loading="lazy" data-fb>'
@@ -877,21 +646,13 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
     source_box = (f'<div class="box"><h3>Sources and image credits</h3><ul>{links}</ul>'
                   f'<p class="muted small">Images on the slides ({esc(placed)}) are official product images and demo '
                   'video frames from the brand\'s own pages. Nothing is AI generated.</p></div>')
-    zip_label = "Download all slides (ZIP)"
     zip_href = f"{base}/{card['zip']}" if card.get("zip") else None
     zip_note = ("The zip is made by the next carousel build. Run .venv\\Scripts\\python.exe src\\downloads.py --all, "
                 "or open Open Review Dashboard to download it now.") if mode == "local" else "Not included in this copy."
-    downloads_box = (
-        '<div class="box"><h3>Downloads</h3><div class="dl-row">'
-        + download_link(zip_label, zip_href, f"/api/download/carousel/{name}", mode, zip_note, primary=True)
-        + '</div><p class="muted small">Slides named in order (01-cover.png ...), one caption file per account and '
-        'sources.txt. Single slides: the PNG link under each slide.</p></div>')
-    if is_sample:
-        actions = ('<div class="sample-banner">Samples are for checking the layout. They can\'t be approved or posted.'
-                   '</div>')
-    elif is_preview:
-        actions = ('<div class="sample-banner">Preview made from a written plan. It has not been sent for approval yet, '
-                   'so it can\'t be approved or posted from here.</div>')
+    zip_button = download_link("Download all slides (ZIP)", zip_href, f"/api/download/carousel/{name}", mode,
+                               zip_note, primary=True)
+    if is_preview:
+        actions = ""  # the chip says it: a preview is not sent for approval, so it has no review controls
     elif mode == "share":
         # Read only: where the approve, reject and posted controls are on Kint's page, only the status badge.
         actions = (f'<div class="review-area"><div class="review"><span class="tag {state_class}">{esc(state)}</span>'
@@ -911,83 +672,55 @@ def carousel_card(card: dict, mode: str = "local", where: str = "") -> str:
         )
         actions = ('<div class="review-area">' + review_controls(name, card["status"])
                    + f'<details class="copy-row"><summary>PowerShell commands</summary>{copies}</details></div>')
-    kind_label = "Sample" if is_sample else "Preview" if is_preview else "Draft"
-    sample_tag = ('<span class="tag tag-sample">SAMPLE</span>' if is_sample
-                  else '<span class="tag tag-sample">PREVIEW</span>' if is_preview else "")
     cover = views.get(card["slides"][0], f"{base}/{card['slides'][0]}") if card["slides"] else ""
     no_image_chip = ""
     if no_image:
         listed = ", ".join(str(n) for n in no_image)
         no_image_chip = (f'<span class="tag st-fail no-image" title="These slides have no official image">'
                          f'No official image on slide{"s" if len(no_image) > 1 else ""} {esc(listed)}</span>')
+    count = len(card["slides"])
+    cover_html = (
+        f'<button type="button" class="slide cover" data-lb="{esc(group)}-c" data-src="{esc(cover)}" '
+        f'data-title="{esc(title)}" aria-label="Enlarge the cover"><span class="thumb">'
+        f'<img src="{esc(cover)}" alt="Cover of {esc(title)}" loading="lazy" data-fb>'
+        '<span class="fb">Image not found</span></span>'
+        f'<span class="cover-badge">{icon("image")}{count} slides</span></button>' if card["slides"]
+        else '<p class="no-slides">No cover yet.</p>')
+    captions = caption_boxes(card)
     return (
         f'<article class="carousel-card" id="car-{esc(name)}{esc(where)}" '
         f'data-kind="{esc(card.get("kind", "draft"))}" data-status="{esc(card["status"])}" '
         f'data-chip="{esc(chip_key(card))}">'
-        f'<div class="card-head"><h2 class="story-title">{esc(title)}</h2>'
-        f'<div class="chips">{sample_tag}<span class="tag {state_class}">{esc(state)}</span>{no_image_chip}</div></div>'
-        f'<p class="meta">{esc(kind_label)}: {esc(name)}</p>'
-        f'<div class="car-body"><div><div class="strip-label">Cover</div>'
-        + (f'<button type="button" class="slide" data-lb="{esc(group)}-c" data-src="{esc(cover)}" '
-           f'data-title="{esc(title)}" aria-label="Enlarge the cover"><span class="thumb">'
-           f'<img src="{esc(cover)}" alt="Cover" loading="lazy" data-fb>'
-           '<span class="fb">Image not found</span></span></button>' if card["slides"]
-           else '<p class="no-slides">No cover yet.</p>')
-        + f'</div><div class="car-right"><div class="strip-label">All slides, click to enlarge</div>{strip}'
-        f'{downloads_box}</div></div>'
-        f'<div class="car-cols">{caption_boxes(card)}{fact_box}{source_box}</div>'
-        f"{actions}"
+        f'<div class="cc-cover">{cover_html}</div>'
+        '<div class="cc-body">'
+        f'<div class="cc-head"><div class="chips"><span class="tag {state_class}">{esc(state)}</span>{no_image_chip}'
+        f'</div><h2 class="story-title">{esc(title)}</h2></div>'
+        f'<div class="strip-label">All slides, click to enlarge</div>{strip}'
+        f'<div class="dl-row">{zip_button}<span class="muted small">Slides in order, a caption file per account '
+        'and sources.txt</span></div></div>'
+        '<div class="cc-foot">'
+        + (f'<details class="caps" open><summary>Captions, ready to copy</summary><div class="car-cols">{captions}'
+           '</div></details>' if captions else "")
+        + f'<details class="more"><summary>Fact check and sources</summary><div class="car-cols">{fact_box}'
+        f'{source_box}</div></details>'
+        f"{actions}</div>"
         "</article>"
     )
 
 
 def carousels_panel(cards: list[dict], mode: str = "local", approved_href: str | None = None) -> str:
+    cards = ready_cards(cards)
     if not cards:
-        return (
-            '<div class="panel empty carousel"><h2>Carousels</h2>'
-            "<p>Coming in Phase 2: ready-to-post slides and captions will appear here.</p></div>"
-        )
+        return empty_state("carousels", "No carousels to review right now",
+                           "A new carousel shows here after an official big brand launch is made into slides.")
     approved = sum(1 for c in cards if is_real(c) and c["status"] in ("approved", "posted"))
-    note = ("Every approved carousel in one zip. Through Open Review Dashboard it is made on the spot."
-            if mode == "local" else "Not included in this copy.")
-    all_button = download_link(f"Download all approved carousels ({approved})", approved_href,
-                               "/api/download/approved", mode, note, primary=False)
-    counts: dict[str, int] = {}
-    for c in cards:
-        counts[chip_key(c)] = counts.get(chip_key(c), 0) + 1
-    options = "".join(
-        f'<option value="{key}"{" selected" if key == "all" else ""}>{esc(label)} ({counts.get(key, 0) if key != "all" else len(cards)})</option>'
-        for key, label in CAROUSEL_FILTERS)
-    kinds = (
-        '<div class="panel"><div class="toolbar"><label class="muted" for="carousel-kind">Show</label>'
-        f'<select id="carousel-kind" aria-label="Show carousels by status">{options}</select>'
-        f'<span class="count-note">{all_button}</span></div></div>'
-    )
-    body, group = [], None
-    for c in cards:
-        if c["kind"] != group and c["kind"] in GROUP_TITLES:
-            body.append(f'<h2 class="section-title car-group" data-group="{c["kind"]}">{esc(GROUP_TITLES[c["kind"]])}</h2>')
-        group = c["kind"]
-        body.append(carousel_card(c, mode))
-    return kinds + '<div id="carousel-list" class="car-list">' + "".join(body) + "</div>"
-
-
-def coverage_panel(stories: list[dict], now: datetime) -> str:
-    """Every sent official story and its carousel, or the reason it has none."""
-    rows = []
-    for story in stories:
-        if not story.get("official_sent"):
-            continue
-        reason, cls = coverage_reason(story, now)
-        rows.append(
-            f'<tr class="cov"><td class="name">{esc(display_text(story["title"]))}</td>'
-            f'<td class="when">{esc(show_time(story["sent_at"] or story["first_seen"]))}</td>'
-            f'<td><span class="tag {cls}">{esc(display_text(reason))}</span></td></tr>')
-    if not rows:
-        return ""
-    body = ('<div class="table-wrap"><table><thead><tr><th>Official story sent to Slack</th><th>Sent</th>'
-            f'<th>Carousel</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
-    return panel("Every official story and its carousel", body, f"{len(rows)} stories")
+    top = ""
+    if approved:
+        note = ("Every approved carousel in one zip. Through Open Review Dashboard it is made on the spot."
+                if mode == "local" else "Not included in this copy.")
+        top = ('<div class="toolbar">' + download_link(f"Download all approved carousels ({approved})", approved_href,
+                                                        "/api/download/approved", mode, note) + "</div>")
+    return top + '<div id="carousel-list" class="car-list">' + "".join(carousel_card(c, mode) for c in cards) + "</div>"
 
 
 # ---------- rendering: pages ----------
@@ -1020,138 +753,6 @@ def next_check_text(latest: dict | None, next_run: datetime | None, now: datetim
     return "Not known yet"
 
 
-def attention_items(cards: list[dict], stories: list[dict], latest_feeds: list[dict], mode: str) -> list[tuple]:
-    """(icon colour, title, note, go to page, target id) for everything that needs a person."""
-    real = [c for c in cards if is_real(c)]
-    items = []
-    for c in real:
-        title = display_text(c["build"].get("title") or c["name"])
-        if c["status"] == "waiting_for_david":
-            items.append(("amber", f"Waiting for David: {title}", "Passed the fact and design checks. "
-                          + ("Tell Kint to approve or reject it." if mode == "share"
-                             else "Approve or reject it on the Carousels page."), "carousels", f"car-{c['name']}"))
-        elif c["status"] == "approved":
-            items.append(("green", f"Approved, post it by hand: {title}", "Post in Meta Business Suite, then log "
-                          "the post with its link.", "carousels", f"car-{c['name']}"))
-        elif c["status"] == "draft":
-            items.append(("red", f"Draft needs a fix: {title}", c["build"].get("design_summary")
-                          or "Check factcheck.md in its folder, then rebuild it.", "carousels", f"car-{c['name']}"))
-    held = [s for s in stories if s["status"] == runlog.HELD]
-    if held:
-        items.append(("blue", f"{len(held)} rumors waiting for a 2nd source",
-                      "Nothing to do: each one is sent when a second site reports it.", "stories", ""))
-    missing = [s for s in stories if s.get("official_sent") and not s.get("carousel")
-               and s.get("build_row") and s["build_row"]["status"] == "failed"]
-    if missing:
-        items.append(("red", f"{len(missing)} official stories have no carousel",
-                      "Each reason is on the Carousels page, under Every official story and its carousel.",
-                      "carousels", ""))
-    for_kint = [s for s in stories if s.get("official_sent") and not s.get("carousel")
-                and s.get("build_row") and s["build_row"]["status"] == "needs_kint"]
-    if for_kint:
-        items.append(("blue", f"{len(for_kint)} official stories waiting for a carousel",
-                      "Nothing to do here: each one is made by hand from the official page, and Slack says when it is "
-                      "ready for approval.", "carousels", ""))
-    for feed in latest_feeds:
-        if not feed["ok"]:
-            items.append(("red", f"Feed failed: {feed['feed']}", feed["error"] or "Unknown problem.", "sources", ""))
-    return items
-
-
-def attention_list(items: list[tuple]) -> str:
-    if not items:
-        return ('<div class="panel"><div class="all-clear"><span class="att-ic green">' + icon("check")
-                + "</span><div>Nothing needs you right now.</div></div></div>")
-    rows = "".join(
-        f'<li><span class="att-ic {colour}">{icon("attention" if colour in ("red", "amber") else "check")}</span>'
-        f'<div class="att-text"><div class="att-title">{esc(display_text(title))}</div>'
-        f'<div class="att-note">{esc(display_text(note))}</div></div>'
-        f'<button type="button" class="btn small" data-go="{esc(go)}" data-target="{esc(target)}">Open</button></li>'
-        for colour, title, note, go, target in items)
-    return f'<div class="panel"><ul class="attention">{rows}</ul></div>'
-
-
-def attention_panel(cards: list[dict], latest_feeds: list[dict], stories: list[dict] | None = None,
-                    mode: str = "local") -> str:
-    items = attention_items(cards, stories or [], latest_feeds, mode)
-    waiting = [c for c in cards if is_real(c) and c["status"] in ("waiting_for_david", "draft", "approved")]
-    parts = [attention_list(items)]
-    if waiting:
-        parts.append('<h2 class="section-title">Carousel drafts to review</h2>'
-                     + "".join(carousel_card(c, mode, where="-review") for c in waiting))
-    else:
-        parts.append('<div class="panel empty"><p>No carousel drafts are waiting for review.</p></div>')
-    failed = [f for f in latest_feeds if not f["ok"]]
-    if failed:
-        items_html = "".join(f"<li><strong>{esc(f['feed'])}</strong>: {esc(f['error'] or 'Unknown problem.')}</li>"
-                             for f in failed)
-        parts.append(panel("Feeds that failed in the last run",
-                           f'<div class="panel-body"><ul class="src-list">{items_html}</ul></div>'))
-    return "".join(parts)
-
-
-def pipeline_panel(stories: list[dict]) -> str:
-    counts = {key: 0 for key, _, _ in STAGES}
-    for story in stories:
-        if story["stage"] in counts:
-            counts[story["stage"]] += 1
-    boxes = "".join(
-        f'<li><button type="button" class="stage-box{" is-wait" if key == "waiting" and counts[key] else ""}" '
-        f'data-go="stories" data-stage="{esc(key)}"><span class="stage-num">{n}</span>'
-        f'<span class="stage-name">{esc(name)}</span><span class="stage-count">{counts[key]}</span>'
-        f'<span class="stage-hint">{esc(hint)}</span></button></li>'
-        for n, (key, name, hint) in enumerate(STAGES, 1))
-    out = sum(1 for s in stories if s["stage"] == "out")
-    return panel("Pipeline: where every story is now",
-                 f'<div class="panel-body"><ol class="flow">{boxes}</ol>'
-                 f'<p class="muted small" style="margin-top:16px">{out} more were not taken forward (skipped by the '
-                 'free rules, or judged not relevant). Click a stage to see its stories.</p></div>')
-
-
-def activity_counts(events: list[dict], now: datetime) -> str:
-    week = activity.week_counts(events, now)
-    return "".join([
-        card("Checks run", week["checks"], "Last 7 days"),
-        card("Alerts sent", week["alerts"], "Last 7 days, to Slack"),
-        card("Carousels built", week["carousels"], "Last 7 days"),
-        card("Approved", week["approved"], "Last 7 days"),
-        card("Posted", week["posted"], "Last 7 days, by hand"),
-        card("Downloads", week["downloads"], "Last 7 days"),
-    ])
-
-
-def activity_panel(events: list[dict], now: datetime) -> str:
-    rows = []
-    for event in events[:ACTIVITY_ROWS]:
-        kind = activity.TYPES.get(event["type"], event["type"])
-        text = display_text(" ".join([kind, event["outcome"], event["details"], event["who"]])).lower()
-        outcome = event["outcome"]
-        cls = ("st-fail" if any(w in outcome for w in ("fail", "rejected", "no feed"))
-               else "st-held" if "waiting" in outcome or "some" in outcome else "st-ok")
-        rows.append(
-            f'<tr class="ev" data-type="{esc(event["type"])}" data-ts="{int(event["at"].timestamp() * 1000)}" '
-            f'data-text="{esc(text)}"><td class="when">{esc(show_time(event["at"]))}</td><td>{esc(kind)}</td>'
-            f'<td><span class="tag {cls}">{esc(outcome.replace("_", " "))}</span></td>'
-            f'<td>{esc(display_text(event["details"]))}</td><td>{esc(event["who"])}</td></tr>')
-    type_options = '<option value="">All types</option>' + "".join(
-        f'<option value="{esc(key)}">{esc(name)}</option>' for key, name in activity.TYPES.items())
-    toolbar = (
-        '<div class="toolbar">'
-        '<input id="a-search" type="search" placeholder="Search the activity" aria-label="Search the activity">'
-        f'<select id="a-type" aria-label="Type">{type_options}</select>'
-        '<select id="a-range" aria-label="Date range"><option value="all">All time</option>'
-        '<option value="7d">Last 7 days</option><option value="24h">Last 24 hours</option></select>'
-        '<span id="a-count" class="count-note"></span></div>')
-    if not rows:
-        table = '<div class="empty">No activity recorded yet. The next check adds the first row.</div>'
-    else:
-        table = ('<div class="table-wrap"><table id="activity-table"><thead><tr><th>When (Asia/Manila)</th><th>Type</th>'
-                 '<th>Outcome</th><th>Details</th><th>Who</th></tr></thead>'
-                 f'<tbody id="activity-list">{"".join(rows)}</tbody></table></div>')
-    return (f'<section class="cards">{activity_counts(events, now)}</section>'
-            f'<div class="panel">{toolbar}{table}</div>')
-
-
 def sources_panel(feeds_cfg: list[tuple[str, str]], latest_feeds: list[dict], rules: dict | None) -> str:
     rules = rules or {}
     brands = sorted(rules.get("brands", {}).keys())
@@ -1164,44 +765,156 @@ def sources_panel(feeds_cfg: list[tuple[str, str]], latest_feeds: list[dict], ru
                    for alias in names}
         brands = list(big)
         software = [word for word in software if word.lower() in allowed or word.lower() in aliases]
-    brand_text = ", ".join(esc(b) for b in brands) or "none configured"
-    software_text = ", ".join(esc(s) for s in software) or "none configured"
+    chips = "".join(f'<span class="pill p-brand">{esc(b)}</span>' for b in brands) or "none configured"
+    software_text = ", ".join(esc(w) for w in software) or "none configured"
     return (
         panel("Feed health", feeds_panel(feeds_cfg, latest_feeds), f"{len(feeds_cfg)} feeds")
-        + panel("Big photography brands the watcher follows", f'<div class="panel-body"><p>{brand_text}</p></div>')
-        + panel("Editing software the watcher follows", f'<div class="panel-body"><p>{software_text}</p>'
-                '<p class="muted">Adobe Photoshop, Lightroom, Camera Raw, Bridge and Firefly (photo editing) are '
-                'checked too.</p></div>')
+        + panel("Big photography brands the watcher follows", f'<div class="panel-body"><div class="chip-row">{chips}'
+                f'</div><p class="muted small">Editing software: {software_text}.</p></div>')
     )
 
 
+HEALTH_WORD = {"st-ok": "Healthy", "st-held": "Partly OK", "st-fail": "Needs a look", "st-dry": "Not started"}
+NEWS_DAYS = 14  # Photo news shows the big brand stories of the last two weeks
+
+
+def ready_cards(cards: list[dict]) -> list[dict]:
+    """The carousels on the home page: real drafts and previews, never layout samples or rejected ones.
+    Waiting for David first, then drafts, then previews, then approved and posted."""
+    order = {"waiting_for_david": 0, "draft": 1, "preview": 2, "approved": 3, "posted": 4}
+    keep = [c for c in cards if c.get("kind") != "sample" and c.get("status") != "rejected"]
+    return sorted(keep, key=lambda c: order.get(chip_key(c), 5))
+
+
+def recent_news(stories: list[dict], now: datetime, days: int = NEWS_DAYS) -> list[dict]:
+    """Stories sent to Slack or waiting for a second site, seen in the last `days` days. Rejected, skipped,
+    practice run and hidden stories are not news and are left out."""
+    start = now - timedelta(days=days)
+    keep = []
+    for story in stories:
+        if story["status"] not in (runlog.ALERTED, runlog.HELD) or story.get("story_id") is None:
+            continue
+        moment = story.get("sent_at") or story.get("first_seen")
+        if moment and moment >= start:
+            keep.append(story)
+    floor = datetime.min.replace(tzinfo=timezone.utc)
+    keep.sort(key=lambda s: s.get("sent_at") or s.get("first_seen") or floor, reverse=True)
+    return keep
+
+
+def stat_tile(icon_name: str, label: str, value, note: str, tone: str = "") -> str:
+    return (f'<div class="tile{" " + tone if tone else ""}"><span class="tile-ic">{icon(icon_name)}</span>'
+            f'<div><div class="tile-v">{esc(value)}</div><div class="tile-k">{esc(label)}</div>'
+            f'<div class="tile-n">{esc(note)}</div></div></div>')
+
+
+def empty_state(icon_name: str, title: str, text: str) -> str:
+    return (f'<div class="empty-state"><span class="empty-ic">{icon(icon_name)}</span>'
+            f'<h3>{esc(title)}</h3><p>{esc(text)}</p></div>')
+
+
+def news_item(story: dict, now: datetime) -> str:
+    links = source_links(story)
+    first = next((safe_url(s.get("link")) for s in story["sources"] if safe_url(s.get("link"))), None)
+    title = esc(display_text(story["title"]))
+    title_html = (f'<a href="{esc(first)}" target="_blank" rel="noopener noreferrer">{title}</a>' if first
+                  else f"<span>{title}</span>")
+    moment = story.get("sent_at") or story.get("first_seen")
+    when = show_time(moment) if moment else "Date not known"
+    official = story["label"] == classify.OFFICIAL
+    kind = '<span class="pill p-official">Official</span>' if official else '<span class="pill p-rumor">Rumor</span>'
+    if story["status"] == runlog.HELD:
+        chips = '<span class="tag st-held">Waiting for a 2nd source</span>'
+    else:
+        chips = '<span class="tag st-alert">Sent to Slack</span>'
+    card_ = story.get("carousel")
+    if card_:
+        state, cls = _carousel_state(card_)
+        chips += f'<span class="tag {cls}">Carousel: {esc(state)}</span>'
+    summary = display_text(story.get("summary") or "")
+    summary_html = (f'<p class="ni-sum">{esc(first_sentence(summary, 180))}</p>'
+                    if summary and title_key(summary) != title_key(story["title"]) else "")
+    return (f'<li class="news-item"><div class="ni-main"><div class="ni-top">'
+            f'<span class="pill p-brand">{esc(story.get("brand") or "Photo")}</span>{kind}'
+            f'<span class="ni-when">{esc(when)}</span></div>'
+            f'<h3 class="ni-title">{title_html}</h3>{summary_html}'
+            f'<div class="ni-src">{icon("sources")}<span>{" ".join(links) or "No source link"}</span></div></div>'
+            f'<div class="ni-side">{chips}</div></li>')
+
+
+def news_panel(stories: list[dict], now: datetime) -> str:
+    """The stories sent to Slack, newest first. Rumors still waiting for a second site are folded away below."""
+    items = recent_news(stories, now)
+    sent = [s for s in items if s["status"] == runlog.ALERTED]
+    held = [s for s in items if s["status"] == runlog.HELD]
+    if not items:
+        return empty_state("stories", "No big brand news in the last two weeks",
+                           "New launches from the big photography brands show here as soon as the watcher finds them.")
+    body = (f'<ul class="news-list">{"".join(news_item(s, now) for s in sent)}</ul>' if sent
+            else empty_state("stories", "Nothing sent to Slack in the last two weeks",
+                             "Official launches from the big photography brands show here when they are sent."))
+    if held:
+        body += (f'<details class="more held"><summary>Rumors waiting for a 2nd source ({len(held)})</summary>'
+                 f'<ul class="news-list">{"".join(news_item(s, now) for s in held)}</ul></details>')
+    return body
+
+
+def short_time(moment: datetime | None, now: datetime) -> str:
+    """11:08 PM for today, Nov 24, 11:08 PM for another day (Asia/Manila)."""
+    if moment is None:
+        return "not known"
+    local = moment.astimezone(MANILA)
+    clock = local.strftime("%I:%M %p").lstrip("0")
+    return clock if local.date() == now.astimezone(MANILA).date() else f"{local.strftime('%b')} {local.day}, {clock}"
+
+
+def health_line(latest: dict | None, next_run: datetime | None, now: datetime) -> tuple[str, str]:
+    """(one short line, chip class): last check, feeds and next check, in Asia/Manila time."""
+    _, cls = watcher_state(latest, now)
+    if latest is None:
+        return "No check recorded yet.", cls
+    last = parse_time(latest["finished_at"]) or parse_time(latest["started_at"])
+    total = latest["feeds_ok"] + latest["feeds_failed"]
+    nxt = next_run
+    if nxt is None:
+        started = parse_time(latest["started_at"])
+        if started:
+            nxt = started + timedelta(hours=1)
+            while nxt < now:
+                nxt += timedelta(hours=1)
+    text = f"Last check {short_time(last, now)}, {latest['feeds_ok']} of {total} feeds OK"
+    if nxt is not None:
+        text += f", next {short_time(nxt, now)}"
+    return text + " (Asia/Manila)", cls
+
+
+def system_panel(feeds_cfg: list[tuple[str, str]], latest: dict | None, latest_feeds: list[dict],
+                 rules: dict | None, next_text: str, now: datetime) -> str:
+    state, cls = watcher_state(latest, now)
+    if latest:
+        last = short_time(parse_time(latest["finished_at"]) or parse_time(latest["started_at"]), now)
+        feeds = f"{latest['feeds_ok']} of {latest['feeds_ok'] + latest['feeds_failed']}"
+        articles = latest["articles"]
+    else:
+        last, feeds, articles = "No check yet", "n/a", "n/a"
+    tiles = "".join([
+        stat_tile("clock", "Watcher", HEALTH_WORD.get(cls, "Check"), state, "ok" if cls == "st-ok" else "warn"),
+        stat_tile("check", "Last check", last, f"{articles} articles read" if latest else "Asia/Manila"),
+        stat_tile("sources", "Feeds OK", feeds, "In the last check"),
+        stat_tile("send", "Next check", next_text, "Asia/Manila"),
+    ])
+    return (f'<section class="tiles">{tiles}</section>'
+            + sources_panel(feeds_cfg, latest_feeds, rules))
+
+
 HOW_IT_WORKS = [
-    "Once an hour, the watcher reads the photo news feeds listed under Sources.",
-    "It keeps only stories published in the last 72 hours about a big photography brand that are truly for "
-    "photographers (config/rules.yaml: big_brands and photo_relevance).",
-    "Rumors are sent to Slack only after a second site reports them. Official launches are sent at once.",
-    "After an official alert, the carousel is made by hand from the brand's own page. It is first built as a preview "
-    "that nobody is asked to approve.",
-    "Every fact on it is checked against the brand's own page, word for word. Claims that are not confirmed are "
-    "removed. Every image is a real official image of that feature.",
-    "Kint reviews the carousel. It is sent to David only when Kint says so, and Slack says when one is ready for "
-    "approval. Kint approves or rejects it here; David approves by telling Kint.",
-    "After approval, Kint posts by hand in Meta Business Suite, then logs it here with the account and link.",
-    "If no feed works for two runs in a row, or none has worked for 6 hours, one health message is sent to Slack a day.",
-]
-FLOW_NODES = [
-    ("clock", "Hourly check", "The cloud reads the photo news and rumor sites every hour.", False),
-    ("send", "Slack alert", "Official launches at once. A rumor only after a second site reports it.", False),
-    ("image", "Carousel", "Made by hand from the brand's own page, with real official product images only. "
-     "Built as a preview first.", False),
-    ("check", "Fact check", "Every claim is checked against the official text. Anything unconfirmed is removed.",
-     False),
-    ("user", "Kint reviews, David approves", "Sent to David only when Kint says so. Nothing moves without a yes.",
-     True),
-    ("share", "Posted by hand", "Kint posts in Meta Business Suite, then logs the link here.", True),
-    ("activity", "Tracked", "Every step is written to the Activity page with its time.", False),
-    ("lock", "Never automatic", "Nothing is ever posted by the system. David's personal Instagram is never used.",
-     False),
+    ("clock", "Hourly check", "The cloud reads the photo news and rumor sites every hour and keeps only big "
+     "photography brand stories that matter to photographers."),
+    ("send", "Slack alert", "Official launches are sent at once. A rumor is sent only after a second site reports it."),
+    ("image", "Carousel", "Made by hand from the brand's own page with real official images, then fact checked "
+     "word for word."),
+    ("user", "Review and post", "Kint reviews it first. It is sent to David only when Kint says so. After David "
+     "approves, Kint posts by hand in Meta Business Suite."),
 ]
 RULES = [
     "Nothing is auto-posted to social media. Posting is always by hand, after David approves.",
@@ -1214,55 +927,13 @@ RULES = [
 
 
 def how_panel() -> str:
-    nodes = "".join(
-        f'<div class="node{" human" if human else ""}"><span class="nic">{icon(name)}</span>'
-        f'<h3>{esc(title)}</h3><p>{esc(text)}</p></div>' for name, title, text, human in FLOW_NODES)
-    steps = "".join(f"<li><p>{esc(line)}</p></li>" for line in HOW_IT_WORKS)
+    steps = "".join(
+        f'<li class="step"><span class="step-n">{n}</span><span class="step-ic">{icon(name)}</span>'
+        f'<h3>{esc(title)}</h3><p>{esc(text)}</p></li>'
+        for n, (name, title, text) in enumerate(HOW_IT_WORKS, 1))
     rules = "".join(f'<li>{icon("check")}<span>{esc(rule)}</span></li>' for rule in RULES)
-    return (f'<div class="nodes">{nodes}</div>'
-            + panel("The steps in plain words", f'<ol class="steps">{steps}</ol>')
-            + f'<h2 class="section-title">The rules that never change</h2><ul class="rules">{rules}</ul>')
-
-
-def start_panel(mode: str, counts: dict) -> str:
-    who = "David" if mode == "share" else "you"
-    lines = [
-        ("What it is", "A cloud watcher that reads the photo news every hour and sends the real launches to Slack. "
-                       "Each official launch becomes a ready to post carousel for TPM, made from the official page."),
-        ("What is checked", "Every fact on a carousel comes from the brand's own page and is checked before anyone sees "
-                            "it. Images are real official product images. Nothing is AI generated."),
-        ("What needs " + who, "Carousels marked Waiting for David. "
-         + ("Look at the slides and captions on the Carousels page, then tell Kint yes or no."
-            if mode == "share" else "Open the Carousels page to approve or reject them.")),
-        ("What never happens", "Nothing is posted automatically. Kint posts by hand in Meta Business Suite after "
-                               "David approves. David's personal Instagram is never used."),
-    ]
-    blocks = "".join(f'<div class="node"><h3>{esc(t)}</h3><p>{esc(p)}</p></div>' for t, p in lines)
-    waiting = counts.get("waiting_david", 0)
-    head = ("Start here: the TPM photo news system in one minute" if mode == "share"
-            else "Start here: what this system does and how it works")
-    note = (f"{SHARE_NOTE} " if mode == "share" else "") + (
-        f"Right now {waiting} carousel{'s are' if waiting != 1 else ' is'} waiting for David.")
-    return (f'<div class="start-hero"><h1>{esc(head)}</h1><p>{esc(note)}</p>'
-            '<p><button type="button" class="btn primary" data-go="carousels">See the carousels</button> '
-            '<button type="button" class="btn" data-go="overview">See the overview</button></p></div>'
-            f'<div class="nodes">{blocks}</div>' + how_panel())
-
-
-def intro_panel(items: list[tuple], mode: str) -> str:
-    todo = len(items)
-    return (
-        '<div class="intro"><div><h2>Photo news in, ready to post carousels out</h2>'
-        '<p>Every hour the cloud reads the photo news and sends official launches to Slack. Each carousel is made from '
-        'the brand\'s own page, fact checked, reviewed by Kint, and sent to David only when Kint says so. Nothing is '
-        'posted automatically.</p><ol>'
-        '<li><b>1</b><span>Hourly check of the news and rumor sites</span></li>'
-        '<li><b>2</b><span>Slack alert for official launches (rumors need 2 sites)</span></li>'
-        '<li><b>3</b><span>Carousel made from the official page and fact checked</span></li>'
-        '<li><b>4</b><span>Kint reviews, David approves, then Kint posts by hand</span></li></ol></div>'
-        f'<div class="todo"><h3>Needs attention now</h3><div class="big">{todo}</div>'
-        f'<p class="muted">{"item" if todo == 1 else "items"} on the Needs your attention page.</p>'
-        '<p><button type="button" class="btn primary" data-go="attention">Open the list</button></p></div></div>')
+    return (f'<ol class="steps">{steps}</ol>'
+            + panel("The rules that never change", f'<ul class="rules">{rules}</ul>'))
 
 
 def render_page(data: dict, stories: list[dict], numbers: dict,
@@ -1270,85 +941,55 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
                 rules: dict | None = None, events: list[dict] | None = None, mode: str = "local",
                 next_run: datetime | None = None, approved_href: str | None = None,
                 fonts_dir: Path | None = None) -> str:
+    """The whole page. Three things come first: the carousels to review, the recent big brand news, and one
+    short line on the watcher's health. Run history, the activity log and hidden stories are not on the page
+    (their data stays in the watcher's files)."""
     runs = data["runs"]
     latest = runs[0] if runs else None
-    if latest:
-        last_when = show_time(parse_time(latest["finished_at"]) or parse_time(latest["started_at"]))
-        run_mode = MODE_NAMES.get(latest["mode"], latest["mode"])
-        last_text = f"{last_when} (Asia/Manila), {run_mode.lower()} run"
-        run_note = f"{run_mode} run, {last_when}"
-        feed_value = f"{latest['feeds_ok']} / {latest['feeds_failed']}"
-        articles = latest["articles"]
-    else:
-        last_text = "no check recorded yet"
-        run_note, feed_value, articles = "No check recorded yet", "n/a", "n/a"
     all_cards = carousels or []
-    events = [e for e in (events or []) if not is_legacy_noise(" ".join(str(v) for v in e.values()))]
     link_carousels(stories, all_cards, data.get("builds", []))
     for story in stories:
-        story["stage"] = story_stage(story)
         story["official_sent"] = story["status"] == runlog.ALERTED and story["label"] == classify.OFFICIAL
-        story["now"] = now
-    real = [c for c in all_cards if is_real(c)]
-    counts = {
-        "drafted": len(real),
-        "waiting_david": sum(1 for c in real if c["status"] == "waiting_for_david"),
-        "posted": sum(1 for c in real if c["status"] == "posted"),
-    }
-    items = attention_items(all_cards, stories, data["feeds"], mode)
+    cards = ready_cards(all_cards)
+    news = recent_news(stories, now)
+    waiting = sum(1 for c in cards if c["status"] == "waiting_for_david")
+    previews = sum(1 for c in cards if c.get("kind") == "preview")
+    week = sum(1 for s in news if s["status"] == runlog.ALERTED
+               and (s.get("sent_at") or s.get("first_seen")) >= now - timedelta(days=7))
+    next_text = next_check_text(latest, next_run, now).replace(" (Asia/Manila)", "")
+    if next_run is not None:
+        next_text = short_time(next_run, now)
+    health, health_cls = health_line(latest, next_run, now)
+    state_text, _ = watcher_state(latest, now)
 
-    undated_note = (
-        f"{numbers['undated']} sent before run history began (no date)"
-        if numbers["undated"] else "Sent to Slack"
-    )
-    news_cards = "".join([
-        card("Articles read, last run", articles, run_note),
-        card("Sent to Slack today", numbers["today"], "Asia/Manila calendar day"),
-        card("Sent to Slack, last 7 days", numbers["week"], undated_note),
-        card("Waiting for a 2nd source", numbers["waiting"], "Rumors held until a second site reports them"),
-        card("Rejected: not relevant", numbers["rejected"], "Judged not relevant, all stored stories"),
-        card("Skipped", numbers["skipped"], "Not news under the current rules"),
-        card("Feeds OK / failed", feed_value, "Last run"),
+    if mode == "share":
+        lead = "Look through the slides and captions, then tell Kint yes or no. Nothing here changes anything."
+    else:
+        lead = "Preview the slides, copy the captions, download, then approve or reject. Nothing is posted automatically."
+    tiles = "".join([
+        stat_tile("carousels", "Carousels ready", len(cards), f"{previews} previews" if previews else "To look at"),
+        stat_tile("user", "Waiting for David", waiting, "Tell Kint yes or no" if mode == "share"
+                  else "Sent to David by Kint"),
+        stat_tile("stories", "Sent to Slack", week, "Big brand news, last 7 days"),
+        stat_tile("clock", "Watcher", HEALTH_WORD.get(health_cls, "Check"), state_text,
+                  "ok" if health_cls == "st-ok" else "warn"),
     ])
-    carousel_cards = "".join([
-        card("Carousels drafted", counts["drafted"], "Real drafts, samples not counted"),
-        card("Waiting for David", counts["waiting_david"], "Passed the fact and design checks"),
-        card("Posted", counts["posted"], "Posted by hand and logged"),
-    ])
-    state_text, state_class = watcher_state(latest, now)
-    next_text = next_check_text(latest, next_run, now)
-
     pages = {
-        "start": start_panel(mode, counts),
-        "overview": (
-            page_head("Overview", "What the watcher found, what it sent, and where every story is now.")
-            + intro_panel(items, mode)
-            + '<h2 class="section-title">News</h2>' + f'<section class="cards">{news_cards}</section>'
-            + '<h2 class="section-title">Carousels</h2>' + f'<section class="cards">{carousel_cards}</section>'
-            + '<h2 class="section-title">This week</h2>'
-            + f'<section class="cards">{activity_counts(events, now)}</section>'
-            + pipeline_panel(stories)
-            + panel("Run history", history_panel(runs), f"last {HISTORY_ROWS} checks")
-        ),
-        "attention": (page_head("Needs your attention", "Carousels to review or post, rumors waiting for a second "
-                                "site, and feeds that failed.")
-                      + attention_panel(all_cards, data["feeds"], stories, mode)),
-        "stories": (page_head("Stories", "Every story the watcher kept. Click a story for its summary, sources and "
-                              "fact check.") + stories_panel(stories, mode)),
-        "carousels": (page_head("Carousels", "Each carousel with its slides, captions for every account, fact check, "
-                                "sources and downloads.")
-                      + coverage_panel(stories, now) + carousels_panel(all_cards, mode, approved_href)),
-        "activity": (page_head("Activity", "Every check, alert, carousel build, fact check, review, download and "
-                               "export, with its time in Manila.") + activity_panel(events, now)),
-        "sources": (page_head("Sources", "The feeds the watcher reads, how each did in the last check, and the "
-                              "brands and software it knows.") + sources_panel(feeds_cfg, data["feeds"], rules)),
+        "review": (page_head("Carousels to review", lead) + f'<section class="tiles">{tiles}</section>'
+                   + carousels_panel(cards, mode, approved_href)),
+        "news": (page_head("Photo news", "Big photography brand news from the last two weeks. Official launches go "
+                           "to Slack at once; a rumor waits for a second site.") + news_panel(stories, now)),
+        "system": (page_head("System", "Is the watcher running, and are the news feeds working.")
+                   + system_panel(feeds_cfg, latest, data["feeds"], rules, next_text, now)),
+        "how": page_head("How it works", "From a photo news story to a carousel ready to post, in four steps.")
+               + how_panel(),
     }
-    home = "start" if mode == "share" else "overview"
-    badges = {"attention": len(items), "carousels": counts["waiting_david"]}
+    home = "review"
+    badges = {"review": len(cards), "news": sum(1 for s in news if s["status"] == runlog.ALERTED)}
     nav = "".join(
         f'<button type="button" data-nav="{key}" data-label="{esc(label)}"'
         f'{" aria-current=" + chr(34) + "page" + chr(34) if key == home else ""}>{icon(ico)}<span>{esc(label)}</span>'
-        + (f'<span class="badge{" alert" if badges[key] else ""}">{badges[key]}</span>' if key in badges else "")
+        + (f'<span class="badge">{badges[key]}</span>' if key in badges else "")
         + "</button>"
         for key, label, ico in PAGES)
     sections = "".join(
@@ -1358,7 +999,7 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
     if mode == "share":
         controls = ""
         banner = f'<div class="banner" role="note">{icon("lock")}<span>{esc(SHARE_NOTE)}</span></div>'
-        generated = f"Copy made {show_time(now)} (Asia/Manila). Read only: nothing here changes anything."
+        generated = f"Copy made {show_time(now)} (Asia/Manila)."
         side_note = "Read only copy for David. To approve a carousel, tell Kint."
         connect = "'none'"
     else:
@@ -1369,30 +1010,23 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
             f'<button type="button" class="btn primary" id="export-david" data-copy="{esc(export_cmd)}">'
             f'{icon("share")}<span>Export for David</span></button>')
         banner = ""
-        generated = f"Generated {show_time(now)} (Asia/Manila). Rebuilt at the end of every run."
-        side_note = "Nothing is posted automatically. Posting is by hand in Meta Business Suite after David approves."
+        generated = f"Updated {show_time(now)} (Asia/Manila)."
+        side_note = "Nothing is posted automatically. Kint posts by hand after David approves."
         connect = "'self'"
     topbar = (
         f'<header class="topbar"><div class="crumb" id="crumb">{esc(dict((k, l) for k, l, _ in PAGES)[home])}</div>'
-        f'<div class="stat"><span class="lbl">Last check</span><span class="val">{esc(last_text)}</span></div>'
-        f'<div class="stat"><span class="lbl">Next check at</span><span class="val">{esc(next_text)}</span>'
-        '<span class="sub">Next check: hourly while this PC is on</span></div>'
-        f'<div class="stat"><span class="lbl">Watcher</span><span class="val"><span class="tag dot {state_class}">'
-        f'{esc(state_text)}</span></span></div>{controls}</header>'
+        f'<div class="health" title="{esc(health)}"><span class="tag dot {health_cls}">{esc(state_text)}</span>'
+        f'<span class="health-text">{esc(health)}</span></div>{controls}</header>'
     )
     sidebar = (
         '<aside class="sidebar"><div class="brand">' + dashboard_assets.BRAND_MARK
         + '<div><div class="brand-name">TPM Photo News</div><div class="brand-sub">The Photo Mentorship</div></div></div>'
         f'<nav class="nav" aria-label="Sections">{nav}</nav>'
-        f'<div class="side-foot"><strong>{icon("lock")}Posting stays manual</strong><span>{esc(side_note)}</span></div>'
+        f'<div class="side-foot"><strong>{icon("lock")}Posting stays manual</strong><span>{esc(side_note)}</span>'
+        f'<span class="gen">{esc(generated)}</span></div>'
         "</aside>"
     )
     overlays = (
-        '<div id="scrim" class="scrim" hidden></div>'
-        '<aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-label="Story details" hidden>'
-        '<div class="drawer-head"><span>Story details</span>'
-        '<button type="button" class="btn small" id="drawer-close">Close</button></div>'
-        '<div id="drawer-body" class="drawer-body"></div></aside>'
         '<div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Slide viewer" hidden>'
         '<div class="lb-bar"><span id="lb-title" class="lb-title"></span><span id="lb-count"></span>'
         '<button type="button" class="btn small" id="lb-prev">Previous</button>'
@@ -1414,7 +1048,7 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
         "<title>TPM Photo News</title><style>" + font_css + dashboard_assets.CSS + "</style></head>"
         f'<body data-mode="{mode}" data-home="{home}"><div class="app">' + sidebar
         + '<div class="main">' + topbar + banner
-        + f'<div class="content"><p class="generated">{esc(generated)}</p>{sections}</div></div></div>'
+        + f'<div class="content">{sections}</div></div></div>'
         + overlays + "<script>" + dashboard_assets.script_for(mode) + "</script></body></html>\n"
     )
 

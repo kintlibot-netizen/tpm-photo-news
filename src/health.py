@@ -83,7 +83,7 @@ def run_if_needed(db_path: Path, now: datetime, url: str, send=alert.send_to_sla
             return None
         text = alert.escape(
             "Photo news watcher health check: " + reason + ". "
-            "Check data\\watcher.log, and the Sources page on the dashboard."
+            "Check data\\watcher.log, and the System page on the dashboard."
         )
         try:
             send(text, url)

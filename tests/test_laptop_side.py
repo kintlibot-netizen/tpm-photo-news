@@ -189,6 +189,6 @@ def test_the_carousel_bot_is_gone():
                  "scripts/setup-carousel-bot-task.ps1"):
         assert not (ROOT / gone).exists(), gone
     import dashboard
-    steps = " ".join(dashboard.HOW_IT_WORKS)
-    assert "made by hand from the brand's own page" in steps and "carousel bot" not in steps.lower()
+    steps = " ".join(f"{title} {text}" for _, title, text in dashboard.HOW_IT_WORKS)  # round 12: (icon, title, text)
+    assert "made by hand from the brand's own page" in steps.lower() and "carousel bot" not in steps.lower()
     assert "Kint posts by hand in Meta Business Suite" in steps and "sent to david only when kint says so" in steps.lower()

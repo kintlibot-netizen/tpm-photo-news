@@ -45,7 +45,7 @@ README = """TPM Photo News, read only copy for David
 To look at it:
 1. If you got a web link, just open it. It works on a computer or a phone.
 2. If you got a zip, unzip it and double-click index.html. It opens in your web browser. No install needed.
-3. Start with the "Start here" page.
+3. It opens on the carousels to review. Photo news has the latest big brand stories.
 
 Read only copy. To approve a carousel, tell Kint.
 Nothing is ever posted automatically. Kint posts by hand in Meta Business Suite after you approve.
@@ -137,9 +137,9 @@ PAGE_ONLY_CHECKS = [
 
 
 def _keep(card: dict) -> bool:
-    """David's copy shows every carousel that has slides: real ones, rejected ones (with the reason), previews and
-    layout samples, each with its plain status chip."""
-    return bool(card["slides"])
+    """David's copy carries the carousels his page shows: the ones with slides that are worth reviewing (real ones and
+    previews). Rejected carousels and layout samples are not on the page, so their files are not copied either."""
+    return bool(card["slides"]) and card.get("kind") != "sample" and card.get("status") != "rejected"
 
 
 def plan_pack(cards: list[dict], limit_bytes: int, approved_bytes: int) -> tuple[list[dict], list[str], bool]:
@@ -244,7 +244,7 @@ def export_pack(now: datetime | None = None, root: Path | None = None, out_root:
             raise
         raise ExportError(f"{type(exc).__name__}: {exc}") from exc
 
-    skipped = f"{left_out} left out (no slides)"
+    skipped = f"{left_out} left out (no slides, rejected or layout samples)"
     extra = f"; {'; '.join(notes)}" if notes else ""
     if log_made:
         activity.log_event("export", "made", f"{zip_path.name}, {size_mb:.1f} MB, {len(chosen)} carousels, "

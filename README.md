@@ -10,7 +10,7 @@
 ## Daily use for Kint
 1. **Watch Slack.** Official launches arrive by themselves. A rumor arrives only when two sites report it.
 2. **Make the carousel** for an official story: write the plan, then `.venv\Scripts\python.exe scripts\build_from_plan.py --story 72 --plan data/plans/story-72.json --dry-run` for a preview. Without `--dry-run` it is a real build: Slack says **Carousel ready for approval**.
-3. **Review.** Double-click **Open Review Dashboard.bat**, type your name at the top, open **Needs your attention**, read the slides and `factcheck.md`, then press **Approve**, or type a reason and press **Reject**. A rejected carousel stays rejected; a new version is made by hand from the reason.
+3. **Review.** Double-click **Open Review Dashboard.bat**, type your name at the top, open **Carousels** (the home page), read the slides and `factcheck.md`, then press **Approve**, or type a reason and press **Reject**. A rejected carousel stays rejected; a new version is made by hand from the reason.
 4. **After you post by hand** (Meta Business Suite), choose the account, paste the link and press **Log as posted**. If Slack sends a health message, check `data\watcher.log` and the Sources tab.
 5. **Send to David.** Press **Export for David** in the top bar (or double-click **Export for David.bat**). Upload `output\share\latest\` to the web host, or send the zip. When he says yes, press **Approve** and type "David" as the name.
 6. **Need the files?** Every finished carousel has **Download all slides (ZIP)** and a button per slide.
@@ -54,7 +54,7 @@
 
 ### Activity
 - **What it does:** writes one row for every event (hourly check, Slack alert, carousel build, fact check, review step, download, export, health message, cloud backup) with the Manila time and details. Secrets and PC paths are removed first.
-- **Code and output:** `src/activity.py`, `data/activity-log.csv`. The Activity page shows it with filters.
+- **Code and output:** `src/activity.py`, `data/activity-log.csv`. It is the record of every step; the dashboard no longer shows it.
 
 ### Downloads
 - **What it does:** each finished carousel has **Download all slides (ZIP)** and a button per slide. The zip holds the slides in order, one caption file per account (`captions-tpm-facebook.txt`, `captions-tpm-instagram.txt`, `captions-david-facebook.txt`), `sources.txt` and a short `README.txt`. **Download all approved carousels** puts every approved carousel in one zip.
@@ -77,7 +77,7 @@ The watcher runs in the cloud, on GitHub, so it keeps working while the laptop i
 - **What the cloud does, every hour:** checks the news with the free rules, sends the Slack alerts, marks each official story that needs a carousel as **Waiting for a carousel**, and publishes the read only copy for David. The cloud never builds a carousel and never calls Claude.
 - **The link for David:** `https://<your GitHub name>.github.io/<repository name>/` (also on the repository's **Settings, Pages** screen). It is read only, with the note "Read only copy. To approve a carousel, tell Kint."
 - **See the runs:** the repository's **Actions** tab, **TPM photo news watcher**. **Run it now:** **Run workflow**. **Pause it:** the **...** menu, **Disable workflow**.
-- **Laptop backup (`--nudge-cloud`):** GitHub sometimes skips hourly runs. The Windows task "TPM Photo News Watcher" runs `.venv\Scripts\python.exe src\run.py --nudge-cloud` every hour (`scripts\setup-hourly-task.ps1`). It asks GitHub (with `gh`, which must be installed and signed in) for the last runs of `watch.yml`. If one is running, or the newest started less than 90 minutes ago, it does nothing. Otherwise it starts one run and writes a "Cloud backup" row to the Activity page. It checks no news, builds nothing, sends no Slack message, and always exits 0. Code: `src/cloud_nudge.py`.
+- **Laptop backup (`--nudge-cloud`):** GitHub sometimes skips hourly runs. The Windows task "TPM Photo News Watcher" runs `.venv\Scripts\python.exe src\run.py --nudge-cloud` every hour (`scripts\setup-hourly-task.ps1`). It asks GitHub (with `gh`, which must be installed and signed in) for the last runs of `watch.yml`. If one is running, or the newest started less than 90 minutes ago, it does nothing. Otherwise it starts one run and writes a "Cloud backup" row to the activity log. It checks no news, builds nothing, sends no Slack message, and always exits 0. Code: `src/cloud_nudge.py`.
 - **No alert is sent twice.** Once the cloud is on (the file `state\CLOUD-ON` exists), a live check on the laptop does nothing.
 - **Review on the laptop:** double-click **Sync with cloud.bat** to get the latest from the cloud, review in the dashboard, and save your approvals back to `state\`.
 - **The shared memory** is the small `state\` folder (`src/cloud_state.py`). Each side writes only its own files. The cloud writes `seen.sqlite` and `activity-cloud.csv`. The laptop writes `carousels\` (slides, captions, approvals), `previews\` (plan previews), `laptop-builds.csv`, `post-log.csv` and `activity-laptop.csv`. Never copied into `state\`: `.env` files, keys, `official.txt`, `images.txt`, candidate images.
@@ -85,9 +85,11 @@ The watcher runs in the cloud, on GitHub, so it keeps working while the laptop i
 - **Setup (done once, Nov 2026):** the laptop's memory was copied to `state/` and `state/CLOUD-ON` was created. On GitHub add the secret `SLACK_WEBHOOK_URL` (Settings, Secrets and variables, Actions), set **Pages** to **GitHub Actions**, then run the workflow once.
 
 ## Dashboard sections
-The page is an app with a sidebar. The sections, in this order: **Start here** (what the system does and how it works, with the steps and the rules), **Overview** (the counts, the pipeline, Last check and Next check at, the run history, and Export for David), **Needs your attention** (carousels to review, official stories with no carousel and why, feeds that failed), **Stories** (every story, with filters), **Carousels** (every carousel with its status, slides, captions, fact check, sources and downloads), **Activity** (every event, with filters), and **Sources** (feeds, brands and software).
+The page is an app with a sidebar and four sections, in this order: **Carousels** (the home page: the carousels to review, each with a big cover, every slide to enlarge, the captions to copy, the downloads, and the fact check and sources folded away; Kint approves or rejects here), **Photo news** (the big brand stories sent to Slack in the last two weeks, with rumors waiting for a second site folded below), **System** (is the watcher running, the feed health and the brands it follows), and **How it works** (four steps and the rules that never change). A short health line at the top says when the last check was, how many feeds worked and when the next check is.
 
-David's copy is the same page rendered with `read_only=True`. It opens on Start here. It needs no internet: fonts, icons, CSS and JS are inside the page (`src/dashboard_assets.py`).
+Rejected and skipped stories, practice runs, rejected carousels, the run history and the activity log are not on the page. Their data stays in `data/` and `state/`. A story can be hidden by hand with `hidden_story_ids` in `config/rules.yaml`.
+
+David's copy is the same page rendered with `read_only=True`. It also opens on Carousels, with the read only note at the top and a status badge where Kint has the review buttons. It needs no internet: fonts, icons, CSS and JS are inside the page (`src/dashboard_assets.py`).
 
 ## Setup and tests (once)
 ```powershell

@@ -363,3 +363,7 @@ photo_relevance:
   needs_photo_word: [DJI, Apple, Google, GoPro, Insta360]
   photo_words: [camera, cameras, photo, photos, photography, photographer, photographers, lens, lenses, sensor,
                 megapixel, megapixels, raw, proraw, drone, drones, gimbal, mavic, osmo, image, images, editing]
+
+# Stories Kint hid by hand (story id). They stay in the data and leave the page and David's copy.
+# 67: Nikon "vibe coding" opinion piece, not news for photographers.
+hidden_story_ids: [67]

@@ -47,16 +47,15 @@ def test_a_slide_without_an_official_image_is_flagged_on_its_card(tmp_path):
     assert "NO IMAGE" not in dashboard.carousels_panel([card])
 
 
-def test_each_card_has_a_plain_chip_and_the_filter_offers_every_status(tmp_path):
+def test_each_card_has_a_plain_chip_and_rejected_and_samples_are_left_off(tmp_path):
+    # Round 12 redesign: the gallery shows only what is worth reviewing. The status filter is gone (a handful of
+    # cards needs no filter), and rejected carousels and layout samples are no longer on the page (folders kept).
     cards = dashboard.read_carousels(*folders(tmp_path))
     page = dashboard.carousels_panel(cards)
-    for chip in ("Waiting for David", "Rejected: Wrong product", "Preview, not sent for approval yet"):
+    for chip in ("Waiting for David", "Preview, not sent for approval yet"):
         assert chip in page
-    for value in ("all", "waiting_for_david", "draft", "preview", "approved", "rejected", "posted"):
-        assert f'<option value="{value}"' in page
-    assert '<option value="sample"' not in page and SAMPLE not in page
-    assert '<option value="all" selected>All carousels (3)</option>' in page
-    assert "Previews, not sent for approval yet" in page
+    assert "Rejected: Wrong product" not in page and SAMPLE not in page
+    assert "<option" not in page
     assert page.index(f'id="car-{REAL}"') < page.index(f'id="car-{PREVIEW}"')
     assert "—" not in page and "–" not in page
 
@@ -66,8 +65,7 @@ def test_previews_and_samples_are_never_counted_or_linked_as_real(tmp_path):
     story = {"status": "x", "title": "t"}
     dashboard.link_carousels([story], cards, [])
     assert story["carousel"] is None or dashboard.is_real(story["carousel"])
-    items = dashboard.attention_items(cards, [], [], "local")
-    assert all(PREVIEW not in str(item) and SAMPLE not in str(item) for item in items)
+    assert all(c["kind"] != "sample" for c in dashboard.ready_cards(cards))
 
 
 def test_a_preview_of_a_story_that_was_built_for_real_is_shown_once(tmp_path):
