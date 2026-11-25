@@ -270,3 +270,6 @@ time,type,outcome,details,who
 2026-11-25T16:20:33+08:00,check,ok,"Live check: 276 articles read, 169 in the time window, 11 passed the free rules, 0 alerts sent, 21 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-25T18:03:36+08:00,check,some feeds failed,"Live check: 266 articles read, 170 in the time window, 10 passed the free rules, 0 alerts sent, 21 rumors waiting for a 2nd source, 1 feeds failed (Camera Jabber)",
 2026-11-25T20:03:19+08:00,check,ok,"Live check: 276 articles read, 172 in the time window, 11 passed the free rules, 0 alerts sent, 21 rumors waiting for a 2nd source, 0 feeds failed",
+2026-11-25T23:08:58+08:00,alert,sent,OFFICIAL: The Luminar Fall Update Adds Intelligent Masking,
+2026-11-25T23:08:58+08:00,carousel,waiting for a carousel,"Story 80, The Luminar Fall Update Adds Intelligent Masking: Waiting for a carousel. It is made by hand from the official page, then Kint reviews it.",
+2026-11-25T23:08:58+08:00,check,ok,"Live check: 276 articles read, 181 in the time window, 11 passed the free rules, 1 alerts sent, 21 rumors waiting for a 2nd source, 0 feeds failed",
