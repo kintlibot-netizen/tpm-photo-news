@@ -281,3 +281,4 @@ time,type,outcome,details,who
 2026-11-26T16:51:01+08:00,alert,sent,OFFICIAL: Four new Chinese lenses for Leica M-mount released,
 2026-11-26T16:51:01+08:00,carousel,waiting for a carousel,"Story 81, Four new Chinese lenses for Leica M-mount released: Waiting for a carousel. It is made by hand from the official page, then Kint reviews it.",
 2026-11-26T16:51:01+08:00,check,ok,"Live check: 276 articles read, 188 in the time window, 10 passed the free rules, 1 alerts sent, 21 rumors waiting for a 2nd source, 0 feeds failed",
+2026-11-26T20:17:34+08:00,check,ok,"Live check: 276 articles read, 186 in the time window, 9 passed the free rules, 0 alerts sent, 21 rumors waiting for a 2nd source, 0 feeds failed",
