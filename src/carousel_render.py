@@ -350,13 +350,25 @@ def feature_lines(names: list[str]) -> list[str]:
     return [joiner.join(names[:half]), joiner.join(names[half:])]
 
 
+def cover_headline_mode(text: str) -> str:
+    """'single' for a two word cover name with no model number ('LIGHTROOM CLASSIC'): split, its second word would sit
+    alone on a line, so it stays on one line and the browser shrinks it to the width. Otherwise 'split'."""
+    words = text.split()
+    if "\n" not in text and len(words) == 2 and not any(c.isdigit() for c in text):
+        return "single"
+    return "split"
+
+
 def _cover_text(view: dict) -> tuple[list[str], int]:
     """The cover's pill, headline, hook and feature lines, and the y where the hero space starts."""
-    one_line = len(_split_lines(view["headline"], "split")) == 1
+    mode = cover_headline_mode(view["headline"])
+    one_line = mode == "single" or len(_split_lines(view["headline"], "split")) == 1
     head_top = PILL_TOP + PILL_H + 30
     head_h = round((1 if one_line else 2) * COVER_HEADLINE_SIZE * 0.93) + 24
     y = head_top + head_h + 12
-    parts = [pill(view["label"], PILL_TOP), headline_box(view["headline"], head_top, head_h, COVER_HEADLINE_SIZE)]
+    parts = [pill(view["label"], PILL_TOP),
+             headline_box(view["headline"], head_top, head_h, COVER_HEADLINE_SIZE, mode=mode,
+                          max_lines=1 if mode == "single" else 2)]
     hook = view.get("subline")
     if hook:
         hook_h = hook_lines(hook) * 40 + 6

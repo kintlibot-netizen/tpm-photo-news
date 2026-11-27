@@ -79,7 +79,10 @@ def check_slides(views: list[dict], measure_log: list | None = None) -> list[dic
         headline = view.get("headline") or view.get("title")
         if headline:
             single = view.get("template") in SINGLE_LINE_TEMPLATES or view["type"] == "comparison"
-            lines = carousel_render.split_headline(headline, "single" if single else "split")
+            mode = "single" if single else "split"
+            if view["type"] == "cover":
+                mode = carousel_render.cover_headline_mode(headline)  # a two word name stays on one line
+            lines = carousel_render.split_headline(headline, mode)
             limit = 1 if single else HEADLINE_LINES_MAX
             if len(lines) > limit:
                 findings.append(_finding("FAIL", number, "headline lines",

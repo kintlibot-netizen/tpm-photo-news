@@ -107,3 +107,13 @@ def test_the_price_and_cover_slides_put_the_image_first_too(tmp_path):
     for slide in log:
         image, text = design_check.areas(slide)
         assert image > 2 * text and image / SLIDE >= 0.35
+
+
+def test_two_word_cover_name_stays_on_one_line():
+    # Kint (Nov 28 2026): 'CLASSIC' must not sit alone on the Lightroom Classic cover.
+    import carousel_render as r
+    assert r.cover_headline_mode("LIGHTROOM CLASSIC") == "single"
+    assert r.cover_headline_mode("PHOTOSHOP 2027") == "split"  # the model number line is on purpose
+    assert r.cover_headline_mode("CANON EOS R8 MARK II") == "split"
+    parts, _ = r._cover_text({"label": "ADOBE", "headline": "LIGHTROOM CLASSIC"})
+    assert 'data-max-lines="1"' in parts[1] and "<br>" not in parts[1]
