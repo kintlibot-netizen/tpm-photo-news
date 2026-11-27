@@ -3,7 +3,7 @@
   "history": [
     {
       "event": "built",
-      "at": "2026-11-27T16:45:12+00:00"
+      "at": "2026-11-27T17:14:30+00:00"
     }
   ],
   "build": {
@@ -35,13 +35,13 @@
     "closing": true,
     "timings": {
       "official page": 0.1,
-      "official images (checked plan images)": 1.3,
-      "render slides (one browser for all)": 2.2,
+      "official images (checked plan images)": 2.8,
+      "render slides (one browser for all)": 3.0,
       "design check": 0.0,
-      "total": 3.6
+      "total": 5.9
     }
   },
-  "built_at": "2026-11-27T16:45:12+00:00",
+  "built_at": "2026-11-27T17:14:30+00:00",
   "posts": [],
   "made_by": "Grok Bot",
   "made_without_claude": true,
