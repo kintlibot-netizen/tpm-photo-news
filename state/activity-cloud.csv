@@ -294,3 +294,6 @@ time,type,outcome,details,who
 2026-11-27T12:57:32+08:00,check,ok,"Live check: 276 articles read, 182 in the time window, 11 passed the free rules, 0 alerts sent, 23 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-27T19:21:19+08:00,health,sent,Health message sent to Slack: no feed has worked since 2026-11-27 04:57 UTC.,
 2026-11-27T19:21:37+08:00,check,ok,"Live check: 276 articles read, 185 in the time window, 11 passed the free rules, 0 alerts sent, 23 rumors waiting for a 2nd source, 0 feeds failed",
+2026-11-27T22:20:45+08:00,alert,sent,"OFFICIAL: 3 Legged Thing Fred QD L-bracket for Fujifilm X100 VI price, specifications and availability announced",
+2026-11-27T22:20:45+08:00,carousel,waiting for a carousel,"Story 85, 3 Legged Thing Fred QD L-bracket for Fujifilm X100 VI price, specifications and availability announced: Waiting for a carousel. It is made by hand from the official page, then Kint reviews it.",
+2026-11-27T22:20:45+08:00,check,ok,"Live check: 276 articles read, 181 in the time window, 12 passed the free rules, 1 alerts sent, 23 rumors waiting for a 2nd source, 0 feeds failed",
