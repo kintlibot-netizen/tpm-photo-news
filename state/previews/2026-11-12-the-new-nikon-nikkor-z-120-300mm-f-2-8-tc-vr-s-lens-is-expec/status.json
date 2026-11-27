@@ -1,0 +1,49 @@
+{
+  "status": "draft",
+  "history": [
+    {
+      "event": "built",
+      "at": "2026-11-27T15:27:43+00:00"
+    }
+  ],
+  "build": {
+    "slides": 6,
+    "confirmed": 28,
+    "removed_count": 0,
+    "removed": [],
+    "missing": [],
+    "placed": [
+      "01.jpg",
+      "02.jpg",
+      "03.jpg",
+      "04.jpg",
+      "05.jpg",
+      "06.jpg"
+    ],
+    "design_summary": "Design check: passed, no findings.",
+    "design_fail": 0,
+    "design_warn": 0,
+    "captions_words": {
+      "david": 44,
+      "tpm": 46
+    },
+    "official_url": "https://www.nikonusa.com/press-room/NIKKOR-Z-120-300mm",
+    "title": "Nikon releases the NIKKOR Z 120-300mm f/2.8 TC VR S",
+    "fact_check_passed": true,
+    "lint_passed": true,
+    "sample": false,
+    "cover_collage": true,
+    "timings": {
+      "official page": 0.1,
+      "official images (checked plan images)": 5.0,
+      "render slides (one browser for all)": 6.0,
+      "design check": 0.0,
+      "total": 11.2
+    }
+  },
+  "built_at": "2026-11-27T15:29:44+00:00",
+  "posts": [],
+  "made_by": "Grok Bot",
+  "made_without_claude": true,
+  "preview": true
+}

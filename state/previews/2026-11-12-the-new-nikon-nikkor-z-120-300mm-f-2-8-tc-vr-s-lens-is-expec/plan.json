@@ -1,0 +1,163 @@
+{
+  "product": {
+    "text": "NIKKOR Z 120-300mm f/2.8 TC VR S",
+    "quote": "NIKKOR Z 120-300mm f/2.8 TC VR S"
+  },
+  "cover": {
+    "label": "NIKON",
+    "headline": {
+      "text": "NIKKOR Z\n120-300MM f/2.8 TC VR S",
+      "quote": "NIKKOR Z 120-300mm f/2.8 TC VR S"
+    },
+    "subline": {
+      "text": "THE WORLD'S FIRST OF ITS KIND",
+      "quote": "It is the world’s first"
+    },
+    "subline_alt": {
+      "text": "CONSTANT f/2.8 WITH A BUILT-IN 1.4X",
+      "quote": "constant maximum aperture of f/2.8 to feature a built-in 1.4× teleconverter"
+    }
+  },
+  "slides": [
+    {
+      "template": "left_body",
+      "label": "TELECONVERTER",
+      "headline": {
+        "text": "BUILT-IN 1.4X TELECONVERTER",
+        "quote": "to feature a built-in 1.4× teleconverter"
+      },
+      "accent": {
+        "text": "REACH 420MM",
+        "quote": "extends reach to a super-telephoto focal length of 420mm"
+      },
+      "body": {
+        "text": "With the teleconverter on, the maximum aperture is f/4.",
+        "quote": "The maximum aperture is f/4 when the built-in teleconverter is used"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "AUTOFOCUS",
+      "headline": {
+        "text": "SILKY SWIFT VCM",
+        "quote": "Silky Swift VCM (SSVCM)"
+      },
+      "accent": {
+        "text": "FAST, PRECISE, SMOOTH AF",
+        "quote": "fast, highly precise, and smooth autofocus"
+      },
+      "body": {
+        "text": "Built to track rapidly moving athletes.",
+        "quote": "to track rapidly moving athletes"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "STABILIZATION",
+      "headline": {
+        "text": "6.5-STOP VR",
+        "quote": "Powerful 6.5-stop"
+      },
+      "accent": {
+        "text": "CENTER AND EDGES OF THE FRAME",
+        "quote": "at the center and edges of the frame"
+      },
+      "body": {
+        "text": "With a camera that supports Synchro VR.",
+        "quote": "when used with a camera that supports Synchro VR"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "WEIGHT",
+      "headline": {
+        "text": "ABOUT 2,735 G",
+        "quote": "weighing approximately 6 lbs (2,735 g)"
+      },
+      "accent": {
+        "text": "515 G LIGHTER",
+        "quote": "about 1.1 lbs (515 g) lighter"
+      },
+      "body": {
+        "text": "Compared with the earlier version released in 2020.",
+        "quote": "lighter than the AF-S NIKKOR 120-300mm f/2.8E FL ED SR VR (released in 2020)"
+      },
+      "specs": []
+    }
+  ],
+  "comparison": null,
+  "price": {
+    "label": "PRICE + AVAILABILITY",
+    "prices": [
+      {
+        "value": {
+          "text": "$13,999.95",
+          "quote": "suggested retail price of $13,999.95"
+        },
+        "caption": {
+          "text": "SUGGESTED RETAIL PRICE (US)",
+          "quote": "suggested retail price"
+        }
+      }
+    ],
+    "availability": {
+      "text": "AVAILABLE MID-NOVEMBER 2026",
+      "quote": "available in mid-November 2026"
+    },
+    "quick_take": {
+      "sentence": {
+        "text": "Made for sports, from figure skating and basketball to tennis and soccer.",
+        "quote": "from low-light indoor events like figure skating and basketball, to outdoor sports such as tennis and soccer"
+      },
+      "question": {
+        "text": "Would this replace two lenses in your bag?",
+        "quote": ""
+      }
+    }
+  },
+  "captions": {
+    "david": {
+      "hook": {
+        "text": "I think this is the sports zoom to beat.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "A built-in 1.4x teleconverter extends reach to 420mm with a single switch.",
+          "quote": "extends reach to a super-telephoto focal length of 420mm with a single easily accessible switch"
+        },
+        {
+          "text": "It weighs about 2,735 g, 515 g lighter than the version released in 2020.",
+          "quote": "about 1.1 lbs (515 g) lighter than the AF-S NIKKOR 120-300mm f/2.8E FL ED SR VR (released in 2020)"
+        }
+      ],
+      "closing": {
+        "text": "Sports shooters, is this one on your wish list?",
+        "quote": ""
+      }
+    },
+    "tpm": {
+      "hook": {
+        "text": "Nikon just gave sports photographers a serious new zoom.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "Suggested retail price is $13,999.95 in the US.",
+          "quote": "suggested retail price of $13,999.95"
+        },
+        {
+          "text": "Up to 6.5 stops of VR at the center and edges of the frame with a camera that supports Synchro VR.",
+          "quote": "Powerful 6.5-stop 6 vibration reduction (VR) performance at the center and edges of the frame when used with a camera that supports Synchro VR"
+        }
+      ],
+      "closing": {
+        "text": "Which sport would you shoot with it first?",
+        "quote": ""
+      }
+    }
+  }
+}
