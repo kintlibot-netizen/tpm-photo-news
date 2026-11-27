@@ -12,7 +12,7 @@ def test_the_carousels_come_first_and_how_it_works_is_short():
     # Round 12 redesign: Start here, Overview, Needs your attention, Stories, Activity and Sources made way for four
     # pages. The carousels to review are the home page; How it works is a short page of four steps and the rules.
     keys = [key for key, _, _ in dashboard.PAGES]
-    assert keys == ["review", "news", "system", "how"]
+    assert keys == ["review", "news", "inspiration", "system", "how"]
     page = dashboard.how_panel()
     assert page.count('class="step"') == 4 and "The rules that never change" in page
 

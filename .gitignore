@@ -13,7 +13,9 @@ __pycache__/
 .pytest_cache/
 
 # Local data made by the watcher (the shared memory is in state/, see src/cloud_state.py)
-data/
+data/*
+# The Inspiration boards are hand made reference data the cloud page needs (link only, no images)
+!data/inspiration/
 output/
 dashboard/
 *.log

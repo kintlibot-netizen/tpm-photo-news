@@ -39,7 +39,7 @@ def test_both_pages_open_on_the_carousels_and_have_the_same_four_sections(tmp_pa
     local = build(tmp_path, db)
     share = build(tmp_path, db, read_only=True, base_for=lambda c: f"carousels/{c['name']}")
     for page in (local, share):
-        assert re.findall(r'data-page="([a-z]+)"', page) == ["review", "news", "system", "how"]
+        assert re.findall(r'data-page="([a-z]+)"', page) == ["review", "news", "inspiration", "system", "how"]
         assert 'data-home="review"' in page
         first = page.index('data-page="review"')
         assert first < page.index('data-page="news"') and 'data-page="review">' in page  # the home page is not hidden

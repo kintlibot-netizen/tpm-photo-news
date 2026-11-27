@@ -6,7 +6,8 @@ To rebuild it alone:  python src\\dashboard.py
 
 It is laid out like an app: a sidebar with the sections, a top bar with one short health line (last check, feeds,
 next check), and one page per section, in the same order as the README: Carousels (the home page: the carousels to
-review), Photo news (big brand stories of the last two weeks), System (watcher and feed health) and How it works.
+review), Photo news (big brand stories of the last two weeks),
+Inspiration (credited, link only reference photos), System (watcher and feed health) and How it works.
 Run history, the activity log and hidden, rejected, skipped or practice run stories are not shown (their data is kept).
 
 Two modes:
@@ -38,6 +39,7 @@ import classify
 import dashboard_assets
 import dedupe
 import downloads
+import inspiration
 import runlog
 import schedule_info
 from dashboard_assets import icon
@@ -53,7 +55,8 @@ REVIEW_ACCOUNTS = [("tpm-facebook", "TPM Facebook"), ("tpm-instagram", "TPM Inst
                    ("david-facebook", "David Facebook")]
 # The sidebar. The carousels to review come first: that is the home page of Kint's page and David's copy.
 PAGES = [("review", "Carousels", "carousels"), ("news", "Photo news", "stories"),
-         ("system", "System", "activity"), ("how", "How it works", "how")]
+         ("inspiration", "Inspiration", "image"), ("system", "System", "activity"),
+         ("how", "How it works", "how")]
 SHARE_NOTE = "Read only copy. To approve a carousel, tell Kint."
 HEALTHY_HOURS = 2
 
@@ -997,6 +1000,9 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
                    + carousels_panel(cards, mode, approved_href)),
         "news": (page_head("Photo news", "Big photography brand news from the last two weeks. Official launches go "
                            "to Slack at once; a rumor waits for a second site.") + news_panel(stories, now)),
+        "inspiration": (page_head("Inspiration", "Standout photos from official sources, credited to the photographers, "
+                                  "with the lesson and a TPM content idea. Links only, no images copied.")
+                        + inspiration.panel()),
         "system": (page_head("System", "Is the watcher running, and are the news feeds working.")
                    + system_panel(feeds_cfg, latest, data["feeds"], rules, next_text, now)),
         "how": page_head("How it works", "From a photo news story to a carousel ready to post, in four steps.")
@@ -1063,7 +1069,7 @@ def render_page(data: dict, stories: list[dict], numbers: dict,
         "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; "
         f"script-src 'unsafe-inline'; connect-src {connect}; img-src data: file: 'self'; font-src data:; "
         "base-uri 'none'; form-action 'none'\">"
-        "<title>TPM Photo News</title><style>" + font_css + dashboard_assets.CSS + "</style></head>"
+        "<title>TPM Photo News</title><style>" + font_css + dashboard_assets.CSS + inspiration.CSS + "</style></head>"
         f'<body data-mode="{mode}" data-home="{home}"><div class="app">' + sidebar
         + '<div class="main">' + topbar + banner
         + f'<div class="content">{sections}</div></div></div>'
