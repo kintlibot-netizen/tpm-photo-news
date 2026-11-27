@@ -1,7 +1,7 @@
 # Fact-check: Nikon releases the NIKKOR Z 120-300mm f/2.8 TC VR S
 
 Official source: https://www.nikonusa.com/press-room/NIKKOR-Z-120-300mm
-Checked on: 2026-11-27
+Checked on: 2026-11-28
 
 Every claim on the slides and in the captions is listed below. A claim marked NOT CONFIRMED was removed from the slides and captions.
 

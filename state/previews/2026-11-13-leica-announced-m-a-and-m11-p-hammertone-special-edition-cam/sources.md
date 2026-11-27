@@ -15,7 +15,6 @@ Images:
 - 03.png: present, slide 3
 - 04.png: present, slide 4
 - 05.png: present, slide 5
-- slide 1 hero: a collage of the official feature images 02.webp, 03.png, 04.png (first one large, uncropped, same border and glow as the slides)
 - made without Claude: the plan was written by Grok Bot from the official page and checked by code (quotes word for word, official images, lint, design check)
 - slide 01 (cover): official image placed as 01.webp (3840x2160). Image: https://leica-camera.com/sites/default/files/styles/large_media_16x9_desktop_large_crop_2x/public/2026-10/Leica_Hammertone_M11-P_PDP_Header.jpg.webp?h=e5cacd2c&itok=pXTxj8HP. Official page: https://leica-camera.com/en-int/photography/cameras/m/m11-p-hammertone. no strip to trim, used as published. Image check (written by the plan author): passes every check. official Leica M11-P Hammertone header photo, top view of the camera in hand; the camera is the subject
 - slide 02 (HAMMERTONE FINISH): official image placed as 02.webp (1920x1280). Image: https://leica-camera.com/sites/default/files/styles/medium_content_media_desktop_large_2x/public/2026-10/Leica_Hammertone_M11-P_PDP_Image_02.jpg.webp?itok=mNVdg4UR. Official page: https://leica-camera.com/en-int/photography/cameras/m/m11-p-hammertone. no strip to trim, used as published. Image check (written by the plan author): passes every check. official Leica close up of the hammertone texture on the M11-P

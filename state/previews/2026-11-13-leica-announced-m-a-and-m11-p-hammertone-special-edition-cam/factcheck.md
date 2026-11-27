@@ -1,7 +1,7 @@
 # Fact-check: Leica announced M-A and M11-P Hammertone Special Edition cameras
 
 Official source: https://leica-camera.com/en-int/press/leica-m-hammertone-and-leica-m11-p-hammertone
-Checked on: 2026-11-25
+Checked on: 2026-11-28
 
 Every claim on the slides and in the captions is listed below. A claim marked NOT CONFIRMED was removed from the slides and captions.
 

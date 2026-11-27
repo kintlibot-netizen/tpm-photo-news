@@ -15,7 +15,6 @@ Images:
 - 04.jpg: present, slide 4
 - 05.jpg: present, slide 5
 - 06.jpg: present, slide 6
-- slide 1 hero: a collage of the official feature images 02.jpg, 03.jpg, 04.jpg (first one large, uncropped, same border and glow as the slides)
 - made without Claude: the plan was written by Grok Bot from the official page and checked by code (quotes word for word, official images, lint, design check)
 - slide 01 (cover): official image placed as 01.jpg (2064x1272). Image: https://imaging.nikon.com/imaging/lineup/lens/z-mount/z_120-300mmf28_tc_vr_s/img/product_01_03.jpg. Official page: https://imaging.nikon.com/imaging/lineup/lens/z-mount/z_120-300mmf28_tc_vr_s/. no strip to trim, used as published. Image check (written by the plan author): passes every check. official Nikon product photo of the NIKKOR Z 120-300mm f/2.8 TC VR S
 - slide 02 (BUILT-IN 1.4X TELECONVERTER): official image placed as 02.jpg (2064x1272). Image: https://imaging.nikon.com/imaging/lineup/lens/z-mount/z_120-300mmf28_tc_vr_s/img/product_01_01.jpg. Official page: https://imaging.nikon.com/imaging/lineup/lens/z-mount/z_120-300mmf28_tc_vr_s/. no strip to trim, used as published. Image check (written by the plan author): passes every check. official Nikon product photo, side view showing the built-in teleconverter switch housing
