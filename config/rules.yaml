@@ -367,3 +367,16 @@ photo_relevance:
 # Stories Kint hid by hand (story id). They stay in the data and leave the page and David's copy.
 # 67: Nikon "vibe coding" opinion piece, not news for photographers.
 hidden_story_ids: [67]
+
+# Kint's one-off exceptions to the rumor rule, by story id. Only these stories may make a carousel without having been
+# sent to Slack as official, and only from the official pages listed (every fact, price and image). The dashboard
+# shows these pages as the story's sources instead of the rumor article. Every other story keeps the rumor rule.
+# 21: Nikon NIKKOR Z 120-300mm f/2.8 TC VR S, first seen on a rumor site, later announced by Nikon (approved 2026-11-27).
+official_override_stories:
+  21:
+    approved_by: Kint
+    approved_on: "2026-11-27"
+    title: "Nikon releases the NIKKOR Z 120-300mm f/2.8 TC VR S"
+    official_urls:
+      - https://www.nikon.com/company/news/2026/1029_01/
+      - https://www.nikonusa.com/press-room/NIKKOR-Z-120-300mm

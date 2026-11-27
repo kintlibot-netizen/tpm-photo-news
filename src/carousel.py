@@ -122,8 +122,24 @@ def find_story(store: dedupe.Store, key: str, now: datetime):
     return match
 
 
+def official_override(story_id, rules: dict) -> dict | None:
+    """Kint's one-off exception for one stored story (rules.yaml official_override_stories), or None.
+    Only the story ids listed there are let through; the rumor rule stays as it is for every other story."""
+    table = (rules or {}).get("official_override_stories") or {}
+    try:
+        entry = table.get(int(story_id))
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(entry, dict) or not entry.get("official_urls"):
+        return None
+    return entry
+
+
 def check_eligible(story, rules: dict) -> None:
-    """Only a story sent to Slack as OFFICIAL can make a carousel. Rumors never can."""
+    """Only a story sent to Slack as OFFICIAL can make a carousel. Rumors never can, except a story Kint listed by id
+    in rules.yaml official_override_stories (its facts still come only from the official pages listed there)."""
+    if official_override(story.id, rules):
+        return
     if story.last_alert_label == classify.RUMOR:
         raise Refused("This story was sent as a rumor. Rumor stories can never make a carousel.")
     if story.last_alert_label != classify.OFFICIAL:

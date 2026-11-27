@@ -326,6 +326,22 @@ def split_hidden(stories: list[dict], rules: dict | None) -> tuple[list[dict], l
     return shown, hidden
 
 
+def apply_official_overrides(stories: list[dict], rules: dict | None) -> list[dict]:
+    """A story Kint confirmed by hand (rules.yaml official_override_stories) shows as official, with the official
+    pages as its only sources and the official headline; the rumor article it was first seen in is left off."""
+    table = (rules or {}).get("official_override_stories") or {}
+    for story in stories:
+        entry = table.get(story.get("story_id")) if story.get("story_id") is not None else None
+        if not isinstance(entry, dict) or not entry.get("official_urls"):
+            continue
+        name = story.get("brand") or "Official"
+        story["sources"] = [{"source": f"{name} official", "link": url} for url in entry["official_urls"]]
+        story["title"] = story["summary"] = entry.get("title") or story["title"]
+        story["label"] = classify.OFFICIAL
+        story["official_override"] = True
+    return stories
+
+
 def hide_cards(cards: list[dict], hidden: list[dict]) -> list[dict]:
     """Carousel and preview cards of hidden stories are left off the page too (their folders are kept)."""
     slugs = {folder_slug(story["title"]) for story in hidden if story.get("title")}
@@ -823,7 +839,9 @@ def news_item(story: dict, now: datetime) -> str:
     when = show_time(moment) if moment else "Date not known"
     official = story["label"] == classify.OFFICIAL
     kind = '<span class="pill p-official">Official</span>' if official else '<span class="pill p-rumor">Rumor</span>'
-    if story["status"] == runlog.HELD:
+    if story.get("official_override"):
+        chips = '<span class="tag st-alert">Confirmed on the official page</span>'
+    elif story["status"] == runlog.HELD:
         chips = '<span class="tag st-held">Waiting for a 2nd source</span>'
     else:
         chips = '<span class="tag st-alert">Sent to Slack</span>'
@@ -845,8 +863,8 @@ def news_item(story: dict, now: datetime) -> str:
 def news_panel(stories: list[dict], now: datetime) -> str:
     """The stories sent to Slack, newest first. Rumors still waiting for a second site are folded away below."""
     items = recent_news(stories, now)
-    sent = [s for s in items if s["status"] == runlog.ALERTED]
-    held = [s for s in items if s["status"] == runlog.HELD]
+    sent = [s for s in items if s["status"] == runlog.ALERTED or s.get("official_override")]
+    held = [s for s in items if s["status"] == runlog.HELD and not s.get("official_override")]
     if not items:
         return empty_state("stories", "No big brand news in the last two weeks",
                            "New launches from the big photography brands show here as soon as the watcher finds them.")
@@ -1075,7 +1093,7 @@ def build_page(db_path=None, sources_path=None, rules_path=None, now=None, carou
 
     data = read_database(db_path)
     rules = load_rules(rules_path)
-    stories, hidden = split_hidden(build_stories(data, rules), rules)
+    stories, hidden = split_hidden(apply_official_overrides(build_stories(data, rules), rules), rules)
     cards = hide_cards(read_carousels(carousels_dir, samples_dir, Path(previews_dir) if previews_dir is not None
                                       else None), hidden)
     if card_filter is not None:

@@ -341,7 +341,9 @@ def build_story(key: str, plan_path: Path, verdicts_path: Path | None = None, *,
         story = carousel.find_story(store, str(key), now)
     finally:
         store.db.close()
-    carousel.check_eligible(story, carousel.load_rules())
+    rules = carousel.load_rules()
+    carousel.check_eligible(story, rules)
+    override = carousel.official_override(story.id, rules)
     data = read_json(plan_path)
     plan_data, meta = split_input(data)
     if meta.get("story") not in (None, story.id, str(story.id)):
@@ -356,6 +358,9 @@ def build_story(key: str, plan_path: Path, verdicts_path: Path | None = None, *,
                                "to config/carousel.yaml.")
     if not meta.get("official_url"):
         raise PlanInputError("the plan needs official_url: the brand's own page every fact is quoted from")
+    if override and meta["official_url"] not in override["official_urls"]:
+        raise PlanInputError(f"story {story.id} is built under Kint's official override: official_url must be one "
+                             f"of {', '.join(override['official_urls'])}")
     hashtags = instagram_hashtags(meta.get("instagram_hashtags"))
     official.enable_page_cache(carousel.PAGE_CACHE_DIR, float(config.get("page_cache_hours", 6)))
     images.IMAGE_CACHE_DIR = carousel.IMAGE_CACHE_DIR
@@ -409,9 +414,16 @@ def build_story(key: str, plan_path: Path, verdicts_path: Path | None = None, *,
         if dry_run:
             extra.append("DRY RUN: not recorded, no Slack message, nothing pushed, not on the dashboard")
         article_links = [(src["source"], src.get("link") or src["url"]) for src in story.sources]
+        title = story.title
+        if override:
+            # The rumor article is left out: the card and sources.md list only the official pages Kint named.
+            article_links = [(f"{brand} official", url) for url in override["official_urls"] if url != page.url]
+            title = override.get("title") or story.title
+            extra.append(f"official override: story {story.id} approved by {override.get('approved_by', 'Kint')} "
+                         f"(rules.yaml official_override_stories); facts only from {', '.join(override['official_urls'])}")
         with quiet_activity(dry_run):
             result = carousel.assemble(
-                plan_data, title=story.title, official_text=page.text, verdicts=verdicts, out_dir=out_dir,
+                plan_data, title=title, official_text=page.text, verdicts=verdicts, out_dir=out_dir,
                 official_url=page.url, article_links=article_links, press_images=True, render=render,
                 checked_on=now.astimezone(dashboard.MANILA).strftime("%Y-%m-%d"), extra_notes=extra,
                 candidates_md=candidates_md, closing=bool(config.get("closing_slide", True)), clock=clock)
