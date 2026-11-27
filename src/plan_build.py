@@ -55,7 +55,8 @@ import timing
 ROOT = Path(__file__).resolve().parent.parent
 PLAN_DIR = ROOT / "data" / "plans"  # local only (data/ is never committed)
 PREVIEW_ROOT = ROOT / "output" / "plan-previews"  # dry runs: never synced to state/, never on the dashboard
-BUILD_KEYS = ("story", "brand", "official_url", "images", "verdicts", "author", "notes", "instagram_hashtags")
+BUILD_KEYS = ("story", "brand", "official_url", "images", "verdicts", "author", "notes", "instagram_hashtags", "title")
+FEATURE_TITLE_MIN, FEATURE_TITLE_MAX = 12, 110  # a feature carousel's own title (see feature_title)
 HASHTAG = re.compile(r"[A-Za-z][A-Za-z0-9]{1,29}")
 HASHTAGS_MIN, HASHTAGS_MAX = 3, 8
 DEFAULT_AUTHOR = "Grok Bot"
@@ -85,6 +86,21 @@ def split_input(data: dict) -> tuple[dict, dict]:
     plan = {k: copy.deepcopy(v) for k, v in data.items() if k not in BUILD_KEYS}
     meta = {k: copy.deepcopy(data[k]) for k in BUILD_KEYS if k in data}
     return plan, meta
+
+
+def feature_title(meta: dict) -> str | None:
+    """The plan's own "title": a second carousel about one feature of a story (for example Glow from the Lightroom
+    release story), with its own title and its own preview folder, so the story's main preview is kept. None when the
+    plan has no title (the carousel is the story's own, named after the story as before)."""
+    value = meta.get("title")
+    if value is None:
+        return None
+    text = " ".join(str(value).split())
+    if not FEATURE_TITLE_MIN <= len(text) <= FEATURE_TITLE_MAX:
+        raise PlanInputError(f"title must be {FEATURE_TITLE_MIN} to {FEATURE_TITLE_MAX} characters, not {len(text)}")
+    if re.search(r"[\u2013\u2014]|\s-\s", text):
+        raise PlanInputError("title: no em or en dashes and no spaced hyphens")
+    return text
 
 
 def plan_path_for(story_id, plan_dir: Path | None = None) -> Path | None:
@@ -362,6 +378,10 @@ def build_story(key: str, plan_path: Path, verdicts_path: Path | None = None, *,
         raise PlanInputError(f"story {story.id} is built under Kint's official override: official_url must be one "
                              f"of {', '.join(override['official_urls'])}")
     hashtags = instagram_hashtags(meta.get("instagram_hashtags"))
+    own_title = feature_title(meta)
+    if own_title and not dry_run:
+        raise carousel.Refused("A feature carousel (a plan with its own title) is a preview only for now: build it "
+                               "with --dry-run. A real build records one carousel per story.")
     official.enable_page_cache(carousel.PAGE_CACHE_DIR, float(config.get("page_cache_hours", 6)))
     images.IMAGE_CACHE_DIR = carousel.IMAGE_CACHE_DIR
     try:
@@ -383,7 +403,7 @@ def build_story(key: str, plan_path: Path, verdicts_path: Path | None = None, *,
         carousel_plan.verify(plan, page.text, verdicts)
         views = carousel_plan.build_views(plan)
 
-        folder = carousel.item_folder(story.title, story.first_seen)
+        folder = carousel.item_folder(own_title or story.title, story.first_seen)
         out_dir = (Path(preview_root) if preview_root else PREVIEW_ROOT) / folder.name if dry_run else folder
         if not dry_run:
             current = carousel_status.read_status(out_dir)["status"] if out_dir.exists() else None
@@ -421,6 +441,10 @@ def build_story(key: str, plan_path: Path, verdicts_path: Path | None = None, *,
             title = override.get("title") or story.title
             extra.append(f"official override: story {story.id} approved by {override.get('approved_by', 'Kint')} "
                          f"(rules.yaml official_override_stories); facts only from {', '.join(override['official_urls'])}")
+        if own_title:
+            title = own_title
+            extra.append(f"feature carousel of story {story.id}: its own title and preview folder, the story's main "
+                         "preview is kept")
         with quiet_activity(dry_run):
             result = carousel.assemble(
                 plan_data, title=title, official_text=page.text, verdicts=verdicts, out_dir=out_dir,
@@ -435,7 +459,7 @@ def build_story(key: str, plan_path: Path, verdicts_path: Path | None = None, *,
     if dry_run:
         # A preview is never sent for approval: it stays a draft until a real build, whatever the checks said.
         carousel_status.update_fields(out_dir, status="draft", preview=True)
-    result.update({"dry_run": dry_run, "story": story.id, "title": story.title})
+    result.update({"dry_run": dry_run, "story": story.id, "title": own_title or story.title})
     return result
 
 

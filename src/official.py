@@ -20,6 +20,12 @@ PAGE_HEADERS = {
     "User-Agent": USER_AGENT,
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
+    # Chrome sends these on every page it opens; helpx.adobe.com answers 403 to a request without them.
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
 }
 BROWSER_TIMEOUT_MS = 45_000
 MIN_OFFICIAL_CHARS = 300  # a page with less text than this cannot support a carousel
