@@ -171,7 +171,7 @@ def test_screenshots_are_shown_whole_with_contain_never_cover(tmp_path):
     assert "object-fit:cover" not in carousel_render.CSS
     assert "object-fit:contain" in carousel_render.CSS
     page = carousel_render.slide_document(feature_view(), {"main": wide_image(tmp_path), "old": None}, None)
-    assert 'class="hero screen"' in page
+    assert 'class="hero screen' in page
     assert "scale(" not in page and "object-position" not in page and "transform" not in page.split("</style>")[1]
 
 
@@ -190,10 +190,16 @@ def test_the_screenshot_has_a_thin_border_and_glow_not_a_grey_bezel():
 # ---- one image box for every feature slide ----
 
 def _screen_style(page: str) -> str:
-    return re.search(r'class="hero screen" style="([^"]+)"', page).group(1)
+    return re.search(r'class="hero screen[^"]*"(?: data-box="[^"]*")? style="([^"]+)"', page).group(1)
 
 
-def test_every_feature_slide_uses_the_same_image_box(tmp_path):
+def _data_box(page: str) -> tuple[int, int, int, int]:
+    return tuple(int(v) for v in re.search(r'data-box="(\d+),(\d+),(\d+),(\d+)"', page).groups())
+
+
+def test_every_feature_slide_image_runs_full_width_down_to_the_same_bottom_edge(tmp_path):
+    """Round 13 (image first): the image area of every feature slide spans the slide edge to edge and ends at
+    HERO_BOTTOM; it starts right under that slide's text, so a short text block gives the image more room."""
     image = wide_image(tmp_path)
     views = [
         feature_view("left_body", "RELIGHT"),
@@ -201,21 +207,20 @@ def test_every_feature_slide_uses_the_same_image_box(tmp_path):
         feature_view("stat_hero", "40 FPS"),
         feature_view("stat_specs", "40 FPS", specs=[spec("40 FPS", "burst"), spec("4K", "video"), spec("7.5", "stops")]),
     ]
-    boxes = set()
     for view in views:
         page = carousel_render.slide_document(view, {"main": image, "old": None}, None)
-        left, top, width, height = re.search(
-            r"left:(\d+)px;top:(\d+)px;width:(\d+)px;height:(\d+)px", _screen_style(page)).groups()
-        assert (int(left), int(top), int(width)) == carousel_render.FEATURE_BOX[:3]
-        assert abs(int(height) - carousel_render.FEATURE_BOX[3]) <= 1
-        boxes.add((left, top, width))
-    assert len(boxes) == 1
+        left, top, width, height = _data_box(page)
+        assert (left, width) == (0, 1080) and top + height == carousel_render.HERO_BOTTOM
+        assert width * height / (1080 * 1440) >= 0.45, view["headline"]
+        frame = [int(v) for v in re.search(r"left:(\d+)px;top:(\d+)px;width:(\d+)px;height:(\d+)px",
+                                           _screen_style(page)).groups()]
+        assert frame[0] == 0 and frame[2] == 1080  # a 16:9 frame is shown whole at the full slide width
 
 
-def test_the_image_box_is_16_by_9_at_full_content_width_and_clear_of_the_footer():
+def test_the_default_image_area_is_full_width_over_half_the_slide_and_clear_of_the_footer():
     left, top, width, height = carousel_render.FEATURE_BOX
-    assert left == 64 and left + width == 1080 - 64
-    assert abs(width / height - 16 / 9) < 0.01
+    assert left == 0 and width == 1080
+    assert width * height / (1080 * 1440) >= 0.5
     assert top + height < carousel_render.FOOTER_TOP
 
 
@@ -226,7 +231,7 @@ def test_text_above_the_image_box_never_reaches_it(tmp_path):
                                                   {"main": wide_image(tmp_path)})
         body_top = int(re.search(r'class="abs body"[^>]*style="top:(\d+)px;[^"]*height:(\d+)px', html_doc).group(1))
         body_h = int(re.search(r'class="abs body"[^>]*style="top:\d+px;[^"]*height:(\d+)px', html_doc).group(1))
-        assert body_top + body_h <= carousel_render.FEATURE_BOX[1]
+        assert body_top + body_h <= _data_box(html_doc)[1]
 
 
 # ---- every feature slide has a cyan line, on one line ----
@@ -294,8 +299,9 @@ def test_the_cover_hero_is_a_whole_full_width_frame_when_the_text_leaves_room(tm
     style = _screen_style(html_doc)
     left, top, width, height = (int(v) for v in re.search(
         r"left:(\d+)px;top:(\d+)px;width:(\d+)px;height:(\d+)px", style).groups())
-    assert (left, width) == (64, 952)  # full content width, margins 64
-    assert top >= 740 and top + height <= carousel_render.HERO_BOTTOM + 1
+    assert (left, width) == (0, 1080)  # round 13: the image runs edge to edge
+    _, text_end = carousel_render._cover_text(cover_view())
+    assert top >= text_end and top + height <= carousel_render.HERO_BOTTOM + 1
     assert "object-position" not in html_doc and "scale(" not in html_doc
 
 
@@ -304,8 +310,9 @@ def test_a_long_cover_text_block_shrinks_the_hero_instead_of_overlapping_it(tmp_
                                           {"main": wide_image(tmp_path, "01.png")})
     left, top, width, height = (int(v) for v in re.search(
         r"left:(\d+)px;top:(\d+)px;width:(\d+)px;height:(\d+)px", _screen_style(html_doc)).groups())
-    assert width < 952 and left + width / 2 == pytest.approx(540, abs=1)  # smaller, still centred
-    assert abs(width / height - 16 / 9) < 0.02
+    _, text_end = carousel_render._cover_text(cover_view(headline="PHOTOSHOP\nFOR EVERYONE"))
+    assert top >= text_end  # under the text, never over it
+    assert left + width / 2 == pytest.approx(540, abs=1) and abs(width / height - 16 / 9) < 0.02  # whole, centred
 
 
 def test_the_confirmed_cover_hook_reaches_the_cover_view():

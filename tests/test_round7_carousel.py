@@ -39,7 +39,7 @@ def camera_view(body="Interact directly on the canvas with the entire image."):
 
 def frame(html_doc):
     return tuple(int(v) for v in re.search(
-        r'class="hero screen" style="left:(\d+)px;top:(\d+)px;width:(\d+)px;height:(\d+)px"', html_doc).groups())
+        r'class="hero screen[^"]*"(?: data-box="[^"]*")? style="left:(\d+)px;top:(\d+)px;width:(\d+)px;height:(\d+)px"', html_doc).groups())
 
 
 # ---- 1. the Camera Angles frame ----
@@ -53,9 +53,11 @@ def test_the_camera_angles_frame_has_the_full_width_and_the_same_margins_and_bot
     image = screenshot(tmp_path, 1540, 1000)  # about the shape of the official Camera Angles screenshot
     html_doc = carousel_render.left_body_body(camera_view(), {"main": image})
     left, top, width, height = frame(html_doc)
-    box_left, box_top, box_width, box_height = carousel_render.FEATURE_BOX
-    assert (left, width) == (box_left, box_width)  # 64px margins on both sides, like slides 02 to 05
-    assert top + height == box_top + box_height  # the same bottom edge
+    box_left, box_top, box_width, box_height = (int(v) for v in re.search(
+        r'data-box="(\d+),(\d+),(\d+),(\d+)"', html_doc).groups())
+    assert (left, width) == (box_left, box_width) == (0, 1080)  # round 13: edge to edge, like every feature slide
+    assert box_top + box_height == carousel_render.HERO_BOTTOM  # the same bottom edge for the image area
+    assert abs((top - box_top) - (box_top + box_height - top - height)) <= 1  # the frame is centred in it
     assert abs(width / height - 1.54) < 0.01  # scaled up as a whole: no stretching, no crop
     body_top, body_h = (int(v) for v in re.search(
         r'class="abs body"[^>]*style="top:(\d+)px;[^"]*height:(\d+)px', html_doc).groups())
@@ -70,8 +72,8 @@ def test_when_the_text_needs_the_room_the_frame_gives_way_and_never_the_text(tmp
     left, top, width, height = frame(html_doc)
     body_top, body_h = (int(v) for v in re.search(
         r'class="abs body"[^>]*style="top:(\d+)px;[^"]*height:(\d+)px', html_doc).groups())
-    assert body_top + body_h <= top and top + height == 748 + 536
-    assert left >= 64 and left + width <= 1016
+    assert body_top + body_h <= top and top + height <= carousel_render.HERO_BOTTOM
+    assert left >= 0 and left + width <= 1080
 
 
 # ---- 2. the Camera Angles body copy ----

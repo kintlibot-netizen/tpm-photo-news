@@ -103,9 +103,9 @@ def test_the_small_cover_tiles_are_at_least_420_wide_and_span_the_content_width(
     big, left, right = cover_tiles(tmp_path)
     assert left[2] >= 420 and right[2] >= 420
     assert left[1] == right[1] and big[1] + big[3] < left[1]  # one row under the large tile
-    assert left[0] <= 66 and right[0] + right[2] >= 1014  # the row fills the 952px content width
+    assert left[0] <= 42 and right[0] + right[2] >= 1038  # the row fills the 1000px collage width (round 13)
     assert 16 <= right[0] - (left[0] + left[2]) <= 24 and 16 <= left[1] - (big[1] + big[3]) <= 24
-    assert big[2] > left[2] and big[2] <= 952
+    assert big[2] > left[2] and big[2] <= 1000
 
 
 def test_the_cover_collage_uses_the_space_down_to_the_footer_and_never_overlaps(tmp_path):
@@ -114,7 +114,7 @@ def test_the_cover_collage_uses_the_space_down_to_the_footer_and_never_overlaps(
         assert not overlaps(a, b)
     assert max(t[1] + t[3] for t in tiles) >= carousel_render.HERO_BOTTOM - 16
     assert max(t[1] + t[3] for t in tiles) <= carousel_render.HERO_BOTTOM
-    assert all(t[0] >= 64 and t[0] + t[2] <= 1016 for t in tiles)
+    assert all(t[0] >= 40 and t[0] + t[2] <= 1040 for t in tiles)
 
 
 def test_two_feature_images_are_stacked_and_a_cramped_space_keeps_the_single_hero():

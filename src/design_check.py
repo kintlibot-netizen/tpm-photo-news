@@ -2,7 +2,9 @@
 
 FAIL stops the build: more than two headline lines, body text over one sentence, pill or footer in a
 different place from slide to slide, text contrast below WCAG AA, text within 64 px of the slide edge
-(measured in the browser), fewer than 4 or more than 7 slides, and captions of 50 words or more.
+(measured in the browser), fewer than 4 or more than 7 slides, captions of 50 words or more, and a slide with an
+official image whose text covers as much of the slide as the image does (Kint's rule: the image is always bigger than
+the text; measured in the browser, image area against the ink boxes of all the text).
 WARN is printed and written to factcheck.md but does not stop the build: a widow (one word alone on the
 last headline line), caption sentences that open with the same word, and a caption hook of 10 words or more.
 
@@ -103,6 +105,7 @@ def check_slides(views: list[dict], measure_log: list | None = None) -> list[dic
                                          f"body is more than one short sentence: {body!r}"))
         if measure_log and number - 1 < len(measure_log):
             findings += _measured(number, measure_log[number - 1]["boxes"])
+            findings += image_vs_text(number, measure_log[number - 1])
 
     if len(pill_tops) > 1:
         findings.append(_finding("FAIL", None, "pill position",
@@ -133,6 +136,25 @@ def _measured(number: int, boxes: list[dict]) -> list[dict]:
             findings.append(_finding("FAIL", number, "edge margin",
                                      f"text ink is closer than {EDGE_MARGIN}px to the edge: {box['text'][:40]!r}"))
     return findings
+
+
+def areas(entry: dict) -> tuple[float, float]:
+    """(image area, text area) of one measured slide, in square pixels: the images as shown (a flat-edged image's card
+    counts whole) and the ink box of every text element."""
+    image = sum(max(0.0, i["width"]) * max(0.0, i["height"]) for i in entry.get("images") or [])
+    text = sum(max(0.0, b["right"] - b["left"]) * max(0.0, b["bottom"] - b["top"]) for b in entry.get("boxes") or [])
+    return image, text
+
+
+def image_vs_text(number: int, entry: dict) -> list[dict]:
+    """Kint's standing rule: on a slide with an official image, the image takes more of the slide than the text."""
+    image, text = areas(entry)
+    if not entry.get("images") or image > text:
+        return []
+    slide = SLIDE_W * SLIDE_H
+    return [_finding("FAIL", number, "image bigger than text",
+                     f"the image covers {image / slide:.0%} of the slide and the text {text / slide:.0%}; "
+                     "the image must be bigger than the text")]
 
 
 def check_contrast() -> list[dict]:

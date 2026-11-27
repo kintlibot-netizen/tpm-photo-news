@@ -31,7 +31,7 @@
 - **Connecting Slack (free, once):** api.slack.com/apps, **Create New App**, **From scratch**, turn on **Incoming Webhooks**, **Add New Webhook to Workspace**, pick the channel, then put the address in `.env` (copy `.env.example`).
 
 ### Carousels
-- **What it does:** builds a 1080 x 1440 carousel for an official story from a written plan. Facts come only from the brand's own page; a claim the page does not support is removed. A real build that passes the fact check, the image rules, the text lint and the design check waits for David.
+- **What it does:** builds a 1080 x 1440 carousel for an official story from a written plan. Facts come only from the brand's own page; a claim the page does not support is removed. A real build that passes the fact check, the image rules, the text lint and the design check waits for David. Image first: on every slide the official image is bigger than the text (the design check measures both in the browser and fails a slide where it is not), and the text is moderate.
 - **Plan and build:** `data\plans\story-N.json` (schema: `docs\plan-schema.md`), `scripts\build_from_plan.py`, `src/plan_build.py`. `pending_carousels.py --locate` saves the official page text and the page's images next to the plan. A dry run writes to `output\plan-previews\` only.
 - **Code:** `src/carousel.py` (one build), `src/carousel_plan.py`, `src/carousel_render.py`, `src/carousel_text.py`, `src/design_check.py`, `src/images.py`, `src/image_pick.py`, `src/official.py`, `src/official_index.py`, `src/carousel_status.py` (status files), `src/carousel_auto.py` (caps, Slack texts).
 - **Config:** `config/carousel.yaml`. Fonts go in `assets/fonts/`.

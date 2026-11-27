@@ -8,8 +8,13 @@ One template per reference in reference-slides/:
   stat_hero    05-4k60p        centred stat headline, sub line, hero image, one short line at the bottom
   comparison   03-comparison   two images and a spec table (only when the official text gives both models)
   price        06-price        two prices split by a divider, availability, hero, quick take, CTA pill
+Image first (Kint's standing rule, round 13): on every slide with an official image the image takes clearly more of
+the slide than the text (about 55 to 65 percent of the 1080 x 1440 slide where the image allows it), and the text is
+moderate: smaller headlines and body copy that still read on a phone. An image whose edges are one flat colour (a
+product shot on white or black) gets a card of that colour that fills its whole image area; a screenshot or a photo
+with busy edges is shown whole at its own shape. design_check fails a slide whose text covers as much as its image.
 Product images come from images/ in the item folder. A UI screenshot is never cropped: it is shown whole
-(object-fit contain) in a 16:9 box. Every feature slide uses the same box (FEATURE_BOX). A feature slide with no
+(object-fit contain), at its own shape, inside the slide's image area. A feature slide with no
 image of its own uses the text-led layout (no image box); it never shows another feature's image. Other slides with
 no image draw only the soft glow (never an empty box).
 """
@@ -26,9 +31,13 @@ WIDTH, HEIGHT = 1080, 1440
 IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp")  # a trimmed PNG is looked for first
 SWIPE_TEXT = "SWIPE TO SEE WHAT'S NEW →"
 WIDE_ASPECT = 1.3  # an image at least this wide for its height (a screenshot or video frame) is shown whole
-# The one image box every feature slide uses: left, top, width, height. Full content width (64px margins), 16:9,
-# ending 47px above the footer. A 1920 x 1080 frame fills it exactly, so nothing is cropped.
-FEATURE_BOX = (64, 748, 952, 536)
+# Images run the full slide width, edge to edge (text keeps its 64px margins), ending 30px above the footer.
+IMAGE_LEFT, IMAGE_WIDTH = 0, WIDTH
+COLLAGE_LEFT, COLLAGE_WIDTH = 40, 1000  # the cover collage keeps a margin so its tiles read as separate pictures
+HERO_BOTTOM = 1300  # every image area ends here, clear of the footer
+# The default image area of a feature slide (stat templates): left, top, width, height, about 54% of the slide.
+FEATURE_BOX = (IMAGE_LEFT, 520, IMAGE_WIDTH, HERO_BOTTOM - 520)
+IMAGE_SHARE_TARGET = 0.55  # the image area a feature slide aims for (share of the slide), when the image allows it
 FONT_FILES = {"display": "Inter-Black.ttf", "semibold": "Inter-SemiBold.ttf", "text": "Inter-Regular.ttf"}
 
 
@@ -101,30 +110,34 @@ def image_uri(image: Path) -> str:
     return Path(image).resolve().as_uri()
 
 
-def hero(image: Path | None, left: int, top: int, width: int, height: int) -> str:
+def hero(image: Path | None, left: int, top: int, width: int, height: int, fill: bool = True) -> str:
     """The product image area. A wide image (a screenshot or demo video frame) is shown WHOLE (object-fit contain,
     never cropped) in a rounded frame with a thin subtle edge and a cyan glow, sized to its own shape inside the
     area. Any other image has no hard border, a soft glow behind and an edge fade.
     Without an image only the soft glow is drawn: never an empty box."""
-    glow, element = hero_pair(image, left, top, width, height)
+    glow, element = hero_pair(image, left, top, width, height, fill)
     return glow + element
 
 
-def hero_pair(image: Path | None, left: int, top: int, width: int, height: int) -> tuple[str, str]:
+def hero_pair(image: Path | None, left: int, top: int, width: int, height: int,
+              fill: bool = True) -> tuple[str, str]:
     """(glow, image element) of a hero. A collage draws every glow first and then every tile, so no glow is painted
     over a neighbouring tile. The element is empty without an image."""
     if image is None:
         return _glow(left, top, width, height), ""
+    # data-box is the whole image area: an image with flat edges is grown to fill it (FILL_SCRIPT, in the browser).
+    box = f' data-box="{left},{top},{width},{height}"' if fill else ""
     aspect = image_aspect(image)
     if aspect and aspect >= WIDE_ASPECT:
         w, h = width, round(width / aspect)
         if h > height:
             w, h = round(height * aspect), height
         x, y = left + (width - w) // 2, top + (height - h) // 2
-        return (_glow(x, y, w, h), f'<div class="hero screen" style="left:{x}px;top:{y}px;width:{w}px;height:{h}px">'
+        bleed = " bleed" if w >= WIDTH else ""
+        return (_glow(x, y, w, h), f'<div class="hero screen{bleed}"{box} style="left:{x}px;top:{y}px;width:{w}px;height:{h}px">'
                 f'<img src="{esc(image_uri(image))}" alt=""></div>')
     return (_glow(left, top, width, height),
-            f'<div class="hero" style="left:{left}px;top:{top}px;width:{width}px;height:{height}px">'
+            f'<div class="hero"{box} style="left:{left}px;top:{top}px;width:{width}px;height:{height}px">'
             f'<img src="{esc(image_uri(image))}" alt=""></div>')
 
 
@@ -133,37 +146,36 @@ def feature_hero(image: Path | None) -> str:
     return hero(image, *FEATURE_BOX)
 
 
-FEATURE_MAX_HEIGHT = 680  # a screenshot narrower than 16:9 may grow up to this tall, upward from the box bottom
+FEATURE_MAX_HEIGHT = HERO_BOTTOM - 420  # the tallest feature image area (when the text above is short)
 
 
-def feature_box_for(image: Path | None, max_height: int = FEATURE_MAX_HEIGHT) -> tuple[int, int, int, int]:
+def feature_box_for(image: Path | None, max_height: int | None = None) -> tuple[int, int, int, int]:
     """The image area of a left_body feature slide (round 3h). A 16:9 frame fills FEATURE_BOX exactly. A screenshot
     narrower than 16:9 (the Camera Angles frame, about 1.54:1) keeps the same full content width, the same left and
     right margins, the same corner radius and the same bottom edge as the other slides: its area grows upward into the
     free space above the box instead of shrinking the frame. Nothing is cropped or stretched (object-fit contain).
     If the text above needs that room, the area is capped (max_height) and the frame is then narrower, centred."""
-    left, top, width, height = FEATURE_BOX
-    bottom = top + height
-    aspect = image_aspect(image) if image is not None else None
-    if not aspect or aspect < WIDE_ASPECT or aspect >= width / height:
+    if max_height is None:
         return FEATURE_BOX
-    tall = min(round(width / aspect), max(height, max_height), FEATURE_MAX_HEIGHT)
-    return left, bottom - tall, width, tall
+    left, _, width, height = FEATURE_BOX
+    tall = max(min(height, 300), min(max_height, FEATURE_MAX_HEIGHT))
+    return left, HERO_BOTTOM - tall, width, tall
 
 
 # ---- text pieces ----
 
-PILL_TOP = 120  # every slide's pill sits here, so the label does not jump between slides
+PILL_TOP = 96  # every slide's pill sits here, so the label does not jump between slides
+PILL_H = 60
 FOOTER_TOP = 1330  # every slide's footer sits here (text stays 64px or more from the bottom edge)
 
 # Text colours and the background they sit on, for the contrast check in design_check.
 # "base" is the lightest part of the slide gradient; "glow" is the hero glow (the worst case).
 BASE_BG, GLOW_BG = "#0c2b52", "#2d6fb0"
 TEXT_STYLES = {
-    "pill": ("#7fe2ff", BASE_BG, 28), "headline": ("#f4f8ff", BASE_BG, 128), "grad": ("#7fd7ff", BASE_BG, 128),
-    "accent": ("#39d3f5", BASE_BG, 44), "body": ("#e9f2ff", BASE_BG, 32), "footer": ("#e8f3ff", BASE_BG, 26),
-    "spec_caption": ("#cfe7ff", BASE_BG, 28), "gold": ("#f2c94c", BASE_BG, 36), "cyan_line": ("#39d3f5", BASE_BG, 34),
-    "feature_names": ("#7fd7ff", BASE_BG, 38), "hook": ("#f4f8ff", BASE_BG, 50),
+    "pill": ("#7fe2ff", BASE_BG, 22), "headline": ("#f4f8ff", BASE_BG, 84), "grad": ("#7fd7ff", BASE_BG, 84),
+    "accent": ("#39d3f5", BASE_BG, 30), "body": ("#e9f2ff", BASE_BG, 27), "footer": ("#e8f3ff", BASE_BG, 20),
+    "spec_caption": ("#cfe7ff", BASE_BG, 22), "gold": ("#f2c94c", BASE_BG, 30), "cyan_line": ("#39d3f5", BASE_BG, 26),
+    "feature_names": ("#7fd7ff", BASE_BG, 24), "hook": ("#f4f8ff", BASE_BG, 32),
 }
 
 
@@ -260,7 +272,7 @@ def headline_box(text: str, top: int, height: int, size: int, mode: str = "split
     )
 
 
-COMPARISON_MIN_SIZE = 56  # a one-line comparison title is never shown smaller than this
+COMPARISON_MIN_SIZE = 44  # a one-line comparison title is never shown smaller than this
 COMPARISON_TITLE_TOP = 84  # keeps the title's ink inside the 64px top margin (see comparison_body)
 
 
@@ -321,13 +333,12 @@ ICON_PATHS = {
 
 def icon_svg(name: str) -> str:
     body = ICON_PATHS.get(name, ICON_PATHS["sensor"])
-    return (f'<svg class="icon" viewBox="0 0 64 64" width="72" height="72" fill="none" stroke="#39d3f5" '
+    return (f'<svg class="icon" viewBox="0 0 64 64" width="56" height="56" fill="none" stroke="#39d3f5" '
             f'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">{body}</svg>')
 
 
 # ---- templates ----
 
-HERO_BOTTOM = 1296  # a hero image area ends here, clear of the footer
 
 
 def feature_lines(names: list[str]) -> list[str]:
@@ -342,19 +353,20 @@ def feature_lines(names: list[str]) -> list[str]:
 def _cover_text(view: dict) -> tuple[list[str], int]:
     """The cover's pill, headline, hook and feature lines, and the y where the hero space starts."""
     one_line = len(_split_lines(view["headline"], "split")) == 1
-    head_top, head_h = (240, 164) if one_line else (226, 340)  # a one line name sits snug so the images get the room
-    y = head_top + head_h + (0 if one_line else 10)
-    parts = [pill(view["label"], PILL_TOP), headline_box(view["headline"], head_top, head_h, 160)]
+    head_top = PILL_TOP + PILL_H + 30
+    head_h = round((1 if one_line else 2) * COVER_HEADLINE_SIZE * 0.93) + 24
+    y = head_top + head_h + 12
+    parts = [pill(view["label"], PILL_TOP), headline_box(view["headline"], head_top, head_h, COVER_HEADLINE_SIZE)]
     hook = view.get("subline")
     if hook:
-        hook_h = hook_lines(hook) * 58 + 6
-        parts.append(text_box("hook", hook, y, hook_h, 50, left=64, width=952, safe=(64, 1016), max_lines=2))
-        y += hook_h + 14
+        hook_h = hook_lines(hook) * 40 + 6
+        parts.append(text_box("hook", hook, y, hook_h, 32, left=64, width=952, safe=(64, 1016), max_lines=2))
+        y += hook_h + 12
     lines = feature_lines(view.get("features") or [])[:2]
     for number, line in enumerate(lines):
-        parts.append(text_box("feat", line, y + number * 58, 54, 38))
+        parts.append(text_box("feat", line, y + number * 36, 34, 24))
     if lines:
-        y += len(lines) * 58
+        y += len(lines) * 36
     return parts, y
 
 
@@ -362,7 +374,7 @@ def cover_hero_images(view: dict, slots: dict) -> list[Path]:
     """The official images the cover hero shows: the collage tiles, else its own image, else (when the collage does
     not fit) the first feature's official image on its own. [] means the cover shows only the soft glow."""
     _, y = _cover_text(view)
-    tiles = collage_tiles(slots.get("collage") or [], y + 20)
+    tiles = collage_tiles(slots.get("collage") or [], y + COVER_GAP)
     if tiles:
         return [image for image, _ in tiles]
     main = slots.get("main") or next(iter(slots.get("collage") or []), None)
@@ -376,29 +388,30 @@ def cover_body(view: dict, slots: dict) -> str:
     # With two or more official feature images the hero is a collage of them: the first (Relight) large on top, the
     # next two side by side under it across the full 952px content width. Otherwise it is one 16:9 box at full content
     # width, ending at HERO_BOTTOM. A tall text block makes it smaller (and centred); every image is still shown whole.
-    tiles = collage_tiles(slots.get("collage") or [], y + 20)
+    tiles = collage_tiles(slots.get("collage") or [], y + COVER_GAP)
     if tiles:
-        pairs = [hero_pair(image, *rect) for image, rect in tiles]
+        pairs = [hero_pair(image, *rect, fill=False) for image, rect in tiles]
         parts += [glow for glow, _ in pairs] + [element for _, element in pairs]
     else:
-        top = max(HERO_BOTTOM - COVER_HERO_H, y + 30)
-        height = HERO_BOTTOM - top
-        width = min(952, round(height * 16 / 9))
-        # No room for the collage and no cover image of its own: the first feature's official image, shown whole.
+        # One image: the whole area under the text (an image with flat edges fills it, any other is shown whole).
+        top = y + COVER_GAP
         main = slots.get("main") or next(iter(slots.get("collage") or []), None)
-        parts.append(hero(main, 64 + (952 - width) // 2, top, width, height))
+        parts.append(hero(main, IMAGE_LEFT, top, IMAGE_WIDTH, HERO_BOTTOM - top))
     parts.append(footer(view.get("product"), swipe=True))
     return "".join(parts)
 
 
-COVER_HERO_H = 536  # the cover hero is a full-width 16:9 box when the text above leaves room for it
+COVER_HEADLINE_SIZE = 100  # moderate: the official images, not the name, are the biggest thing on the cover
+COVER_GAP = 28  # between the cover text and its images
 COLLAGE_GAP = 20  # between collage tiles: 16 to 24px
 COLLAGE_MIN_SMALL = 300  # a small collage tile is never narrower than this (readable on a phone); else one hero
 COLLAGE_BIG_RATIO = 1.25  # the first tile is at least this many times as wide as each of the others
 COLLAGE_MAX_TILES = 3
+COLLAGE_MIN_SHARE = 0.8  # the collage is used only when its tiles cover at least 80% of what one big image would
 
 
-def collage_layout(aspects: list[float], top: int, bottom: int = HERO_BOTTOM, left: int = 64, width: int = 952,
+def collage_layout(aspects: list[float], top: int, bottom: int = HERO_BOTTOM, left: int = COLLAGE_LEFT,
+                   width: int = COLLAGE_WIDTH,
                    gap: int = COLLAGE_GAP) -> list[tuple[int, int, int, int]]:
     """Tile boxes (left, top, width, height) for a cover collage. The first aspect is the large tile.
 
@@ -442,19 +455,43 @@ def collage_tiles(images: list[Path], top: int) -> list[tuple[Path, tuple[int, i
     wide = [(image, image_aspect(image)) for image in images]
     wide = [(image, aspect) for image, aspect in wide if aspect and aspect >= WIDE_ASPECT][:COLLAGE_MAX_TILES]
     rects = collage_layout([aspect for _, aspect in wide], top)
+    if rects:
+        # Image first: a collage whose tiles add up to clearly less than one big image would is not used (two stacked
+        # tiles under a tall headline came out at about a quarter of the slide); the cover then shows one image.
+        single_w = min(IMAGE_WIDTH, (HERO_BOTTOM - top) * wide[0][1])
+        single = single_w * single_w / wide[0][1]
+        if sum(w * h for _, _, w, h in rects) < COLLAGE_MIN_SHARE * single:
+            return []
     return [(image, rect) for (image, _), rect in zip(wide, rects)]
 
 
 def hook_lines(text: str) -> int:
-    """How many lines the cover hook needs at 50px across 952px: one up to about 22 characters, otherwise two."""
-    return 1 if len(text) <= 22 else 2
+    """How many lines the cover hook needs at 32px across 952px: one up to about 36 characters, otherwise two."""
+    return 1 if len(text) <= 36 else 2
 
 
-TEXT_BOTTOM = FEATURE_BOX[1] - 28  # the text above the feature image box ends by here
+TEXT_BOTTOM = FEATURE_BOX[1] - 28  # the text above the default feature image area ends by here
+LB_HEAD_TOP = PILL_TOP + PILL_H + 32  # the left_body headline, under the pill
+LB_SIZES = {1: 84, 2: 72}  # left_body headline size by line count (moderate, still bold on a phone)
+LB_MIN_SIZE = 60
+LB_ACCENT_SIZE, LB_ACCENT_H = 30, 40
+LB_BODY_SIZE, LB_BODY_LINE, LB_BODY_CHARS = 27, 37, 62
+LB_IMAGE_GAP = 34  # between the text block and the image area
 
 
 def _body_height(text: str, per_line: int, line_h: int) -> int:
     return math.ceil(len(text) / per_line) * line_h + 8
+
+
+def left_body_text_end(view: dict) -> int:
+    """The y where a left_body slide's text block ends (the image area starts LB_IMAGE_GAP under it)."""
+    lines = max(1, min(2, len(_split_lines(view["headline"], "split"))))
+    end = LB_HEAD_TOP + round(lines * LB_SIZES[lines] * 0.93) + 20
+    if view.get("accent"):
+        end += 20 + LB_ACCENT_H
+    if view.get("body"):
+        end += 12 + _body_height(view["body"], LB_BODY_CHARS, LB_BODY_LINE)
+    return end
 
 
 def left_body_body(view: dict, slots: dict) -> str:
@@ -465,41 +502,36 @@ def left_body_body(view: dict, slots: dict) -> str:
     lines = max(1, min(2, len(_split_lines(view["headline"], "split"))))
     accent = view.get("accent")
     body = view.get("body")
-    size = 148 if lines == 1 else 120
-    box = feature_box_for(slots.get("main"))
-    text_bottom = box[1] - 28
-    while True:  # shrink the headline a little if a long body would crowd the image box
-        head_top, head_h = 236, round(lines * size * 0.93) + 24
-        end = head_top + head_h + 36
-        end += 56 + 28 if accent else 0
-        end += _body_height(body, 56, 42) if body else 0
-        if end <= text_bottom or size <= 96:
-            break
-        size -= 8
-    if end > text_bottom:  # the text needs the room: the taller frame gives way, never the text
-        box = feature_box_for(slots.get("main"), max_height=FEATURE_BOX[1] + FEATURE_BOX[3] - (end + 28))
+    size = LB_SIZES[lines]
+    head_top, head_h = LB_HEAD_TOP, round(lines * size * 0.93) + 20
+    end = left_body_text_end(view)
     parts = [
         pill(view["label"], PILL_TOP, align="left", left=64),
         headline_box(view["headline"], head_top, head_h, size, left=64, width=952, align="left"),
     ]
-    # Hierarchy: headline, a 36px gap, the cyan benefit line (one line), a 28px gap, the body.
-    y = head_top + head_h + 36
+    # Hierarchy: headline, a 20px gap, the cyan benefit line (one line), a 12px gap, the body. Then the image, which
+    # takes every pixel left down to HERO_BOTTOM (about 55 to 60 percent of the slide).
+    y = head_top + head_h + 20
     if accent:
-        parts.append(text_box("accent", accent, y, 56, 40, left=64, width=952, align="left", max_lines=1))
-        y += 56 + 28
+        parts.append(text_box("accent", accent, y, LB_ACCENT_H, LB_ACCENT_SIZE, left=64, width=952, align="left",
+                              max_lines=1))
+        y += LB_ACCENT_H + 12
     if body:
-        parts.append(text_box("body", body, y, _body_height(body, 56, 42), 30, left=64, width=952, align="left"))
-    parts.append(hero(slots.get("main"), *box))
+        parts.append(text_box("body", body, y, _body_height(body, LB_BODY_CHARS, LB_BODY_LINE), LB_BODY_SIZE,
+                              left=64, width=952, align="left"))
+    top = end + LB_IMAGE_GAP
+    parts.append(hero(slots.get("main"), IMAGE_LEFT, top, IMAGE_WIDTH, HERO_BOTTOM - top))
     parts.append(footer(view.get("product")))
     return "".join(parts)
 
 
 TEXT_LED_TOP, TEXT_LED_BOTTOM = 204, HERO_BOTTOM  # the free area under the pill and above the footer
 TEXT_LED_MIN_BLOCK = 700  # a block shorter than this gets roomier gaps (see text_led_body)
-TEXT_LED_WIDTH_SHARE = 0.8  # the headline fills about 80% of the content width
-TEXT_LED_BODY_SIZE = 38  # the body is at least 34px
-TEXT_LED_BODY_LINE = 54
-TEXT_LED_BODY_CHARS = 36  # characters per line used to reserve height (an estimate, on the safe side)
+TEXT_LED_WIDTH_SHARE = 0.8  # the headline fills about 80% of the content width, up to TEXT_LED_MAX_SIZE
+TEXT_LED_MAX_SIZE = 120
+TEXT_LED_BODY_SIZE = 30  # moderate, like every slide (round 13)
+TEXT_LED_BODY_LINE = 42
+TEXT_LED_BODY_CHARS = 46  # characters per line used to reserve height (an estimate, on the safe side)
 HEADLINE_EM = 0.68  # average width of a heavy uppercase letter, in em (an estimate; the browser shrinks any overshoot)
 ACCENT_EM = 0.64
 
@@ -508,12 +540,12 @@ def text_led_headline_size(headline: str) -> int:
     """Font size at which the longest line of the headline fills about 80% of the 952px content width."""
     lines = _split_lines(headline, "split")[:2]
     longest = max(len(line) for line in lines)
-    return max(96, min(200, round(TEXT_LED_WIDTH_SHARE * 952 / (longest * HEADLINE_EM))))
+    return max(72, min(TEXT_LED_MAX_SIZE, round(TEXT_LED_WIDTH_SHARE * 952 / (longest * HEADLINE_EM))))
 
 
 def text_led_accent_size(accent: str) -> int:
     """The cyan line starts large (up to 56px) and one line; the browser shrinks it only if it would be wider than 952px."""
-    return max(40, min(56, int(952 / (max(1, len(accent)) * ACCENT_EM))))
+    return max(30, min(40, int(952 / (max(1, len(accent)) * ACCENT_EM))))
 
 
 def text_led_body(view: dict) -> str:
@@ -532,7 +564,7 @@ def text_led_body(view: dict) -> str:
     while True:  # keep the whole block inside the free area, with 60px or more to spare at each end
         head_h = round(lines * size * 0.93) + 24
         block = 3 + 32 + head_h + ((44 + accent_h) if accent else 0) + ((36 + body_h) if body else 0)
-        if block <= free - 120 or size <= 96:
+        if block <= free - 120 or size <= 72:
             break
         size -= 8
     # A short block (a one word headline, a short sentence) gets roomier gaps, up to 48px more each, so it does not
@@ -560,23 +592,23 @@ def text_led_body(view: dict) -> str:
 def stat_specs_body(view: dict, slots: dict) -> str:
     parts = [
         pill(view["label"], PILL_TOP),
-        headline_box(view["headline"], 200, 250, 196, mode="single", max_lines=1),
+        headline_box(view["headline"], 184, 140, 120, mode="single", max_lines=1),
     ]
     if view.get("accent"):
-        parts.append(text_box("spaced accent", view["accent"], 456, 60, 40, left=64, width=952, max_lines=1))
+        parts.append(text_box("spaced accent", view["accent"], 330, 44, 28, left=64, width=952, max_lines=1))
     specs = view["specs"]
     column = 952 // len(specs)
     for index, spec in enumerate(specs):
         left = 64 + index * column
         parts.append(
-            f'<div class="abs spec" style="top:530px;left:{left}px;width:{column}px;height:200px">'
+            f'<div class="abs spec" style="top:390px;left:{left}px;width:{column}px;height:150px">'
             f'{icon_svg(spec["icon"])}'
             f'<div class="spec-value" data-fit="text">{esc(spec["value"])}</div>'
             f'<div class="spec-caption" data-fit="text">{esc(spec["caption"])}</div></div>'
         )
         if index:
-            parts.append(f'<div class="abs vdiv" style="top:546px;left:{left}px;height:150px"></div>')
-    parts.append(feature_hero(slots.get("main")))
+            parts.append(f'<div class="abs vdiv" style="top:400px;left:{left}px;height:120px"></div>')
+    parts.append(hero(slots.get("main"), IMAGE_LEFT, 572, IMAGE_WIDTH, HERO_BOTTOM - 572))
     parts.append(footer(view.get("product")))
     return "".join(parts)
 
@@ -584,13 +616,13 @@ def stat_specs_body(view: dict, slots: dict) -> str:
 def stat_hero_body(view: dict, slots: dict) -> str:
     parts = [
         pill(view["label"], PILL_TOP),
-        headline_box(view["headline"], 200, 250, 208, mode="single", max_lines=1),
+        headline_box(view["headline"], 184, 140, 128, mode="single", max_lines=1),
     ]
     if view.get("accent"):
-        parts.append(text_box("spaced accent", view["accent"], 470, 60, 40, left=64, width=952, max_lines=1))
+        parts.append(text_box("spaced accent", view["accent"], 330, 44, 28, left=64, width=952, max_lines=1))
     if view.get("body"):
-        parts.append(text_box("body center", view["body"], 566, 100, 32, left=100, width=880))
-    parts.append(feature_hero(slots.get("main")))
+        parts.append(text_box("body center", view["body"], 386, 80, 27, left=100, width=880))
+    parts.append(hero(slots.get("main"), IMAGE_LEFT, 490, IMAGE_WIDTH, HERO_BOTTOM - 490))
     parts.append(footer(view.get("product")))
     return "".join(parts)
 
@@ -605,11 +637,11 @@ def comparison_body(view: dict, slots: dict) -> str:
     # line height, so the title box sits at 84px, not 40px (at 40px the ink started near 30px and could never fit).
     # Two-line title (new model / vs old model) at 92px: two lines need about 171px, so the box is 200px.
     parts = [
-        gold_headline(title, COMPARISON_TITLE_TOP, 200, 92, max_lines=2),
-        text_box("spaced cyan", view["label"], 292, 50, 28),
-        hero(slots.get("main"), 60, 356, 440, 224),
-        hero(slots.get("old"), 580, 356, 440, 224),
-        '<div class="abs table" style="top:612px;left:60px;width:960px;height:680px">',
+        gold_headline(title, COMPARISON_TITLE_TOP, 150, 68, max_lines=2),
+        text_box("spaced cyan", view["label"], 240, 36, 22),
+        hero(slots.get("main"), IMAGE_LEFT, 292, 490, 400),
+        hero(slots.get("old"), 550, 292, 490, 400),
+        '<div class="abs table" style="top:720px;left:60px;width:960px;height:580px">',
         f'<div class="row head"><div class="cell gold" data-fit="cell">{esc(model_nbsp(new_name))}</div>'
         '<div class="cell mid"></div>'
         f'<div class="cell" data-fit="cell">{esc(model_nbsp(old_name))}</div></div>',
@@ -627,6 +659,10 @@ def comparison_body(view: dict, slots: dict) -> str:
     return "".join(parts)
 
 
+PRICE_QUICK_TOP = 1010  # the quick take rule; its sentence and question follow, then the CTA pill
+PRICE_CTA_TOP = 1236
+
+
 def price_body(view: dict, slots: dict) -> str:
     entries = view["prices"]
     column = WIDTH // len(entries)
@@ -638,41 +674,44 @@ def price_body(view: dict, slots: dict) -> str:
             safe = (64, 520) if index == 0 else (560, 1016)
         else:
             safe = (64, 1016)
-        parts.append(text_box("price", entry["value"], 196, 150, 140, left=left, width=column, safe=safe))
+        parts.append(text_box("price", entry["value"], 180, 104, 92, left=left, width=column, safe=safe))
         if entry.get("caption"):
-            parts.append(text_box("spaced caption", entry["caption"], 348, 40, 28, left=left, width=column,
+            parts.append(text_box("spaced caption", entry["caption"], 288, 32, 22, left=left, width=column,
                                   safe=safe))
     if len(entries) == 2:
-        parts.append(f'<div class="abs vdiv" style="top:200px;left:539px;height:190px"></div>')
+        parts.append(f'<div class="abs vdiv" style="top:184px;left:539px;height:136px"></div>')
     if view.get("availability"):
         parts.append(
-            '<div class="abs avail" style="top:414px;left:72px;width:936px">'
+            '<div class="abs avail" style="top:336px;left:72px;width:936px">'
             '<span class="rule"></span>'
             f'<span class="spaced cyan" data-fit="text">{esc(view["availability"])}</span>'
             '<span class="rule"></span></div>'
         )
     quick = view.get("quick_take")
-    hero_height = 430 if quick else 600
-    parts.append(hero(slots.get("main"), 150, 480, 780, hero_height))
+    hero_top = 400
+    hero_bottom = PRICE_QUICK_TOP - 24 if quick else PRICE_CTA_TOP - 30
+    parts.append(hero(slots.get("main"), IMAGE_LEFT, hero_top, IMAGE_WIDTH, hero_bottom - hero_top))
     if quick:
         parts.append(
-            '<div class="abs quick-label" style="top:938px;left:72px;width:936px">'
+            f'<div class="abs quick-label" style="top:{PRICE_QUICK_TOP}px;left:72px;width:936px">'
             '<span class="rule"></span><span class="spaced cyan">Our quick take</span><span class="rule"></span></div>'
         )
-        parts.append(text_box("quick-sentence", quick["sentence"], 984, 90, 34, left=110, width=860))
-        parts.append(headline_box(quick["question"], 1080, 110, 52, mode="single", left=60, width=960, max_lines=1))
+        parts.append(text_box("quick-sentence", quick["sentence"], PRICE_QUICK_TOP + 42, 74, 26, left=110, width=860))
+        parts.append(headline_box(quick["question"], PRICE_QUICK_TOP + 124, 60, 40, mode="single", left=64, width=952,
+                                  max_lines=1))
     parts.append(
-        f'<div class="abs" style="top:1206px;left:0;width:{WIDTH}px;text-align:center">'
+        f'<div class="abs" style="top:{PRICE_CTA_TOP}px;left:0;width:{WIDTH}px;text-align:center">'
         f'<span class="pill cta">{esc(view["cta"])}</span></div>'
     )
     parts.append(footer(view.get("product")))
     return "".join(parts)
 
 
-CLOSING_HEADLINE_TOP, CLOSING_HEADLINE_H = 300, 340  # two lines of the question, centred in the upper third
-CLOSING_RECAP_TOP = 712  # the "In this post" rule, then the feature names
-CLOSING_RECAP_STEP = 76
-CLOSING_RECAP_STEP_5 = 68
+CLOSING_HEADLINE_TOP, CLOSING_HEADLINE_H = 330, 260  # two lines of the question, centred in the upper third
+CLOSING_HEADLINE_SIZE = 96
+CLOSING_RECAP_TOP = 690  # the "In this post" rule, then the feature names
+CLOSING_RECAP_STEP = 62
+CLOSING_RECAP_STEP_5 = 56
 CLOSING_RECAP_MAX = 5
 CLOSING_CTA_TOP = 1150  # the call to action pill, clear of the footer at FOOTER_TOP
 
@@ -683,7 +722,7 @@ def closing_body(view: dict, slots: dict) -> str:
     the TPM name in the footer. Every line keeps the 64px safe margin, so nothing is cut off in the Facebook or
     Instagram feed. No product image and no product fact: it is the same on every carousel."""
     parts = [pill(view["label"], PILL_TOP), _glow(140, CLOSING_HEADLINE_TOP, 800, CLOSING_HEADLINE_H)]
-    parts.append(headline_box(view["headline"], CLOSING_HEADLINE_TOP, CLOSING_HEADLINE_H, 124,
+    parts.append(headline_box(view["headline"], CLOSING_HEADLINE_TOP, CLOSING_HEADLINE_H, CLOSING_HEADLINE_SIZE,
                               left=64, width=952, max_lines=2))
     if view.get("features"):
         parts.append(
@@ -692,7 +731,7 @@ def closing_body(view: dict, slots: dict) -> str:
         names = view["features"][:CLOSING_RECAP_MAX]
         step = CLOSING_RECAP_STEP if len(names) <= 4 else CLOSING_RECAP_STEP_5  # 5 lines end at 1116, above the CTA
         for index, name in enumerate(names):
-            parts.append(text_box("feat", name, CLOSING_RECAP_TOP + 72 + index * step, 60, 40,
+            parts.append(text_box("feat", name, CLOSING_RECAP_TOP + 64 + index * step, 48, 30,
                                   left=64, width=952, safe=(64, 1016), max_lines=1))
     parts.append(
         f'<div class="abs" style="top:{CLOSING_CTA_TOP}px;left:0;width:{WIDTH}px;text-align:center">'
@@ -742,10 +781,10 @@ font-weight:900;text-transform:uppercase;line-height:.93;letter-spacing:-.02em;c
 .headline{text-wrap:balance;white-space:normal}
 .grad{background:linear-gradient(180deg,#f0fbff 0%,#7fd7ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .gold{background:linear-gradient(180deg,#fff3c4 0%,#f2c94c 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
-.pill{display:inline-block;height:84px;line-height:78px;padding:0 42px;border:3px solid #39d3f5;border-radius:999px;
-color:#7fe2ff;text-transform:uppercase;letter-spacing:.26em;font-weight:600;font-size:28px;white-space:nowrap;
+.pill{display:inline-block;height:60px;line-height:55px;padding:0 32px;border:2.5px solid #39d3f5;border-radius:999px;
+color:#7fe2ff;text-transform:uppercase;letter-spacing:.24em;font-weight:600;font-size:22px;white-space:nowrap;
 box-shadow:0 0 22px rgba(57,211,245,.22)}
-.pill.cta{letter-spacing:.2em;font-size:28px}
+.pill.cta{letter-spacing:.18em;font-size:22px}
 .spaced{text-transform:uppercase;letter-spacing:.2em;font-weight:500}
 .spaced-small{text-transform:uppercase;letter-spacing:.12em;font-size:18px;font-weight:500;color:#39d3f5}
 .sub{color:#f4f8ff;font-weight:500;text-transform:uppercase;letter-spacing:.2em;white-space:nowrap}
@@ -765,36 +804,96 @@ mask-image:radial-gradient(closest-side at 50% 48%,#000 70%,rgba(0,0,0,0) 100%)}
 .hero.screen{border-radius:20px;border:1px solid rgba(127,220,255,.38);
 box-shadow:0 0 64px rgba(64,165,255,.32),0 24px 56px rgba(0,0,0,.5)}
 .hero.screen img{object-fit:contain;-webkit-mask-image:none;mask-image:none}
+.hero.filled{border-radius:22px;border:1px solid rgba(127,220,255,.30);
+box-shadow:0 0 64px rgba(64,165,255,.28),0 24px 56px rgba(0,0,0,.45)}
+.hero.bleed{border-radius:0;border-left:0;border-right:0}
+.hero.filled img{object-fit:contain;-webkit-mask-image:none;mask-image:none}
 .hook{color:#f4f8ff;font-weight:800;text-transform:uppercase;letter-spacing:.04em;line-height:1.1;white-space:normal}
 .feat{color:#7fd7ff;font-weight:700;text-transform:uppercase;letter-spacing:.12em;white-space:nowrap}
 .accent-wrap{white-space:normal;line-height:1.12;letter-spacing:.02em}
 .footer{left:0;right:0;height:40px;display:flex;align-items:center;justify-content:center;gap:26px}
-.fline{flex:0 0 170px;height:2px;background:#39d3f5;opacity:.9}
-.ftext{font-size:26px;letter-spacing:.3em;text-transform:uppercase;white-space:nowrap;color:#e8f3ff;font-weight:500}
+.fline{flex:0 0 140px;height:2px;background:#39d3f5;opacity:.9}
+.ftext{font-size:20px;letter-spacing:.28em;text-transform:uppercase;white-space:nowrap;color:#e8f3ff;font-weight:500}
 .spec{text-align:center}
-.spec .icon{display:block;margin:0 auto 14px auto}
-.spec-value{font-family:"TPMDisplay","Inter","Arial Black",Arial,sans-serif;font-weight:900;font-size:44px;
+.spec .icon{display:block;margin:0 auto 10px auto}
+.spec-value{font-family:"TPMDisplay","Inter","Arial Black",Arial,sans-serif;font-weight:900;font-size:34px;
 line-height:1.05;text-transform:uppercase;color:#f4f8ff;padding:0 10px;overflow:hidden;white-space:nowrap}
-.spec-caption{font-size:28px;color:#cfe7ff;margin-top:8px;padding:0 10px;overflow:hidden;white-space:nowrap}
+.spec-caption{font-size:22px;color:#cfe7ff;margin-top:8px;padding:0 10px;overflow:hidden;white-space:nowrap}
 .vdiv{position:absolute;width:1.5px;height:190px;background:linear-gradient(180deg,rgba(57,211,245,0),rgba(57,211,245,.8),rgba(57,211,245,0))}
 .avail{display:flex;align-items:center;gap:24px;height:50px}
 .avail .rule,.quick-label .rule{flex:1;height:2px;background:#39d3f5;opacity:.85}
-.avail span.spaced{font-size:34px;letter-spacing:.2em;white-space:nowrap}
+.avail span.spaced{font-size:26px;letter-spacing:.2em;white-space:nowrap}
 .quick-label{display:flex;align-items:center;gap:24px;height:40px}
-.quick-label span.spaced{font-size:24px;letter-spacing:.24em;white-space:nowrap}
+.quick-label span.spaced{font-size:20px;letter-spacing:.24em;white-space:nowrap}
 .quick-sentence{color:#e9f2ff;line-height:1.35;font-weight:400}
 .price{font-family:"TPMDisplay","Inter","Arial Black",Arial,sans-serif;font-weight:900;text-transform:none;
 color:#f4f8ff;white-space:nowrap;line-height:1;letter-spacing:-.02em;overflow:hidden}
 .caption{color:#e9f2ff}
 .table{border-top:1px solid rgba(143,211,255,.25)}
-.row{display:flex;align-items:center;height:96px;border-bottom:1px solid rgba(143,211,255,.22)}
-.row.head{height:120px;align-items:flex-start;padding-top:12px;border-bottom:1px solid rgba(143,211,255,.3)}
-.cell{width:400px;text-align:center;font-size:36px;font-weight:600;text-transform:uppercase;line-height:1.2;
+.row{display:flex;align-items:center;height:80px;border-bottom:1px solid rgba(143,211,255,.22)}
+.row.head{height:96px;align-items:flex-start;padding-top:12px;border-bottom:1px solid rgba(143,211,255,.3)}
+.cell{width:400px;text-align:center;font-size:28px;font-weight:600;text-transform:uppercase;line-height:1.2;
 padding:0 10px;overflow:hidden;color:#f4f8ff}
 .cell.gold{color:#f2c94c}
 .cell.mid{width:160px;font-size:19px;font-weight:500;color:#39d3f5;letter-spacing:.12em}
-.row.head .cell{font-size:44px;font-weight:900;letter-spacing:-.01em;white-space:nowrap}
+.row.head .cell{font-size:34px;font-weight:900;letter-spacing:-.01em;white-space:nowrap}
 """
+
+FILL_SCRIPT = """async () => {
+  // Image first (round 13). An official image whose four edges are one flat colour (a product shot on white or black)
+  // grows to its whole image area (data-box) on a card of that colour, so the picture reads as big as the area. Any
+  // other image keeps its own shape. Returns the area each image covers on the slide, for the image > text check.
+  const TOL = 14, SHARE = 0.94, SAMPLE = 256, DEPTH = 3;
+  const edgeColour = (img, nw, nh) => {
+    const scale = Math.min(1, SAMPLE / Math.max(nw, nh));
+    const w = Math.max(8, Math.round(nw * scale)), h = Math.max(8, Math.round(nh * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d', {willReadFrequently: true});
+    ctx.drawImage(img, 0, 0, w, h);
+    let px;
+    try { px = ctx.getImageData(0, 0, w, h).data; } catch (e) { return null; }
+    const at = (x, y) => { const i = (y * w + x) * 4; return [px[i], px[i + 1], px[i + 2], px[i + 3]]; };
+    const sides = [[], [], [], []];
+    for (let d = 0; d < DEPTH; d++) {
+      for (let x = 0; x < w; x++) { sides[0].push(at(x, d)); sides[1].push(at(x, h - 1 - d)); }
+      for (let y = 0; y < h; y++) { sides[2].push(at(d, y)); sides[3].push(at(w - 1 - d, y)); }
+    }
+    const all = sides.flat();
+    if (all.some((c) => c[3] < 250)) return null;  // a transparent edge has no colour of its own
+    const median = [0, 1, 2].map((c) => all.map((v) => v[c]).sort((a, b) => a - b)[all.length >> 1]);
+    const near = (v) => Math.abs(v[0] - median[0]) <= TOL && Math.abs(v[1] - median[1]) <= TOL
+      && Math.abs(v[2] - median[2]) <= TOL;
+    if (!sides.every((side) => side.filter(near).length >= side.length * SHARE)) return null;
+    return median;
+  };
+  const images = [];
+  for (const hero of document.querySelectorAll('.hero')) {
+    const img = hero.querySelector('img');
+    if (!img) continue;
+    try { await img.decode(); } catch (e) { continue; }
+    const nw = img.naturalWidth, nh = img.naturalHeight;
+    if (!nw || !nh) continue;
+    let filled = false;
+    if (hero.dataset.box) {
+      const colour = edgeColour(img, nw, nh);
+      if (colour) {
+        const [l, t, w, h] = hero.dataset.box.split(',').map(Number);
+        Object.assign(hero.style, {left: l + 'px', top: t + 'px', width: w + 'px', height: h + 'px',
+                                   background: `rgb(${colour[0]},${colour[1]},${colour[2]})`});
+        hero.classList.remove('screen');
+        hero.classList.add('filled');
+        if (w >= 1080) hero.classList.add('bleed');
+        filled = true;
+      }
+    }
+    const r = hero.getBoundingClientRect();
+    const scale = Math.min(r.width / nw, r.height / nh);
+    const w = filled ? r.width : nw * scale, h = filled ? r.height : nh * scale;
+    images.push({left: r.left + (r.width - w) / 2, top: r.top + (r.height - h) / 2, width: w, height: h, filled});
+  }
+  return images;
+}"""
 
 FIT_SCRIPT = """() => {
   // Ink = the boxes of the non-empty text nodes only (not element boxes, not empty strings).
@@ -913,14 +1012,16 @@ def render_pngs(documents: list[str], out_paths: list[Path], work_dir: Path,
                 measure_log: list | None = None) -> list[str]:
     """Writes each slide to a PNG at 1080 x 1440. Returns overflow problems (empty when all fit).
 
-    When measure_log is a list, one entry per slide is appended: {"boxes": [...measured text boxes]}.
+    When measure_log is a list, one entry per slide is appended: {"boxes": [...measured text boxes],
+    "images": [...the area each image covers]}.
     Each box has name, text, left, right, top, bottom, lines and the final font size.
     """
     sync_playwright = _playwright()
     work_dir.mkdir(parents=True, exist_ok=True)
     problems: list[str] = []
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
+        # File access lets the slide read its own local images' edge pixels (FILL_SCRIPT); nothing is fetched.
+        browser = playwright.chromium.launch(args=["--allow-file-access-from-files"])
         try:
             page = browser.new_page(viewport={"width": WIDTH, "height": HEIGHT}, device_scale_factor=1)
             for number, (document, out_path) in enumerate(zip(documents, out_paths), 1):
@@ -928,10 +1029,11 @@ def render_pngs(documents: list[str], out_paths: list[Path], work_dir: Path,
                 source.write_text(document, encoding="utf-8")
                 page.goto(source.resolve().as_uri(), wait_until="load")
                 page.evaluate("() => document.fonts.ready.then(() => true)")
+                images = page.evaluate(FILL_SCRIPT)
                 result = page.evaluate(FIT_SCRIPT)
                 problems += [f"slide {number:02d}: text does not fit its box: {p}" for p in result["problems"]]
                 if measure_log is not None:
-                    measure_log.append({"boxes": result["boxes"]})
+                    measure_log.append({"boxes": result["boxes"], "images": images})
                 page.screenshot(path=str(out_path), clip={"x": 0, "y": 0, "width": WIDTH, "height": HEIGHT})
         finally:
             browser.close()

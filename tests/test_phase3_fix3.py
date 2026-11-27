@@ -188,7 +188,7 @@ def test_the_comparison_title_is_set_on_two_lines_inside_the_margins():
     html_doc = carousel_render.gold_headline("EOS R8 MARK II vs EOS R8", 84, 200, 92, max_lines=2)
     assert "<br>vs" in html_doc
     assert 'data-max-lines="2"' in html_doc
-    assert 'data-min-size="56"' in html_doc
+    assert f'data-min-size="{carousel_render.COMPARISON_MIN_SIZE}"' in html_doc
     assert "width:952px" in html_doc and "left:64px" in html_doc
 
 
@@ -196,8 +196,8 @@ def test_the_comparison_blocks_stack_without_overlap():
     view = {"title": "EOS R8 MARK II vs EOS R8", "label": "Side-by-side comparison", "product": None,
             "rows": [{"new": "40 fps", "name": "Burst", "old": "6 fps"}]}
     html_doc = carousel_render.comparison_body(view, {"main": None, "old": None})
-    # title 84 to 284, label 292 to 342, pictures 356 to 580 (their glow is drawn inside that), table 612 to 1292,
+    # Round 13 (image first): title 84 to 234, label 240 to 276, pictures 292 to 692, table 720 to 1300,
     # footer from 1330. The literal positions below are the title, label and table boxes.
-    for style in ("top:84px", "top:292px", "top:612px"):
+    for style in ("top:84px", "top:240px", "top:720px"):
         assert style in html_doc
-    assert "height:200px" in html_doc and "height:680px" in html_doc
+    assert "height:150px" in html_doc and "height:580px" in html_doc

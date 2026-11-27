@@ -276,7 +276,11 @@ def test_the_project_files_that_will_be_public_are_safe(monkeypatch):
 
 def test_gitignore_keeps_secrets_and_pc_files_out_of_the_public_repo():
     lines = {line.strip() for line in (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()}
-    for needed in (".env", ".venv/", "data/", "output/", "dashboard/", "*.log", "backups/", "docs/history/",
+    # data/ stays out of the repo; since the Inspiration boards (round 13) it is written data/* with that one folder
+    # let back in, and nothing else.
+    assert "data/" in lines or ("data/*" in lines
+                                and [x for x in lines if x.startswith("!data/")] == ["!data/inspiration/"])
+    for needed in (".env", ".venv/", "output/", "dashboard/", "*.log", "backups/", "docs/history/",
                    "claude-*.md", "*-pytest*.txt", "*-dryrun*.txt", "*-export*.txt", "*-msg*.txt", "run-*.ps1",
                    "scripts/run-*.ps1"):
         assert needed in lines, needed

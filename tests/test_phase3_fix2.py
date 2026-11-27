@@ -281,7 +281,7 @@ def test_the_drafter_and_the_fact_checker_never_see_the_other_products(monkeypat
 
 def test_comparison_title_has_a_two_line_form_and_a_minimum_size():
     html_doc = carousel_render.gold_headline("EOS R8 MARK II vs EOS R8", 40, 120, 92)
-    assert 'data-min-size="56"' in html_doc
+    assert f'data-min-size="{carousel_render.COMPARISON_MIN_SIZE}"' in html_doc
     assert "data-alt-html" in html_doc and "vs EOS" in html_doc and "&lt;br&gt;" in html_doc
     assert "if (!m.ok && altHtml && minSize)" in carousel_render.FIT_SCRIPT
 

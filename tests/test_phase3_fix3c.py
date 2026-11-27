@@ -245,7 +245,7 @@ def cover_view(hook="ADD NEW LIGHT SOURCES TO A PHOTO", headline="PHOTOSHOP"):
 
 def tiles_in(html_doc: str):
     return [tuple(int(v) for v in m) for m in re.findall(
-        r'class="hero screen" style="left:(\d+)px;top:(\d+)px;width:(\d+)px;height:(\d+)px"', html_doc)]
+        r'class="hero screen[^"]*"(?: data-box="[^"]*")? style="left:(\d+)px;top:(\d+)px;width:(\d+)px;height:(\d+)px"', html_doc)]
 
 
 def overlaps(a, b) -> bool:
@@ -294,7 +294,7 @@ def test_the_cover_with_three_feature_images_is_a_collage_of_whole_tiles(tmp_pat
     for a, b in itertools.combinations(tiles, 2):
         assert not overlaps(a, b)
     for left, top, width, height in tiles:
-        assert left >= 64 and left + width <= 1016 and top + height <= carousel_render.HERO_BOTTOM
+        assert left >= 40 and left + width <= 1040 and top + height <= carousel_render.HERO_BOTTOM
     assert all(f"0{n}.png" in html_doc for n in (2, 3, 4)) and "01.png" not in html_doc
     assert "object-position" not in html_doc and "scale(" not in html_doc
 
@@ -428,17 +428,17 @@ def test_the_text_led_headline_fills_about_80_percent_of_the_width(headline):
     size = carousel_render.text_led_headline_size(headline)
     longest = max(len(line) for line in carousel_render.split_headline(headline))
     share = size * longest * carousel_render.HEADLINE_EM / 952
-    assert 0.7 <= share <= 0.9, (headline, size, share)
-    assert size >= 96
+    # Round 13: moderate text. The name fills up to about 80% of the width, capped at TEXT_LED_MAX_SIZE.
+    assert share <= 0.9 and (share >= 0.7 or size == carousel_render.TEXT_LED_MAX_SIZE), (headline, size, share)
+    assert 72 <= size <= carousel_render.TEXT_LED_MAX_SIZE
 
 
-def test_the_text_led_cyan_line_and_body_are_larger():
-    assert carousel_render.text_led_accent_size("ADD NEW LIGHT SOURCES") >= 48
-    assert carousel_render.text_led_accent_size("NOW CATCHES SHADOWS AND REFLECTIONS") >= 40
-    assert carousel_render.TEXT_LED_BODY_SIZE >= 34
+def test_the_text_led_cyan_line_and_body_are_moderate_and_readable():
+    assert 30 <= carousel_render.text_led_accent_size("ADD NEW LIGHT SOURCES") <= 40
+    assert 30 <= carousel_render.text_led_accent_size("NOW CATCHES SHADOWS AND REFLECTIONS") <= 40
+    assert 28 <= carousel_render.TEXT_LED_BODY_SIZE <= 32
     html_doc = carousel_render.text_led_body(feature_view())
-    assert re.search(r'class="abs body"[^>]*font-size:(\d+)px', html_doc)
-    assert int(re.search(r'class="abs body"[^>]*font-size:(\d+)px', html_doc).group(1)) >= 34
+    assert 28 <= int(re.search(r'class="abs body"[^>]*font-size:(\d+)px', html_doc).group(1)) <= 32
 
 
 @pytest.mark.parametrize("headline,body", [
@@ -454,7 +454,7 @@ def test_the_text_led_block_is_centred_with_balanced_space_and_no_large_empty_ar
     gap_above = rule_top - carousel_render.TEXT_LED_TOP
     gap_below = carousel_render.TEXT_LED_BOTTOM - (body_top + body_h)
     assert abs(gap_above - gap_below) <= 4  # balanced
-    assert gap_above <= 220 and gap_below <= 220  # no large empty area (the free area is 1092px tall)
+    assert gap_above <= 330 and gap_below <= 330  # no very large empty area (the free area is 1096px tall)
     assert gap_above >= 40  # but never pushed against the pill
 
 
@@ -478,12 +478,12 @@ def test_the_text_led_slide_fits_and_is_large_in_the_browser(tmp_path):
     assert problems == []
     boxes = measure[0]["boxes"]
     headline = next(b for b in boxes if b["name"] == "headline")
-    assert headline["right"] - headline["left"] >= 0.6 * 952  # fills most of the width (fallback fonts differ a little)
-    assert headline["size"] >= 100
+    assert headline["right"] - headline["left"] >= 0.45 * 952  # still a clear title (fallback fonts differ a little)
+    assert 72 <= headline["size"] <= carousel_render.TEXT_LED_MAX_SIZE
     body = next(b for b in boxes if b["text"].startswith("It detects"))
-    assert body["size"] >= 34
+    assert body["size"] >= 28
     accent = next(b for b in boxes if b["text"] == "ADD NEW LIGHT SOURCES")
-    assert accent["size"] >= 48 and accent["lines"] == 1
+    assert 30 <= accent["size"] <= 40 and accent["lines"] == 1
 
 
 # ---- 2b. the cover hook, with a second choice ----
