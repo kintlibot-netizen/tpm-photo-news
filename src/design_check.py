@@ -109,6 +109,7 @@ def check_slides(views: list[dict], measure_log: list | None = None) -> list[dic
         if measure_log and number - 1 < len(measure_log):
             findings += _measured(number, measure_log[number - 1]["boxes"])
             findings += image_vs_text(number, measure_log[number - 1])
+            findings += cta_image(number, view, measure_log[number - 1])
 
     if len(pill_tops) > 1:
         findings.append(_finding("FAIL", None, "pill position",
@@ -158,6 +159,17 @@ def image_vs_text(number: int, entry: dict) -> list[dict]:
     return [_finding("FAIL", number, "image bigger than text",
                      f"the image covers {image / slide:.0%} of the slide and the text {text / slide:.0%}; "
                      "the image must be bigger than the text")]
+
+
+CTA_TYPES = ("closing", "price")  # the call to action slides
+
+
+def cta_image(number: int, view: dict, entry: dict) -> list[dict]:
+    """Kint's rule: every slide has a real official graphic, the closing and call to action slides too."""
+    if view.get("type") in CTA_TYPES and not entry.get("images"):
+        return [_finding("FAIL", number, "official image",
+                         f"the {view['type']} slide shows no official image; every slide needs one")]
+    return []
 
 
 def check_contrast() -> list[dict]:

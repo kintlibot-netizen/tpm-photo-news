@@ -10,6 +10,7 @@ This guide is based on Kint's 6-slide Canon EOS R8 Mark II sample set (Sep 2026)
 ## 2. Common look (every slide)
 - **Background:** dark navy fading to black, with a **blue radial glow behind the product**.
 - **Image first (Kint's standing rule, Nov 27 2026, for every carousel from now on):** the official image is always bigger than the text. On every slide with an image, the image takes clearly more of the slide than the text: about 55 to 65 percent where the image allows (a product shot on a flat white or black background fills the full width image area on a card of its own colour), and a screenshot or busy photo is shown whole, edge to edge. The design check fails any slide whose text covers as much as its image.
+- **Every slide has a real official graphic (Kint, Nov 28 2026):** the YOUR TAKE closing slide shows the carousel's own official feature images (up to four, whole, in rows under a moderate question), and the price slide its official product image. The design check fails a closing or call to action slide with no official image.
 - **Headlines:** a heavy condensed or grotesk display font, bold but moderate (feature names about 72 to 84px, cover name about 100px, body about 27px), in white with **light-blue gradient** accent words. Never so big that the text competes with the image.
 - **Sublines:** UPPERCASE with wide letter-spacing.
 - **Body:** a clean sans-serif, one short line at most.

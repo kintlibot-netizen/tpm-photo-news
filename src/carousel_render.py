@@ -85,6 +85,12 @@ def slot_images(images_dir: Path, views: list[dict]) -> tuple[list[dict], list[s
         if view["type"] == "cover":
             slot["collage"] = [s["main"] for s, v in zip(slots, views)
                                if v["type"] == "feature" and s["main"] is not None]
+    # The closing slide shows the same official feature images as a grid (else the cover's own official image).
+    for slot, view in zip(slots, views):
+        if view["type"] == "closing":
+            features = [s["main"] for s, v in zip(slots, views) if v["type"] == "feature" and s["main"] is not None]
+            cover = [s["main"] for s, v in zip(slots, views) if v["type"] == "cover" and s["main"] is not None]
+            slot["collage"] = features or cover
     return slots, missing
 
 
@@ -719,32 +725,91 @@ def price_body(view: dict, slots: dict) -> str:
     return "".join(parts)
 
 
-CLOSING_HEADLINE_TOP, CLOSING_HEADLINE_H = 330, 260  # two lines of the question, centred in the upper third
-CLOSING_HEADLINE_SIZE = 96
-CLOSING_RECAP_TOP = 690  # the "In this post" rule, then the feature names
-CLOSING_RECAP_STEP = 62
-CLOSING_RECAP_STEP_5 = 56
+CLOSING_HEADLINE_SIZE = 72  # moderate: the official images are the biggest thing on the closing slide too
+CLOSING_HEADLINE_TOP = PILL_TOP + PILL_H + 30
+CLOSING_HEADLINE_H = round(2 * CLOSING_HEADLINE_SIZE * 0.93) + 24  # two lines of the question
 CLOSING_RECAP_MAX = 5
-CLOSING_CTA_TOP = 1150  # the call to action pill, clear of the footer at FOOTER_TOP
+CLOSING_CTA_TOP = 1236  # the call to action pill, clear of the footer at FOOTER_TOP
+CLOSING_GRID_LEFT, CLOSING_GRID_WIDTH = 40, 1000
+CLOSING_GRID_GAP = 16
+CLOSING_GRID_MAX = 4  # at most four official images (the first features, in slide order)
+
+
+def _closing_text_end() -> int:
+    return CLOSING_HEADLINE_TOP + CLOSING_HEADLINE_H + 10
+
+
+def _compositions(count: int):
+    """Every way to split count images into rows, in order: 3 -> (3,), (1, 2), (2, 1), (1, 1, 1)."""
+    if count == 0:
+        yield ()
+        return
+    for first in range(1, count + 1):
+        for rest in _compositions(count - first):
+            yield (first,) + rest
+
+
+def closing_grid(images: list[Path], top: int, bottom: int) -> list[tuple[Path, tuple[int, int, int, int]]]:
+    """The closing slide's official images as (image, box) pairs: the carousel's own feature images (Kint: every
+    slide has a real official graphic), each shown whole, in justified rows (the images of a row share one height and
+    fill the width together). Of every way to split them into rows the one where the images cover the most area is
+    used; the grid is scaled down to fit the space if needed and centred in it."""
+    images = [image for image in images if image is not None][:CLOSING_GRID_MAX]
+    if not images:
+        return []
+    aspects = [image_aspect(image) or 1.5 for image in images]
+    space = bottom - top
+    gap = CLOSING_GRID_GAP
+    best = None
+    for rows in _compositions(len(images)):
+        start, heights = 0, []
+        for size in rows:
+            row = aspects[start:start + size]
+            heights.append((CLOSING_GRID_WIDTH - (size - 1) * gap) / sum(row))
+            start += size
+        scale = min(1.0, (space - (len(rows) - 1) * gap) / sum(heights))
+        start, area = 0, 0.0
+        for size, height in zip(rows, heights):
+            area += sum((height * scale) ** 2 * a for a in aspects[start:start + size])
+            start += size
+        if best is None or area > best[0]:
+            best = (area, rows, heights, scale)
+    _, rows, heights, scale = best
+    total = sum(h * scale for h in heights) + (len(rows) - 1) * gap
+    y = top + (space - total) / 2
+    rects, start = [], 0
+    for size, height in zip(rows, heights):
+        h = height * scale
+        widths = [h * a for a in aspects[start:start + size]]
+        x = CLOSING_GRID_LEFT + (CLOSING_GRID_WIDTH - sum(widths) - (size - 1) * gap) / 2
+        for image, w in zip(images[start:start + size], widths):
+            rects.append((image, (round(x), round(y), round(w), round(h))))
+            x += w + gap
+        y += h + gap
+        start += size
+    return rects
+
+
+def closing_grid_top(view: dict) -> int:
+    lines = feature_lines(view.get("features") or [])[:2]
+    return _closing_text_end() + len(lines) * 36 + (24 if lines else 18)
 
 
 def closing_body(view: dict, slots: dict) -> str:
     """The last slide, a clear call to action: the pill, the question as a two-line headline (last line in the brand
-    gradient), a recap of the feature names already shown (one per line, light blue), the save and comment pill, and
-    the TPM name in the footer. Every line keeps the 64px safe margin, so nothing is cut off in the Facebook or
-    Instagram feed. No product image and no product fact: it is the same on every carousel."""
-    parts = [pill(view["label"], PILL_TOP), _glow(140, CLOSING_HEADLINE_TOP, 800, CLOSING_HEADLINE_H)]
+    gradient), the feature names already shown (at most two light-blue lines), a grid of the carousel's own official
+    feature images (the image takes more of the slide than the text, like every slide), the save and comment pill and
+    the TPM name in the footer. Every line keeps the 64px safe margin. No product fact."""
+    parts = [pill(view["label"], PILL_TOP)]
     parts.append(headline_box(view["headline"], CLOSING_HEADLINE_TOP, CLOSING_HEADLINE_H, CLOSING_HEADLINE_SIZE,
                               left=64, width=952, max_lines=2))
-    if view.get("features"):
-        parts.append(
-            f'<div class="abs quick-label" style="top:{CLOSING_RECAP_TOP}px;left:72px;width:936px">'
-            '<span class="rule"></span><span class="spaced cyan">In this post</span><span class="rule"></span></div>')
-        names = view["features"][:CLOSING_RECAP_MAX]
-        step = CLOSING_RECAP_STEP if len(names) <= 4 else CLOSING_RECAP_STEP_5  # 5 lines end at 1116, above the CTA
-        for index, name in enumerate(names):
-            parts.append(text_box("feat", name, CLOSING_RECAP_TOP + 64 + index * step, 48, 30,
-                                  left=64, width=952, safe=(64, 1016), max_lines=1))
+    y = _closing_text_end()
+    for number, line in enumerate(feature_lines((view.get("features") or [])[:CLOSING_RECAP_MAX])[:2]):
+        parts.append(text_box("feat", line, y + number * 36, 34, 24, left=64, width=952, safe=(64, 1016),
+                              max_lines=1))
+    tiles = closing_grid(slots.get("collage") or [], closing_grid_top(view), CLOSING_CTA_TOP - 28)
+    pairs = [hero_pair(image, *rect) for image, rect in tiles]
+    parts += [glow for glow, _ in pairs] + [element for _, element in pairs]
     parts.append(
         f'<div class="abs" style="top:{CLOSING_CTA_TOP}px;left:0;width:{WIDTH}px;text-align:center">'
         f'<span class="pill cta">{esc(view["cta"])}</span></div>')

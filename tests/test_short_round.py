@@ -97,8 +97,9 @@ def test_five_recap_lines_render_clear_of_the_call_to_action():
     view = carousel_plan.closing_view(views(5), design_check.MAX_SLIDES + 5)
     html = carousel_render.closing_body(view, {"main": None, "old": None})
     assert all(f"FEATURE {n}" in html for n in range(5))
-    last_top = carousel_render.CLOSING_RECAP_TOP + 72 + 4 * carousel_render.CLOSING_RECAP_STEP_5
-    assert last_top + 60 < carousel_render.CLOSING_CTA_TOP
+    # Image first (Nov 28 2026): the recap is at most two light-blue lines under the question, then the image grid.
+    assert html.count('class="abs feat"') <= 2
+    assert carousel_render.closing_grid_top(view) + 400 < carousel_render.CLOSING_CTA_TOP
     four = carousel_render.closing_body(carousel_plan.closing_view(views(4), 7), {"main": None, "old": None})
     assert "FEATURE 3" in four and "FEATURE 4" not in four
 

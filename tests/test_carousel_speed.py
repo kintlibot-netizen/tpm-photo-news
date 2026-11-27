@@ -259,7 +259,8 @@ def test_the_closing_slide_keeps_the_safe_margins_the_pill_and_the_footer():
     view = carousel_plan.closing_view(views_with(4), 7)
     html = carousel_render.closing_body(view, {"main": None, "old": None})
     assert "SAVE THIS POST. SHARE YOUR TAKE." in html and "THE PHOTO MENTORSHIP" in html and "<img" not in html
-    assert 'data-safe-left="64" data-safe-right="1016"' in html and "In this post" in html
+    assert 'data-safe-left="64" data-safe-right="1016"' in html
+    assert all(name in html for name in view["features"])  # the recap, as light-blue feature lines
     assert carousel_render.slide_layout(view) == {"pill_top": carousel_render.PILL_TOP,
                                                   "footer_top": carousel_render.FOOTER_TOP}
     assert carousel_render.template_key(view) == "closing"
@@ -267,7 +268,7 @@ def test_the_closing_slide_keeps_the_safe_margins_the_pill_and_the_footer():
                                                                    accent="X") for v in views_with(4)[1:]] + [view])
     assert not [f for f in findings if f["level"] == "FAIL"]
     assert "—" not in html and "–" not in html
-    assert carousel_render.slot_images(ROOT / "nowhere", [view]) == ([{"main": None, "old": None}], [])
+    assert carousel_render.slot_images(ROOT / "nowhere", [view]) == ([{"main": None, "old": None, "collage": []}], [])
 
 
 def test_a_build_ends_with_the_closing_slide_and_names_it_in_the_zip(tmp_path):

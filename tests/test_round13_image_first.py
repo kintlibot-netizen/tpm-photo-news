@@ -117,3 +117,43 @@ def test_two_word_cover_name_stays_on_one_line():
     assert r.cover_headline_mode("CANON EOS R8 MARK II") == "split"
     parts, _ = r._cover_text({"label": "ADOBE", "headline": "LIGHTROOM CLASSIC"})
     assert 'data-max-lines="1"' in parts[1] and "<br>" not in parts[1]
+
+
+def closing(features=("GLOW", "PICK A STYLE", "MOTION AND STREAK", "RANGE, SPREAD, WARMTH")):
+    return {"type": "closing", "label": "YOUR TAKE", "headline": "WHICH ONE WOULD YOU TRY FIRST?",
+            "features": list(features), "cta": "SAVE THIS POST. SHARE YOUR TAKE.", "footer": "THE PHOTO MENTORSHIP",
+            "product": None}
+
+
+def test_the_design_check_fails_a_closing_or_cta_slide_with_no_official_image():
+    # Kint (Nov 28 2026): every slide has a real official graphic, the YOUR TAKE and price slides too.
+    text_only = entry([], [(64, 200, 1016, 400)])
+    for view in (closing(), {"type": "price", "label": "PRICE"}):
+        findings = design_check.cta_image(7, view, text_only)
+        assert [(f["level"], f["rule"]) for f in findings] == [("FAIL", "official image")]
+    assert design_check.cta_image(7, closing(), entry([(40, 500, 1000, 600)], [(64, 200, 1016, 400)])) == []
+    assert design_check.cta_image(2, feature(), text_only) == []  # a text-led feature slide is its own rule
+    views = [feature()] * 3 + [closing()]
+    log = [entry([(0, 500, 1080, 800)], [(64, 200, 1016, 330)])] * 3 + [text_only]
+    assert design_check.has_failures(design_check.check_slides(views, log))
+
+
+def test_the_closing_slide_gets_the_feature_images_and_shows_them_bigger_than_its_text(tmp_path):
+    images = tmp_path / "images"
+    images.mkdir()
+    for number in (2, 3, 4, 5):
+        png(images / f"{number:02d}.png", 320, 180, busy_screenshot)
+    cover = {"type": "cover", "label": "ADOBE", "headline": "LIGHTROOM CLASSIC", "product": "Lightroom Classic"}
+    views = [cover] + [feature(headline=h) for h in ("GLOW", "PICK A STYLE", "MOTION", "RANGE")] + [closing()]
+    slots, _ = carousel_render.slot_images(images, views)
+    assert [p.name for p in slots[-1]["collage"]] == ["02.png", "03.png", "04.png", "05.png"]
+    tiles = carousel_render.closing_grid(slots[-1]["collage"], carousel_render.closing_grid_top(closing()),
+                                         carousel_render.CLOSING_CTA_TOP - 28)
+    assert len(tiles) == 4
+    for _, (left, top, width, height) in tiles:  # inside the 40px margins, under the text, above the CTA
+        assert left >= 40 and left + width <= 1040 and top >= carousel_render.closing_grid_top(closing())
+        assert top + height <= carousel_render.CLOSING_CTA_TOP - 28
+    log = render(tmp_path, [closing()], [slots[-1]])
+    image, text = design_check.areas(log[0])
+    assert len(log[0]["images"]) == 4 and image > 2 * text
+    assert design_check.cta_image(1, closing(), log[0]) == [] and design_check.image_vs_text(1, log[0]) == []
