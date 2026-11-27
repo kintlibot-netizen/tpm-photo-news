@@ -1,7 +1,7 @@
 # Fact-check: Skylum Luminar has been updated, and it’s made photo editing so much easier than before!
 
 Official source: https://skylum.com/newsroom/luminar-upgrades-its-tools-to-deliver-photographs-worth-printing-in-its-biggest-update-so-far-
-Checked on: 2026-11-24
+Checked on: 2026-11-28
 
 Every claim on the slides and in the captions is listed below. A claim marked NOT CONFIRMED was removed from the slides and captions.
 

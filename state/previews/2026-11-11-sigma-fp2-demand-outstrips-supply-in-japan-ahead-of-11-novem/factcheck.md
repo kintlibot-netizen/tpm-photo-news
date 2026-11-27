@@ -1,7 +1,7 @@
 # Fact-check: Sigma fp2 demand outstrips supply in Japan ahead of 11 November launch
 
 Official source: https://www.sigma-global.com/en/cameras/fp2/
-Checked on: 2026-11-25
+Checked on: 2026-11-28
 
 Every claim on the slides and in the captions is listed below. A claim marked NOT CONFIRMED was removed from the slides and captions.
 

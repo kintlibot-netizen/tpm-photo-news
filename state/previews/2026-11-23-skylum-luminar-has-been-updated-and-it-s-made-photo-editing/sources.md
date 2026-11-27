@@ -14,7 +14,7 @@ Images:
 - 04.png: present, slide 4
 - 05.png: present, slide 5
 - 06.png: present, slide 6
-- slide 1 hero: a collage of the official feature images 02.jpg, 03.jpg, 04.png (first one large, uncropped, same border and glow as the slides)
+- slide 1 hero: the first feature's official image 02.jpg, shown whole (a readable collage does not fit under the cover text)
 - made without Claude: the plan was written by Grok Bot from the official page and checked by code (quotes word for word, official images, lint, design check)
 - slide 02 (ENHANCE): official image placed as 02.jpg (2020x1340). Image: https://media.macphun.com/img/uploads/uploads/skylum/l/new-enhance-imgafter.jpg?q=75. Official page: https://skylum.com/luminar/enhance-ai-vs-new-enhance. no strip to trim, used as published. Image check (written by the plan author): passes every check. Skylum's own Enhance, Reimagined result photo (stone arch), alt text Enhance, Reimagined
 - slide 03 (ATMOSPHERE): official image placed as 03.jpg (2540x1500). Image: https://media.macphun.com/img/uploads/uploads/skylum/l/fall-upgrade-2026/possibilities/atmosphere-after-new-1.jpg. Official page: https://skylum.com/luminar. no strip to trim, used as published. Image check (written by the plan author): passes every check. Skylum's own Fall Update 2026 Atmosphere result: a city skyline with 3D fog, no printed text

@@ -16,7 +16,6 @@ Images:
 - 04.jpg: present, slide 4
 - 05.jpg: present, slide 5
 - 06.png: present, slide 6
-- slide 1 hero: a collage of the official feature images 03.png, 04.jpg (first one large, uncropped, same border and glow as the slides)
 - made without Claude: the plan was written by Grok Bot from the official page and checked by code (quotes word for word, official images, lint, design check)
 - slide 01 (cover): official image placed as 01.png (2560x1365). Image: https://www.sigma-global.com/cameras/images/fp2_lab_1.jpg. Official page: https://www.sigma-global.com/en/cameras/fp2/. uniform border trimmed, no content changed: 0px left, 0px right, 343px top, 0px bottom (plus 2px of soft edge on each trimmed side), 2560x1710 became 2560x1365. Image check (written by the plan author): passes every check. official Sigma FP2 product photo, camera body with lens, close up
 - slide 02 (24.5MP PARTIALLY STACKED): official image placed as 02.png (1000x1000). Image: https://www.sigma-global.com/cameras/images/01_PPhoto_FP_Beauty_front_1000px.png. Official page: https://www.sigma-global.com/en/cameras/fp2/. no strip to trim, used as published. Image check (written by the plan author): passes every check. official Sigma FP2 front view with the full frame sensor visible
