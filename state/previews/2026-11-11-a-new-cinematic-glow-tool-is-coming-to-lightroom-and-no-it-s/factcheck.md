@@ -1,7 +1,7 @@
 # Fact-check: A new cinematic glow tool is coming to Lightroom, and no, it’s not GenAI. These are the 4 biggest updates to Adobe Lightroom 2027
 
 Official source: https://community.adobe.com/announcements-678/lightroom-10-0-fix-blinks-shoot-tethered-and-add-cinematic-glow-1654101
-Checked on: 2026-11-25
+Checked on: 2026-11-28
 
 Every claim on the slides and in the captions is listed below. A claim marked NOT CONFIRMED was removed from the slides and captions.
 

@@ -1,7 +1,7 @@
 # Fact-check: Photoshop can now relight photos, and adjusting the camera angle is coming next. These are the 6 biggest updates in Photoshop 2027
 
 Official source: https://blog.adobe.com/en/publish/2026/11/10/explore-new-ways-create-across-creative-cloud-adobe-firefly-while-advancing-craft-precision-choice-control
-Checked on: 2026-11-24
+Checked on: 2026-11-28
 
 Every claim on the slides and in the captions is listed below. A claim marked NOT CONFIRMED was removed from the slides and captions.
 

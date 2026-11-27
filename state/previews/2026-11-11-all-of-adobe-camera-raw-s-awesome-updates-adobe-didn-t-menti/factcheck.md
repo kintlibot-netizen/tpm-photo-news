@@ -1,7 +1,7 @@
 # Fact-check: All of Adobe Camera RAW’s Awesome Updates Adobe Didn’t Mention
 
 Official source: https://community.adobe.com/announcements-561/adobe-camera-raw-19-0-is-here-motion-and-streak-glow-virtual-copies-and-batch-generative-remove-1653739
-Checked on: 2026-11-24
+Checked on: 2026-11-28
 
 Every claim on the slides and in the captions is listed below. A claim marked NOT CONFIRMED was removed from the slides and captions.
 

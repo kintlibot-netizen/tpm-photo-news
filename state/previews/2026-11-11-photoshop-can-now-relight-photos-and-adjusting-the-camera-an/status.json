@@ -11,9 +11,7 @@
     "confirmed": 20,
     "removed_count": 0,
     "removed": [],
-    "missing": [
-      "01.jpg"
-    ],
+    "missing": [],
     "placed": [
       "02.png",
       "03.jpg",
@@ -34,14 +32,14 @@
     "cover_collage": true,
     "closing": true,
     "timings": {
-      "official page": 0.0,
-      "official images (checked plan images)": 1.0,
-      "render slides (one browser for all)": 1.9,
+      "official page": 12.0,
+      "official images (checked plan images)": 5.4,
+      "render slides (one browser for all)": 2.9,
       "design check": 0.0,
-      "total": 3.0
+      "total": 20.4
     }
   },
-  "built_at": "2026-11-23T17:27:18+00:00",
+  "built_at": "2026-11-27T16:20:04+00:00",
   "posts": [],
   "made_by": "Grok Bot",
   "made_without_claude": true,

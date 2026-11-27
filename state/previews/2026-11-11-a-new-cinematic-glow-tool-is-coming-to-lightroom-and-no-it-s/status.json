@@ -32,14 +32,14 @@
     "cover_collage": true,
     "closing": true,
     "timings": {
-      "official page": 0.2,
-      "official images (checked plan images)": 2.7,
-      "render slides (one browser for all)": 3.5,
+      "official page": 1.2,
+      "official images (checked plan images)": 3.8,
+      "render slides (one browser for all)": 2.6,
       "design check": 0.0,
-      "total": 6.4
+      "total": 7.7
     }
   },
-  "built_at": "2026-11-24T17:29:07+00:00",
+  "built_at": "2026-11-27T16:21:06+00:00",
   "posts": [],
   "made_by": "Grok Bot",
   "made_without_claude": true,
