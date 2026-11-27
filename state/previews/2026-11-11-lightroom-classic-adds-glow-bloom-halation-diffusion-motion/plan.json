@@ -1,0 +1,152 @@
+{
+  "product": {
+    "text": "Lightroom Classic",
+    "quote": "Try the latest in Adobe Lightroom Classic"
+  },
+  "cover": {
+    "label": "ADOBE",
+    "headline": {
+      "text": "LIGHTROOM CLASSIC",
+      "quote": "Try the latest in Adobe Lightroom Classic"
+    },
+    "subline": {
+      "text": "NEW GLOW EFFECTS",
+      "quote": "Apply glow effects"
+    },
+    "subline_alt": {
+      "text": "CINEMATIC LIGHTING",
+      "quote": "Apply a cinematic lighting effect using the Glow effect"
+    }
+  },
+  "slides": [
+    {
+      "template": "left_body",
+      "label": "NEW",
+      "headline": {
+        "text": "GLOW",
+        "quote": "Glow effect gives a photo a soft, luminous look"
+      },
+      "accent": {
+        "text": "A SOFT, LUMINOUS LOOK",
+        "quote": "gives a photo a soft, luminous look"
+      },
+      "body": {
+        "text": "Light spreads outward from the highlights and bright light sources.",
+        "quote": "spreading light outward from the highlights and bright light sources"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "STYLES",
+      "headline": {
+        "text": "PICK A STYLE",
+        "quote": "Select any style of glow you want to add from the Style dropdown menu"
+      },
+      "accent": {
+        "text": "DIFFUSION, BLOOM, HALATION",
+        "quote": "Diffusion : Softens the whole image with a dreamy, luminous glow"
+      },
+      "body": {
+        "text": "Halation wraps highlights in a warm red or orange glow, like film.",
+        "quote": "Wraps highlights in a warm red or orange glow, like film halation"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "STYLES",
+      "headline": {
+        "text": "MOTION AND STREAK",
+        "quote": "Motion and Streak only) Set the angle of the light trail"
+      },
+      "accent": {
+        "text": "LIGHT TRAILS",
+        "quote": "Set the angle of the light trail"
+      },
+      "body": {
+        "text": "Motion stretches the glow one way, Streak in two opposite directions.",
+        "quote": "Stretches highlight glow in two opposite directions"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "SLIDERS",
+      "headline": {
+        "text": "RANGE, SPREAD, WARMTH",
+        "quote": "Use the sliders to adjust the Glow effect based on the selected Style"
+      },
+      "accent": {
+        "text": "CHOOSE WHICH TONES GLOW",
+        "quote": "Set which tones glow"
+      },
+      "body": {
+        "text": "Lower Range values keep the glow in the brightest highlights.",
+        "quote": "Lower values keep the glow in the brightest highlights"
+      },
+      "specs": []
+    },
+    {
+      "template": "left_body",
+      "label": "WHERE",
+      "headline": {
+        "text": "DEVELOP, THEN EFFECTS",
+        "quote": "select the Develop module, and then expand Effects from the Edit panel"
+      },
+      "accent": {
+        "text": "DRAG THE AMOUNT SLIDER",
+        "quote": "drag the Amount slider to add a soft, dreamy glow effect"
+      },
+      "body": {
+        "text": "Then pick a style and fine tune it with the sliders.",
+        "quote": "Use the sliders to adjust the Glow effect based on the selected Style"
+      },
+      "specs": []
+    }
+  ],
+  "comparison": null,
+  "price": null,
+  "captions": {
+    "david": {
+      "hook": {
+        "text": "I can't stop playing with Glow.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "Motion stretches the glow in one direction for a feeling of movement.",
+          "quote": "Stretches the glow in one direction to add a feeling of movement"
+        },
+        {
+          "text": "Halation wraps highlights in a warm red or orange glow, like film halation.",
+          "quote": "Wraps highlights in a warm red or orange glow, like film halation"
+        }
+      ],
+      "closing": {
+        "text": "Which style would you try on your next golden hour shoot?",
+        "quote": ""
+      }
+    },
+    "tpm": {
+      "hook": {
+        "text": "We think photographers will love this one.",
+        "quote": ""
+      },
+      "facts": [
+        {
+          "text": "Glow is good for dreamy, atmospheric, film-like or nostalgic edits.",
+          "quote": "good for dreamy, atmospheric, film-like, or nostalgic edits"
+        },
+        {
+          "text": "Pick Diffusion, Bloom, Halation, Motion or Streak from the Style menu.",
+          "quote": "Select any style of glow you want to add from the Style dropdown menu"
+        }
+      ],
+      "closing": {
+        "text": "Which glow style fits your work best?",
+        "quote": ""
+      }
+    }
+  }
+}
