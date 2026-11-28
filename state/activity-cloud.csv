@@ -308,3 +308,6 @@ time,type,outcome,details,who
 2026-11-28T07:23:46+08:00,check,ok,"Live check: 276 articles read, 175 in the time window, 11 passed the free rules, 0 alerts sent, 23 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-28T10:55:37+08:00,check,ok,"Live check: 276 articles read, 174 in the time window, 10 passed the free rules, 0 alerts sent, 23 rumors waiting for a 2nd source, 0 feeds failed",
 2026-11-28T15:37:56+08:00,check,ok,"Live check: 276 articles read, 174 in the time window, 11 passed the free rules, 0 alerts sent, 24 rumors waiting for a 2nd source, 0 feeds failed",
+2026-11-28T20:15:13+08:00,alert,sent,OFFICIAL: Fujifilm GFX100RF firmware 1.14 released,
+2026-11-28T20:15:13+08:00,carousel,waiting for a carousel,"Story 87, Fujifilm GFX100RF firmware 1.14 released: Waiting for a carousel. It is made by hand from the official page, then Kint reviews it.",
+2026-11-28T20:15:13+08:00,check,ok,"Live check: 276 articles read, 171 in the time window, 11 passed the free rules, 1 alerts sent, 24 rumors waiting for a 2nd source, 0 feeds failed",
